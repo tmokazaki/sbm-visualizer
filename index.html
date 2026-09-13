@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NASA SBM - 0-15 Min Collision Visualizer (Simple Engine)</title>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 18, 30, 0.90);
+      --panel-border: rgba(56, 189, 248, 0.25);
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #viewport {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .overlay {
+      position: absolute;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Header */
+    header {
+      top: 14px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title-box {
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 18px;
+    }
+
+    .title-box h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .title-box p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Floating Panels */
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.82rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Left Sidebar: Controls */
+    .control-panel {
+      top: 72px;
+      left: 18px;
+      width: 320px;
+      bottom: 96px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--panel-border) transparent;
+    }
+
+    .panel-section {
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .panel-section:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 0.70rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-row {
+      margin-bottom: 5px;
+    }
+
+    .control-row label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+      font-size: 0.74rem;
+      color: var(--text);
+    }
+
+    .control-row label span.val {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+    }
+
+    .btn.active {
+      background: var(--accent);
+      color: #05101a;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Right Sidebar: Telemetry & Inspector */
+    .telemetry-panel {
+      top: 72px;
+      right: 18px;
+      width: 300px;
+      bottom: 96px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--panel-border) transparent;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .metric-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 5px;
+      padding: 7px 9px;
+    }
+
+    .metric-card .m-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .metric-card .m-val {
+      font-size: 0.95rem;
+      font-family: ui-monospace, monospace;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    .tag-catastrophic {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .tag-catastrophic.yes {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    .tag-catastrophic.no {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+      border: 1px solid var(--warning);
+    }
+
+    /* Fragment Sample Table */
+    .frag-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+      margin-top: 6px;
+    }
+    .frag-table th {
+      color: var(--accent);
+      text-align: left;
+      padding: 4px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .frag-table td {
+      padding: 4px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text);
+    }
+
+    /* Bottom Timeline */
+    .timeline-bar {
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(780px, calc(100vw - 36px));
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 8px 18px;
+      z-index: 20;
+    }
+
+    .timeline-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .play-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: #05101a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .time-display {
+      font-family: ui-monospace, monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      min-width: 110px;
+    }
+
+    .time-slider-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .timeline-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .timeline-mode-toggles {
+      display: flex;
+      gap: 4px;
+    }
+
+    .timeline-mode-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .timeline-mode-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: #fff;
+    }
+
+    .timeline-mode-btn.active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .slider-track-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .slider-ruler {
+      position: relative;
+      width: 100%;
+      height: 16px;
+      margin-top: 2px;
+    }
+
+    .ruler-mark {
+      position: absolute;
+      transform: translateX(-50%);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .ruler-mark.impact {
+      color: #ff3344;
+      font-weight: 800;
+    }
+
+    .ruler-mark.impact::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 7px;
+      background: #ff3344;
+      box-shadow: 0 0 8px #ff3344;
+    }
+
+    .cam-btn-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .contour-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-top: 6px;
+    }
+
+    .contour-title {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .contour-bands {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 2px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 3px;
+    }
+
+    .contour-band {
+      height: 19px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.60rem;
+      font-family: ui-monospace, monospace;
+      font-weight: 800;
+      color: #05101a;
+      text-align: center;
+    }
+
+    .contour-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .weight-ratio-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 6px;
+      padding: 5px 8px;
+      margin-top: 6px;
+      font-size: 0.68rem;
+    }
+
+    .weight-dot {
+      display: inline-block;
+      border-radius: 50%;
+      background: #38bdf8;
+      vertical-align: middle;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Gabbard Diagram Floating Window */
+    .gabbard-window {
+      position: absolute;
+      bottom: 96px;
+      right: 330px;
+      width: 550px;
+      background: rgba(10, 16, 28, 0.95);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--accent);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      z-index: 50;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .gabbard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 6px;
+    }
+
+    .win-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text);
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      transition: all 0.15s ease;
+    }
+    .win-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fff;
+    }
+
+    .gabbard-metrics-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .gabbard-canvas-wrapper {
+      position: relative;
+      background: rgba(4, 7, 13, 0.85);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    #gabbard-canvas {
+      display: block;
+      width: 100%;
+      height: 250px;
+    }
+
+    .gabbard-tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 0.68rem;
+      font-family: ui-monospace, monospace;
+      color: #fff;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+
+    .gabbard-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+    }
+  </style>
+
+  <!-- Local libraries (No CDN / Internet required) -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="viewport"></div>
+
+  <!-- Header -->
+  <header class="overlay">
+    <div class="title-box interactive">
+      <h1>NASA Breakup Model Visualizer <span class="badge">Built-in Simple Engine</span></h1>
+      <p>0–15 minute satellite collision, fragment yield & orbital dispersion</p>
+    </div>
+    <div class="header-actions interactive" style="display: flex; gap: 8px;">
+      <button class="btn active" id="btn-toggle-gabbard" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(56, 189, 248, 0.2); border-color: var(--accent); color: #fff;">
+        <span>📊 Gabbard Diagram</span>
+      </button>
+      <button class="btn active" id="btn-toggle-volumes" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(56, 189, 248, 0.2); border-color: var(--accent); color: #fff;">
+        <span>🌐 Hazard Volumes</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Controls: Model & Engine Parameters -->
+  <aside class="overlay control-panel panel interactive">
+    <div class="panel-section">
+      <div class="section-title">1. Collision Setup</div>
+      
+      <div class="control-row">
+        <label>Target Mass (M₁) <span class="val" id="val-m1">1,000 kg</span></label>
+        <input type="range" id="param-m1" min="100" max="5000" step="50" value="1000">
+      </div>
+
+      <div class="control-row">
+        <label>Projectile Mass (M₂) <span class="val" id="val-m2">100 kg</span></label>
+        <input type="range" id="param-m2" min="1" max="500" step="5" value="100">
+      </div>
+
+      <div class="control-row">
+        <label>Impact Speed (v_imp) <span class="val" id="val-vimp">10.0 km/s</span></label>
+        <input type="range" id="param-vimp" min="1.0" max="16.0" step="0.5" value="10.0">
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label>Object Shapes</label>
+        <div class="btn-group">
+          <button class="btn active" id="shape-sphere">Spheres</button>
+          <button class="btn" id="shape-box">Satellite Boxes</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">2. Simple Engine Rules</div>
+
+      <div class="control-row">
+        <label>Fragment Resolution <span class="val" id="val-nfrags">1,500</span></label>
+        <input type="range" id="param-nfrags" min="100" max="3000" step="100" value="1500">
+      </div>
+
+      <div class="control-row">
+        <label>Size Skew (Power-Law) <span class="val" id="val-skew">1.71</span></label>
+        <input type="range" id="param-skew" min="1.1" max="2.5" step="0.05" value="1.71">
+        <div style="font-size: 0.68rem; color: var(--text-muted);">Higher = far more tiny shards than large chunks</div>
+      </div>
+
+      <div class="control-row">
+        <label>Light-to-Heavy Speed Bias <span class="val" id="val-speedbias">0.60</span></label>
+        <input type="range" id="param-speedbias" min="0.1" max="1.0" step="0.05" value="0.60">
+        <div style="font-size: 0.68rem; color: var(--text-muted);">Higher = light pieces fly significantly faster</div>
+      </div>
+
+      <div class="control-row">
+        <label>Blast Direction Pattern</label>
+        <div class="btn-group">
+          <button class="btn active" id="blast-sphere">Spherical Burst</button>
+          <button class="btn" id="blast-cone">Forward Impact Cone</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">3. Speed Contour & Density Analytics</div>
+      
+      <div class="btn-group">
+        <button class="btn active" id="color-contour">Speed Contours</button>
+        <button class="btn" id="color-density">Density Heatmap (ρ)</button>
+      </div>
+      <div class="btn-group" style="margin-top: 4px;">
+        <button class="btn" id="color-smooth">Smooth Gradient</button>
+        <button class="btn" id="color-origin">Parent Origin</button>
+      </div>
+
+      <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+        <label style="font-size: 0.70rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="check-volumes" checked style="accent-color: var(--accent); cursor: pointer;">
+          <span>Show 1σ / 2σ Hazard Shells</span>
+        </label>
+        <button class="btn" id="cam-reset" style="padding: 2px 7px; font-size: 0.68rem;">Reset Cam</button>
+      </div>
+
+      <!-- Dynamic Contour / Density Legend Box -->
+      <div class="contour-box" id="legend-container">
+        <div class="contour-title">
+          <span id="legend-title">Speed Iso-Contours (Δv)</span>
+          <span style="font-size: 0.62rem; color: #fff;" id="legend-unit">m/s</span>
+        </div>
+        <div class="contour-bands" id="legend-bands">
+          <div class="contour-band" style="background: #3b82f6;" title="< 250 m/s">&lt;250</div>
+          <div class="contour-band" style="background: #06b6d4;" title="250 - 500 m/s">500</div>
+          <div class="contour-band" style="background: #10b981;" title="500 - 1000 m/s">1.0k</div>
+          <div class="contour-band" style="background: #eab308;" title="1000 - 1500 m/s">1.5k</div>
+          <div class="contour-band" style="background: #f97316;" title="1500 - 2000 m/s">2.0k</div>
+          <div class="contour-band" style="background: #ef4444;" title="> 2000 m/s">&gt;2.0k</div>
+        </div>
+        <div class="contour-labels" id="legend-labels">
+          <span style="color: #3b82f6;">Slow Core</span>
+          <span style="color: #10b981;">Mid Shell</span>
+          <span style="color: #ef4444;">Hypersonic Bubble</span>
+        </div>
+      </div>
+
+      <!-- Weight-to-Size Ratio Indicator -->
+      <div class="weight-ratio-info">
+        <div>
+          <strong style="color: #fff;">Weight Ratio Scaling:</strong><br>
+          <span style="color: var(--text-muted); font-size: 0.68rem;">Linear Size R ∝ ∛Mass (Physical Volume Ratio)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span class="weight-dot" style="width: 5px; height: 5px;" title="Light Shard (~50g)"></span>
+          <span class="weight-dot" style="width: 11px; height: 11px;" title="Medium Shell (~2kg)"></span>
+          <span class="weight-dot" style="width: 20px; height: 20px;" title="Heavy Core (~50kg)"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right Sidebar: Live Engine Telemetry & Inspector -->
+  <aside class="overlay telemetry-panel panel interactive">
+    <div class="section-title">Live Engine Telemetry</div>
+    
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="m-label">Impact Energy</div>
+        <div class="m-val" id="telemetry-energy">50.0 kJ/kg</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Outcome</div>
+        <div style="margin-top: 2px;">
+          <span class="tag-catastrophic yes" id="telemetry-class">Catastrophic</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Destroyed Mass</div>
+        <div class="m-val" id="telemetry-mass">1,100 kg</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Max Δv Kick</div>
+        <div class="m-val" id="telemetry-maxdv">2.4 km/s</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Cloud Width (Y)</div>
+        <div class="m-val" id="telemetry-width">0.0 km</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Stage</div>
+        <div class="m-val" style="font-size: 0.8rem; color: var(--accent);" id="telemetry-stage">Pre-Impact</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Peak Density (ρ)</div>
+        <div class="m-val" style="color: #f43f5e;" id="telemetry-density">0.0 /km³</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Re-entry Risk</div>
+        <div class="m-val" style="color: #fb923c;" id="telemetry-reentry">0 (0.0%)</div>
+      </div>
+    </div>
+
+    <!-- Fragment Samples Inspector -->
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+      <div class="section-title">Fragment Yield by Weight & Speed</div>
+      <table class="frag-table">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Weight</th>
+            <th>Size Ratio</th>
+            <th>Speed</th>
+            <th>Contour</th>
+          </tr>
+        </thead>
+        <tbody id="frag-sample-body">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
+      <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 6px;">
+        • <strong style="color: #3b82f6;">Heavy core:</strong> high weight ratio, slow & clustered.<br>
+        • <strong style="color: #ef4444;">Light shards:</strong> low weight ratio, fast outer contour shell.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Bottom Timeline -->
+  <footer class="overlay timeline-bar panel interactive">
+    <div class="timeline-top-row">
+      <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+        <span style="text-transform: uppercase; font-weight: 700; color: var(--accent);">Timeline Mode:</span>
+        <div class="timeline-mode-toggles">
+          <button class="timeline-mode-btn active" id="mode-zoom">Impact Zoom (-10s to +30s)</button>
+          <button class="timeline-mode-btn" id="mode-full">Full 15-Min Orbit</button>
+        </div>
+      </div>
+      <div style="font-size: 0.72rem; color: var(--text-muted);">
+        Collision Pin: <span style="color:#ff3344; font-weight:bold;">T = 0.0s [Impact]</span>
+      </div>
+    </div>
+
+    <div class="timeline-controls">
+      <button class="play-btn" id="btn-play">▶</button>
+      
+      <div class="time-display" id="time-display">T -05.0s</div>
+
+      <div class="time-slider-wrapper">
+        <div class="slider-track-container">
+          <input type="range" id="time-slider" min="-10" max="30" step="0.1" value="-5">
+        </div>
+        <div class="slider-ruler" id="slider-ruler">
+          <!-- Populated dynamically with mathematically exact coordinates -->
+        </div>
+      </div>
+
+      <div class="cam-btn-group">
+        <button class="btn active" id="speed-1x">1×</button>
+        <button class="btn" id="speed-5x">5×</button>
+        <button class="btn" id="speed-20x">20×</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Interactive Gabbard Diagram Window -->
+  <div id="gabbard-window" class="overlay panel interactive gabbard-window">
+    <div class="gabbard-header" id="gabbard-drag-handle">
+      <div class="gabbard-title">
+        <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span>📊 Gabbard Diagram</span>
+          <span class="badge" style="font-size: 0.62rem;">Orbital Period vs Altitude</span>
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="win-btn" id="btn-gabbard-min" title="Minimize / Restore">—</button>
+        <button class="win-btn" id="btn-gabbard-close" title="Close">✕</button>
+      </div>
+    </div>
+
+    <div id="gabbard-body">
+      <!-- Gabbard Sub-bar / Key Metrics -->
+      <div class="gabbard-metrics-bar">
+        <span>Ref: <strong>h₀ = 500 km</strong> (T₀ = 94.6m)</span>
+        <span>Max Apogee: <strong id="gabbard-max-ha" style="color: #38bdf8;">-- km</strong></span>
+        <span>Re-entry Risk: <strong id="gabbard-reentry-count" style="color: #ef4444;">--</strong></span>
+      </div>
+
+      <!-- Canvas Container -->
+      <div class="gabbard-canvas-wrapper" id="gabbard-canvas-box">
+        <canvas id="gabbard-canvas" width="540" height="240"></canvas>
+        <div id="gabbard-tooltip" class="gabbard-tooltip" style="display: none;"></div>
+      </div>
+
+      <div class="gabbard-footer">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8;"></span>
+            <span>Apogee (h<sub>a</sub>)</span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f97316;"></span>
+            <span>Perigee (h<sub>p</sub>)</span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 4px;">
+            <span style="display: inline-block; width: 12px; height: 2px; background: #ef4444;"></span>
+            <span style="color: #ef4444;">Re-entry &lt;120km</span>
+          </span>
+        </div>
+        <div style="font-size: 0.64rem; color: var(--text-muted);">
+          Hover point to inspect & highlight in 3D
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. ORBITAL & SCALING PARAMETERS
+       ========================================================================= */
+    const SCALE = 0.01; // 1 Three.js unit = 100 meters
+    const OMEGA = 0.001064; // ~1.064e-3 rad/s (Orbital mean motion at ~700 km LEO)
+
+    /* =========================================================================
+       2. THREE.JS SCENE SETUP
+       ========================================================================= */
+    const container = document.getElementById('viewport');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x07090e, 0.00025);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 40000);
+    camera.position.set(65, 45, 80);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxDistance = 25000;
+    controls.minDistance = 2;
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.3);
+    sunLight.position.set(200, 400, 300);
+    scene.add(sunLight);
+
+    // Starfield Background
+    const starGeo = new THREE.BufferGeometry();
+    const starCoords = new Float32Array(2500 * 3);
+    for (let i = 0; i < starCoords.length; i += 3) {
+      const r = 20000;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random() * 2 - 1);
+      starCoords[i] = r * Math.sin(phi) * Math.cos(theta);
+      starCoords[i+1] = r * Math.sin(phi) * Math.sin(theta);
+      starCoords[i+2] = r * Math.cos(phi);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starCoords, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x7799bb, size: 2 })));
+
+    // Distant Earth Curve
+    const earthRadius = 6378e3 * SCALE;
+    const earthMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(earthRadius, 48, 48),
+      new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.9 })
+    );
+    earthMesh.position.set(-(6378e3 + 700e3) * SCALE, 0, 0);
+    scene.add(earthMesh);
+
+    // Reference Grid (In-track Y vs Cross-track Z)
+    const grid = new THREE.GridHelper(500, 50, 0x38bdf8, 0x1e293b);
+    grid.rotation.x = Math.PI / 2;
+    scene.add(grid);
+
+    // Coordinate Axes (X = Radial, Y = In-track, Z = Cross-track)
+    scene.add(new THREE.AxesHelper(35));
+
+    // 3D Hazard Volumetric Envelopes (1σ Core & 2σ Secondary Hazard Boundary)
+    const hazardSphereGeo = new THREE.SphereGeometry(1.0, 32, 16);
+    
+    // 1-sigma Core Hazard Shell (Red wireframe + faint volume)
+    const coreHazardGroup = new THREE.Group();
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false
+    });
+    const coreWireMat = new THREE.MeshBasicMaterial({
+      color: 0xff3344,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.40,
+      depthWrite: false
+    });
+    coreHazardGroup.add(new THREE.Mesh(hazardSphereGeo, coreMat));
+    coreHazardGroup.add(new THREE.Mesh(hazardSphereGeo, coreWireMat));
+    coreHazardGroup.visible = false;
+    scene.add(coreHazardGroup);
+
+    // 2-sigma Secondary Hazard Boundary (Cyan/Blue wireframe shell)
+    const secondaryHazardGroup = new THREE.Group();
+    const secMat = new THREE.MeshBasicMaterial({
+      color: 0x06b6d4,
+      transparent: true,
+      opacity: 0.05,
+      depthWrite: false
+    });
+    const secWireMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false
+    });
+    secondaryHazardGroup.add(new THREE.Mesh(hazardSphereGeo, secMat));
+    secondaryHazardGroup.add(new THREE.Mesh(hazardSphereGeo, secWireMat));
+    secondaryHazardGroup.visible = false;
+    scene.add(secondaryHazardGroup);
+
+    // 3D Highlight Marker for fragment inspected in Gabbard diagram
+    const highlightGeo = new THREE.RingGeometry(1.2, 1.8, 32);
+    const highlightMat = new THREE.MeshBasicMaterial({
+      color: 0xfacc15,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: false
+    });
+    const highlightRing = new THREE.Mesh(highlightGeo, highlightMat);
+    highlightRing.visible = false;
+    scene.add(highlightRing);
+
+    let showHazardVolumes = true;
+    let hoveredFragId = null;
+
+    /* =========================================================================
+       3. OBJECT MODELS & FLASH EFFECT
+       ========================================================================= */
+    let currentShape = 'sphere';
+    let blastMode = 'sphere'; // 'sphere' or 'cone'
+    let targetRadius = 4.5;
+    let projRadius = 3.0;
+
+    const targetGroup = new THREE.Group();
+    const projectileGroup = new THREE.Group();
+    scene.add(targetGroup);
+    scene.add(projectileGroup);
+
+    // Exact approach vector for projectile
+    const dirProj = new THREE.Vector3(-0.55, 0.75, -0.35).normalize();
+
+    // Trajectory guide lines for approach
+    const targetTrailGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, -65, 0),
+      new THREE.Vector3(0, 0, 0)
+    ]);
+    const targetTrail = new THREE.Line(targetTrailGeo, new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 2.5, gapSize: 1.5 }));
+    targetTrail.computeLineDistances();
+    scene.add(targetTrail);
+
+    const projTrailGeo = new THREE.BufferGeometry().setFromPoints([
+      dirProj.clone().multiplyScalar(65),
+      new THREE.Vector3(0, 0, 0)
+    ]);
+    const projTrail = new THREE.Line(projTrailGeo, new THREE.LineDashedMaterial({ color: 0xf97316, dashSize: 2.5, gapSize: 1.5 }));
+    projTrail.computeLineDistances();
+    scene.add(projTrail);
+
+    // Collision Flash & Shockwave
+    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 });
+    const flashMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), flashMat);
+    scene.add(flashMesh);
+
+    const ringGeo = new THREE.RingGeometry(0.5, 1.5, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = Math.PI / 2;
+    scene.add(ringMesh);
+
+    function buildModels() {
+      while(targetGroup.children.length > 0) targetGroup.remove(targetGroup.children[0]);
+      while(projectileGroup.children.length > 0) projectileGroup.remove(projectileGroup.children[0]);
+
+      const m1 = parseFloat(document.getElementById('param-m1').value);
+      const m2 = parseFloat(document.getElementById('param-m2').value);
+
+      targetRadius = 4.5 * Math.cbrt(m1 / 1000.0);
+      projRadius = 3.0 * Math.cbrt(m2 / 100.0);
+      const r1 = targetRadius;
+      const r2 = projRadius;
+
+      if (currentShape === 'sphere') {
+        // Target: Glowing Blue Sphere
+        const mat1 = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.35,
+          metalness: 0.6,
+          roughness: 0.2
+        });
+        const sphere1 = new THREE.Mesh(new THREE.SphereGeometry(r1, 32, 32), mat1);
+        targetGroup.add(sphere1);
+
+        // Projectile: Glowing Orange Sphere
+        const mat2 = new THREE.MeshStandardMaterial({
+          color: 0xf97316,
+          emissive: 0xea580c,
+          emissiveIntensity: 0.45,
+          metalness: 0.7,
+          roughness: 0.2
+        });
+        const sphere2 = new THREE.Mesh(new THREE.SphereGeometry(r2, 32, 32), mat2);
+        projectileGroup.add(sphere2);
+      } else {
+        // Target: Satellite Bus with Blue Solar Panels
+        const busMat = new THREE.MeshStandardMaterial({
+          color: 0xe2e8f0,
+          metalness: 0.8,
+          roughness: 0.2,
+          emissive: 0x1e293b
+        });
+        const panelMat = new THREE.MeshStandardMaterial({
+          color: 0x1d4ed8,
+          emissive: 0x1e40af,
+          emissiveIntensity: 0.4,
+          metalness: 0.5,
+          roughness: 0.2
+        });
+
+        const bus = new THREE.Mesh(new THREE.BoxGeometry(r1 * 1.4, r1 * 1.4, r1 * 1.4), busMat);
+        const panels = new THREE.Mesh(new THREE.BoxGeometry(r1 * 0.15, r1 * 4.5, r1 * 1.5), panelMat);
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, r1 * 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        antenna.position.x = r1;
+        antenna.rotation.z = Math.PI / 2;
+
+        targetGroup.add(bus);
+        targetGroup.add(panels);
+        targetGroup.add(antenna);
+
+        // Projectile: Heavy orange payload cube with antenna
+        const projMat = new THREE.MeshStandardMaterial({
+          color: 0xf97316,
+          emissive: 0xc2410c,
+          emissiveIntensity: 0.35,
+          metalness: 0.8,
+          roughness: 0.2
+        });
+        const projBox = new THREE.Mesh(new THREE.BoxGeometry(r2 * 1.5, r2 * 1.5, r2 * 1.5), projMat);
+        projectileGroup.add(projBox);
+      }
+    }
+
+    /* =========================================================================
+       4. BUILT-IN SIMPLE BREAKUP ENGINE
+       ========================================================================= */
+    let fragments = [];
+    let instancedFragments = null;
+
+    function runSimpleEngine() {
+      const M1 = parseFloat(document.getElementById('param-m1').value);
+      const M2 = parseFloat(document.getElementById('param-m2').value);
+      const v_imp_kms = parseFloat(document.getElementById('param-vimp').value);
+      const v_imp = v_imp_kms * 1000.0; // m/s
+      const N_samples = parseInt(document.getElementById('param-nfrags').value);
+      const skew = parseFloat(document.getElementById('param-skew').value);
+      const speedBias = parseFloat(document.getElementById('param-speedbias').value);
+
+      // Impact Energy & Catastrophic Check
+      const Ep = (M2 * Math.pow(v_imp, 2)) / (2 * M1); // J/kg
+      const Ep_kJ = Ep / 1000.0;
+      const isCatastrophic = Ep >= 40000.0; // 40 kJ/kg threshold
+
+      // Mass destroyed
+      const M_destroyed = isCatastrophic ? (M1 + M2) : Math.min(M1 + M2, M2 * (1.0 + Math.pow(v_imp_kms / 2.0, 1.5)));
+
+      // Update UI Telemetry
+      document.getElementById('telemetry-energy').textContent = Ep_kJ.toFixed(1) + ' kJ/kg';
+      const classElem = document.getElementById('telemetry-class');
+      classElem.textContent = isCatastrophic ? 'Catastrophic' : 'Partial/Crater';
+      classElem.className = 'tag-catastrophic ' + (isCatastrophic ? 'yes' : 'no');
+      document.getElementById('telemetry-mass').textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
+
+      fragments = [];
+      let totalRawMass = 0;
+      const rawMasses = [];
+      const sizes = [];
+
+      function randNormal() {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      }
+
+      // 1. Generate Fragment Sizes & Masses using Power-Law
+      for (let i = 0; i < N_samples; i++) {
+        // Power-law sampling for size (Lc from ~0.01m to 1.5m)
+        const u = Math.random();
+        const Lc = 0.01 * Math.pow(1.0 - u * 0.995, -1.0 / skew);
+        sizes.push(Lc);
+
+        // Mass loosely scales with size (thin plate / irregular chunk: mass ~ Lc^2.3)
+        const rawM = Math.pow(Lc, 2.3);
+        rawMasses.push(rawM);
+        totalRawMass += rawM;
+      }
+
+      // 2. Normalize Masses to conserve M_destroyed, and calculate Ejection Velocity (Δv)
+      let maxSpeed = 0;
+      const sampleList = [];
+
+      // Orbital Reference Constants for Gabbard Diagram & Re-entry Analysis:
+      const R_EARTH = 6378137.0; // m
+      const H_REF = 500000.0;    // 500 km
+      const R_REF = R_EARTH + H_REF;
+      const GM_EARTH = 3.986004418e14; // m^3/s^2
+      const V_REF = Math.sqrt(GM_EARTH / R_REF); // ~7612.6 m/s
+      const T_REF_MIN = (2 * Math.PI * Math.sqrt(Math.pow(R_REF, 3) / GM_EARTH)) / 60.0; // ~94.62 min
+
+      for (let i = 0; i < N_samples; i++) {
+        const mass_kg = (rawMasses[i] / totalRawMass) * M_destroyed;
+        const Lc = sizes[i];
+
+        // Ejection Speed based on NASA SBM EVOLVE 4.0:
+        // log10(Δv) ~ μ(Lc) + σ * N(0,1)
+        // Lighter fragments (small Lc) get hypersonic kicks (> 2 km/s), heavy fragments stay clustered (< 250 m/s)
+        const logLc = Math.log10(Lc);
+        const mu = 2.02 - 0.58 * logLc * (speedBias / 0.60);
+        const sigma = 0.16;
+        const logDv = mu + sigma * randNormal();
+        const speed = Math.max(30, Math.min(3200, Math.pow(10, logDv) * (v_imp / 10000.0)));
+
+        if (speed > maxSpeed) maxSpeed = speed;
+
+        // Ejection Direction
+        let dirX, dirY, dirZ;
+        if (blastMode === 'sphere') {
+          // Uniform isotropic direction
+          const phi = Math.random() * Math.PI * 2;
+          const cosT = (Math.random() * 2) - 1;
+          const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT));
+          dirX = sinT * Math.cos(phi);
+          dirY = sinT * Math.sin(phi);
+          dirZ = cosT;
+        } else {
+          // Forward impact cone (+Y along projectile motion + random spread)
+          const coneAngle = 0.8; // radians
+          const phi = Math.random() * Math.PI * 2;
+          const theta = Math.random() * coneAngle;
+          dirX = Math.sin(theta) * Math.cos(phi);
+          dirY = Math.cos(theta); // bias along +Y
+          dirZ = Math.sin(theta) * Math.sin(phi);
+        }
+
+        const origin = Math.random() < (M1 / (M1 + M2)) ? 0 : 1;
+
+        // Inertial velocity vector at breakup (LVLH frame to Inertial)
+        // vx: Radial, vy: In-track, vz: Cross-track
+        const vx_inertial = dirX * speed;
+        const vy_inertial = V_REF + dirY * speed;
+        const vz_inertial = dirZ * speed;
+        const v_mag_sq = vx_inertial * vx_inertial + vy_inertial * vy_inertial + vz_inertial * vz_inertial;
+
+        // Specific orbital energy: E = v^2/2 - mu/r
+        const spec_energy = v_mag_sq / 2.0 - GM_EARTH / R_REF;
+
+        let a_m = R_REF, period_min = T_REF_MIN, ecc = 0, ha_km = 500, hp_km = 500, isReentry = false;
+        if (spec_energy < 0) {
+          // Elliptical bound orbit
+          a_m = -GM_EARTH / (2.0 * spec_energy);
+          period_min = (2 * Math.PI * Math.sqrt(Math.pow(a_m, 3) / GM_EARTH)) / 60.0;
+          
+          const h_ang = R_REF * Math.sqrt(vy_inertial * vy_inertial + vz_inertial * vz_inertial);
+          const p_param = (h_ang * h_ang) / GM_EARTH;
+          ecc = Math.sqrt(Math.max(0.0, 1.0 - p_param / a_m));
+
+          const ra_m = a_m * (1.0 + ecc);
+          const rp_m = a_m * (1.0 - ecc);
+          ha_km = (ra_m - R_EARTH) / 1000.0;
+          hp_km = (rp_m - R_EARTH) / 1000.0;
+          isReentry = hp_km < 120.0;
+        } else {
+          // Hyperbolic escape
+          period_min = 999.0;
+          ha_km = 99999.0;
+          hp_km = (R_REF - R_EARTH) / 1000.0;
+        }
+
+        const frag = {
+          id: i,
+          Lc,
+          mass: mass_kg,
+          speed,
+          vx: dirX * speed,
+          vy: dirY * speed,
+          vz: dirZ * speed,
+          origin,
+          // Gabbard Diagram & Orbital Elements:
+          a: a_m,
+          period: period_min,
+          ecc,
+          ha: ha_km,
+          hp: hp_km,
+          isReentry,
+          currX: 0,
+          currY: 0,
+          currZ: 0
+        };
+        fragments.push(frag);
+
+        if (i < 5) sampleList.push(frag);
+      }
+
+      document.getElementById('telemetry-maxdv').textContent = (maxSpeed / 1000).toFixed(2) + ' km/s';
+
+      // Find maximum fragment mass to normalize weight ratios
+      let maxMass = 0.001;
+      let reentryCount = 0;
+      let maxApogee = 0;
+      for (let f of fragments) {
+        if (f.mass > maxMass) maxMass = f.mass;
+        if (f.isReentry) reentryCount++;
+        if (f.ha > maxApogee && f.ha < 50000) maxApogee = f.ha;
+      }
+
+      const reentryPct = ((reentryCount / N_samples) * 100).toFixed(1);
+      document.getElementById('telemetry-reentry').textContent = `${reentryCount} (${reentryPct}%)`;
+      document.getElementById('gabbard-reentry-count').textContent = `${reentryCount} (${reentryPct}%)`;
+      document.getElementById('gabbard-max-ha').textContent = `${Math.round(maxApogee).toLocaleString()} km`;
+
+      drawGabbardDiagram();
+
+      // Populate Fragment Samples Table with Weight Ratio & Speed Contour
+      const tableBody = document.getElementById('frag-sample-body');
+      tableBody.innerHTML = '';
+      const sortedSamples = [...fragments].sort((a,b) => b.mass - a.mass);
+      const previewFrags = [
+        sortedSamples[0],
+        sortedSamples[Math.floor(sortedSamples.length * 0.15)],
+        sortedSamples[sortedSamples.length - 1]
+      ];
+      
+      const labels = ['Heavy Core', 'Medium Shell', 'Light Shard'];
+      previewFrags.forEach((f, idx) => {
+        const row = document.createElement('tr');
+        const massStr = f.mass >= 1.0 ? `${f.mass.toFixed(1)} kg` : `${(f.mass * 1000).toFixed(0)} g`;
+        // Physical linear dimension ratio: R ~ cbrt(m / maxMass)
+        const ratioPct = Math.round((Math.cbrt(f.mass) / Math.cbrt(maxMass)) * 100);
+        const speedStr = `${Math.round(f.speed)} m/s`;
+        
+        let cBadge = '';
+        if (f.speed < 250) cBadge = '<span style="color:#3b82f6;font-weight:800;">&lt;250 (Blue)</span>';
+        else if (f.speed < 500) cBadge = '<span style="color:#06b6d4;font-weight:800;">250-500 (Cyan)</span>';
+        else if (f.speed < 1000) cBadge = '<span style="color:#10b981;font-weight:800;">500-1k (Green)</span>';
+        else if (f.speed < 1500) cBadge = '<span style="color:#eab308;font-weight:800;">1k-1.5k (Yellow)</span>';
+        else if (f.speed < 2000) cBadge = '<span style="color:#f97316;font-weight:800;">1.5k-2k (Orange)</span>';
+        else cBadge = '<span style="color:#ef4444;font-weight:800;">&gt;2k (Red)</span>';
+
+        row.innerHTML = `<td><strong>${labels[idx]}</strong></td><td>${massStr}</td><td style="color:var(--accent);font-weight:bold;">${ratioPct}%</td><td style="color:#fff;">${speedStr}</td><td>${cBadge}</td>`;
+        tableBody.appendChild(row);
+      });
+
+      // Build Glowing Fragment Particle System with Weight-Proportional Sizes (ShaderMaterial)
+      if (fragmentPoints) scene.remove(fragmentPoints);
+
+      // Create glowing circular sprite texture (clean white alpha falloff so vertex colors shine true)
+      const canvas = document.createElement('canvas');
+      canvas.width = 64; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.9)');
+      grad.addColorStop(0.65, 'rgba(255, 255, 255, 0.4)');
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+      const glowTex = new THREE.CanvasTexture(canvas);
+
+      const pointsGeo = new THREE.BufferGeometry();
+      const posArray = new Float32Array(N_samples * 3);
+      const colArray = new Float32Array(N_samples * 3);
+      const pSizeArray = new Float32Array(N_samples);
+
+      for (let i = 0; i < N_samples; i++) {
+        // Physical weight scaling: visual linear radius R ~ cbrt(mass)
+        // Ratio goes from ~0.05 to 1.0
+        const weightRatio = Math.cbrt(fragments[i].mass) / Math.cbrt(maxMass);
+        // Base size 3.5px for light shards (~50g), up to 34.0px for heavy cores (~50kg)!
+        pSizeArray[i] = 3.5 + weightRatio * 30.5;
+      }
+
+      pointsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      pointsGeo.setAttribute('color', new THREE.BufferAttribute(colArray, 3));
+      pointsGeo.setAttribute('pSize', new THREE.BufferAttribute(pSizeArray, 1));
+
+      // Custom ShaderMaterial supporting per-vertex size based on weight ratio
+      const pointsMat = new THREE.ShaderMaterial({
+        uniforms: {
+          pointTexture: { value: glowTex },
+          scaleRatio: { value: 170.0 }
+        },
+        vertexShader: `
+          attribute float pSize;
+          attribute vec3 color;
+          varying vec3 vColor;
+          uniform float scaleRatio;
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = clamp(pSize * (scaleRatio / -mvPosition.z), 2.5, 75.0);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D pointTexture;
+          varying vec3 vColor;
+          void main() {
+            vec4 tex = texture2D(pointTexture, gl_PointCoord);
+            if (tex.a < 0.05) discard;
+            gl_FragColor = vec4(vColor * tex.rgb, tex.a);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      fragmentPoints = new THREE.Points(pointsGeo, pointsMat);
+      fragmentPoints.frustumCulled = false;
+      scene.add(fragmentPoints);
+
+      updateColors();
+    }
+
+    /* =========================================================================
+       5. PROPAGATION ENGINE (CLOHESSY-WILTSHIRE / HILL'S DYNAMICS)
+       ========================================================================= */
+    let fragmentPoints = null;
+
+    function updateSimulation(t) {
+      // 1. Pre-collision Approach (t < 0s)
+      if (t < 0) {
+        if (fragmentPoints) fragmentPoints.visible = false;
+        if (coreHazardGroup) coreHazardGroup.visible = false;
+        if (secondaryHazardGroup) secondaryHazardGroup.visible = false;
+        if (highlightRing) highlightRing.visible = false;
+        flashMesh.material.opacity = 0.0;
+        ringMesh.material.opacity = 0.0;
+        targetGroup.visible = true;
+        projectileGroup.visible = true;
+        targetTrail.visible = true;
+        projTrail.visible = true;
+
+        // Mathematical contact: surfaces kiss at (0, 0, 0) at PRECISELY t = 0.000s!
+        const approachSpeed = 6.0; // visual units per second
+        const absT = Math.abs(t);
+
+        // Target surface touches y = 0 at t = 0:
+        targetGroup.position.set(0, -targetRadius - (absT * approachSpeed * 0.45), 0);
+
+        // Projectile surface touches (0, 0, 0) at t = 0:
+        const projDist = projRadius + (absT * approachSpeed * 0.55);
+        projectileGroup.position.copy(dirProj).multiplyScalar(projDist);
+
+        // Slow rotation during flight
+        targetGroup.rotation.y = t * 0.4;
+        projectileGroup.rotation.x = t * 0.6;
+
+        document.getElementById('telemetry-width').textContent = '0.0 km';
+        document.getElementById('telemetry-density').textContent = '0.0 /km³';
+        document.getElementById('telemetry-stage').textContent = 'Approaching (' + absT.toFixed(1) + 's to impact)';
+        return;
+      }
+
+      // 2. Collision Moment & Shockwave (t >= 0s)
+      targetGroup.visible = false;
+      projectileGroup.visible = false;
+      targetTrail.visible = false;
+      projTrail.visible = false;
+
+      // Flash & shockwave: starts at t = 0, peaks, then fades over 2.5s
+      if (t >= 0 && t <= 2.5) {
+        const op = 1.0 - (t / 2.5);
+        flashMesh.material.opacity = op;
+        flashMesh.scale.setScalar((0.8 + t * 6) * 4);
+
+        ringMesh.material.opacity = op * 0.85;
+        ringMesh.scale.setScalar(1.0 + t * 28);
+      } else {
+        flashMesh.material.opacity = 0.0;
+        ringMesh.material.opacity = 0.0;
+      }
+
+      // 3. Post-Collision Fragment Cloud (0 to 15 min)
+      if (!fragmentPoints) return;
+      fragmentPoints.visible = true;
+
+      const posAttr = fragmentPoints.geometry.attributes.position;
+      const omega = OMEGA;
+      const sin_wt = Math.sin(omega * t);
+      const cos_wt = Math.cos(omega * t);
+
+      let minY = Infinity, maxY = -Infinity;
+      let sumSqX = 0, sumSqY = 0, sumSqZ = 0;
+      let sumY = 0;
+
+      for (let i = 0; i < fragments.length; i++) {
+        const f = fragments[i];
+
+        // Clohessy-Wiltshire (Hill) Equations:
+        // Radial (X)
+        const x_m = (f.vx / omega) * sin_wt + (2 * f.vy / omega) * (1 - cos_wt);
+        // In-track (Y) - secular Keplerian drift: -3 * vy * t creates along-track elongation!
+        const y_m = (2 * f.vx / omega) * (cos_wt - 1) + (f.vy / omega) * (4 * sin_wt - 3 * omega * t);
+        // Cross-track (Z)
+        const z_m = (f.vz / omega) * sin_wt;
+
+        f.currX = x_m;
+        f.currY = y_m;
+        f.currZ = z_m;
+
+        if (y_m < minY) minY = y_m;
+        if (y_m > maxY) maxY = y_m;
+        sumY += y_m;
+        sumSqX += x_m * x_m;
+        sumSqY += y_m * y_m;
+        sumSqZ += z_m * z_m;
+
+        posAttr.setXYZ(i, x_m * SCALE, y_m * SCALE, z_m * SCALE);
+      }
+
+      posAttr.needsUpdate = true;
+
+      const N = fragments.length;
+      const meanY = sumY / N;
+      const sigmaX_m = Math.sqrt(sumSqX / N);
+      const sigmaY_m = Math.sqrt(Math.max(1.0, (sumSqY / N) - (meanY * meanY)));
+      const sigmaZ_m = Math.sqrt(sumSqZ / N);
+
+      // Convert to km for volumetric spatial density calculation
+      const sX_km = Math.max(0.05, sigmaX_m / 1000.0);
+      const sY_km = Math.max(0.05, sigmaY_m / 1000.0);
+      const sZ_km = Math.max(0.05, sigmaZ_m / 1000.0);
+
+      // 3D Gaussian peak density: rho_max = N / ((2*pi)^(3/2) * sx * sy * sz)
+      const peakDensity = N / (Math.pow(2 * Math.PI, 1.5) * sX_km * sY_km * sZ_km);
+
+      // Telemetry density formatting
+      let densStr = '';
+      if (t <= 0.2) densStr = 'Collision Core (∞)';
+      else if (peakDensity >= 1.0) densStr = peakDensity.toFixed(1) + ' /km³';
+      else if (peakDensity >= 0.001) densStr = peakDensity.toFixed(4) + ' /km³';
+      else densStr = peakDensity.toExponential(2) + ' /km³';
+      document.getElementById('telemetry-density').textContent = densStr;
+
+      // Update 3D Hazard Volumes
+      if (coreHazardGroup && secondaryHazardGroup) {
+        if (t < 0.2 || !showHazardVolumes) {
+          coreHazardGroup.visible = false;
+          secondaryHazardGroup.visible = false;
+        } else {
+          coreHazardGroup.visible = true;
+          secondaryHazardGroup.visible = true;
+
+          // 1-sigma Core Hazard Shell:
+          coreHazardGroup.position.set(0, meanY * SCALE, 0);
+          coreHazardGroup.scale.set(
+            Math.max(0.5, sigmaX_m * SCALE),
+            Math.max(0.5, sigmaY_m * SCALE),
+            Math.max(0.5, sigmaZ_m * SCALE)
+          );
+
+          // 2-sigma Secondary Hazard Boundary:
+          secondaryHazardGroup.position.set(0, meanY * SCALE, 0);
+          secondaryHazardGroup.scale.set(
+            Math.max(1.0, 2.0 * sigmaX_m * SCALE),
+            Math.max(1.0, 2.0 * sigmaY_m * SCALE),
+            Math.max(1.0, 2.0 * sigmaZ_m * SCALE)
+          );
+        }
+      }
+
+      // Update 3D Highlight Marker if fragment is hovered in Gabbard diagram
+      if (hoveredFragId !== null && fragments[hoveredFragId] && highlightRing) {
+        const hf = fragments[hoveredFragId];
+        highlightRing.position.set(hf.currX * SCALE, hf.currY * SCALE, hf.currZ * SCALE);
+        highlightRing.quaternion.copy(camera.quaternion);
+        highlightRing.visible = true;
+      } else if (highlightRing) {
+        highlightRing.visible = false;
+      }
+
+      // Update particle colors if in Density mode
+      if (currentColorMode === 'density') {
+        updateDensityColors(sigmaX_m, sigmaY_m, sigmaZ_m, meanY);
+      }
+
+      // Telemetry update
+      const widthKm = (maxY - minY) / 1000.0;
+      document.getElementById('telemetry-width').textContent = widthKm.toFixed(1) + ' km';
+
+      if (t <= 0.2) {
+        document.getElementById('telemetry-stage').textContent = '💥 IMPACT CONTACT';
+      } else if (t < 120) {
+        document.getElementById('telemetry-stage').textContent = 'Spherical Blast (0–2m)';
+      } else {
+        document.getElementById('telemetry-stage').textContent = 'C-W Orbital Shear (2–15m)';
+      }
+    }
+
+    /* =========================================================================
+       6. COLORING LOGIC (SPEED CONTOUR SHELLS & DENSITY HEATMAP)
+       ========================================================================= */
+    let currentColorMode = 'contour';
+
+    function getSpeedContourColor(speed) {
+      if (speed < 250) return 0x3b82f6;   // Deep Blue
+      if (speed < 500) return 0x06b6d4;   // Cyan
+      if (speed < 1000) return 0x10b981;  // Emerald Green
+      if (speed < 1500) return 0xeab308;  // Amber Yellow
+      if (speed < 2000) return 0xf97316;  // Fiery Orange
+      return 0xef4444;                    // Crimson Red
+    }
+
+    function updateDensityColors(sX, sY, sZ, meanY) {
+      if (!fragmentPoints) return;
+      const colAttr = fragmentPoints.geometry.attributes.color;
+      const col = new THREE.Color();
+
+      const invSx2 = 1.0 / Math.max(1.0, sX * sX);
+      const invSy2 = 1.0 / Math.max(1.0, sY * sY);
+      const invSz2 = 1.0 / Math.max(1.0, sZ * sZ);
+
+      for (let i = 0; i < fragments.length; i++) {
+        const f = fragments[i];
+        const dx = f.currX;
+        const dy = f.currY - meanY;
+        const dz = f.currZ;
+        const distSq = dx * dx * invSx2 + dy * dy * invSy2 + dz * dz * invSz2;
+        const normDens = Math.exp(-distSq * 0.5);
+
+        // Density Heatmap:
+        if (normDens >= 0.80) col.setHex(0xef4444);      // Core Red
+        else if (normDens >= 0.55) col.setHex(0xf97316); // High Orange
+        else if (normDens >= 0.35) col.setHex(0xeab308); // Mid-High Yellow
+        else if (normDens >= 0.18) col.setHex(0x10b981); // Moderate Green
+        else if (normDens >= 0.06) col.setHex(0x06b6d4); // Low Cyan
+        else col.setHex(0x1e3a8a);                       // Sparse Deep Blue
+
+        colAttr.setXYZ(i, col.r, col.g, col.b);
+      }
+      colAttr.needsUpdate = true;
+    }
+
+    function updateColors() {
+      if (!fragmentPoints) return;
+
+      if (currentColorMode === 'density') {
+        // Trigger simulation-based density calculation
+        updateSimulation(simTime);
+        return;
+      }
+
+      const colAttr = fragmentPoints.geometry.attributes.color;
+      const col = new THREE.Color();
+
+      for (let i = 0; i < fragments.length; i++) {
+        const f = fragments[i];
+
+        if (currentColorMode === 'contour') {
+          col.setHex(getSpeedContourColor(f.speed));
+        } else if (currentColorMode === 'smooth') {
+          // Continuous spectrum based on speed
+          const norm = Math.min(1.0, Math.max(0.0, (f.speed - 100.0) / 2100.0));
+          col.setHSL((1.0 - norm) * 0.65, 1.0, 0.55);
+        } else if (currentColorMode === 'origin') {
+          // Parent origin: Target (Sky Blue) vs Projectile (Orange)
+          col.setHex(f.origin === 0 ? 0x38bdf8 : 0xf97316);
+        }
+
+        colAttr.setXYZ(i, col.r, col.g, col.b);
+      }
+      colAttr.needsUpdate = true;
+    }
+
+    /* =========================================================================
+       7. EVENT LISTENERS & UI WIRING
+       ========================================================================= */
+    const timeSlider = document.getElementById('time-slider');
+    const timeDisplay = document.getElementById('time-display');
+    const playBtn = document.getElementById('btn-play');
+
+    let isPlaying = true;
+    let simTime = -5.0; // Start at T -05s showing incoming approach
+    let timeScale = 1.0; // 1x real-time default for impact window
+    let currentTimelineMode = 'zoom'; // 'zoom' (-10s to +30s) or 'full' (-10s to +900s)
+
+    function updateRuler() {
+      const ruler = document.getElementById('slider-ruler');
+      ruler.innerHTML = '';
+
+      if (currentTimelineMode === 'zoom') {
+        // Range: -10 to +30s (total span 40s)
+        const marks = [
+          { val: -10, label: '-10s' },
+          { val: 0, label: 'T=0s [IMPACT]', isImpact: true },
+          { val: 10, label: '+10s' },
+          { val: 20, label: '+20s' },
+          { val: 30, label: '+30s' }
+        ];
+        marks.forEach(m => {
+          const pct = ((m.val - (-10)) / 40.0) * 100.0;
+          const el = document.createElement('div');
+          el.className = 'ruler-mark' + (m.isImpact ? ' impact' : '');
+          el.style.left = pct + '%';
+          el.textContent = m.label;
+          ruler.appendChild(el);
+        });
+      } else {
+        // Range: -10 to +900s (total span 910s)
+        const marks = [
+          { val: 0, label: 'T=0s [IMPACT]', isImpact: true },
+          { val: 225, label: '+3.7 min' },
+          { val: 450, label: '+7.5 min' },
+          { val: 675, label: '+11 min' },
+          { val: 900, label: '+15 min' }
+        ];
+        marks.forEach(m => {
+          const pct = ((m.val - (-10)) / 910.0) * 100.0;
+          const el = document.createElement('div');
+          el.className = 'ruler-mark' + (m.isImpact ? ' impact' : '');
+          el.style.left = pct + '%';
+          el.textContent = m.label;
+          ruler.appendChild(el);
+        });
+      }
+    }
+
+    function formatTime(sec) {
+      if (Math.abs(sec) < 0.05) {
+        return 'T 00.0s [IMPACT]';
+      }
+      const sign = sec < 0 ? '-' : '+';
+      const abs = Math.abs(sec);
+      if (abs < 60) {
+        return `T ${sign}${abs.toFixed(1)}s`;
+      }
+      const m = Math.floor(abs / 60);
+      const s = Math.floor(abs % 60);
+      return `T ${sign}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function setTimelineMode(mode) {
+      currentTimelineMode = mode;
+      document.getElementById('mode-zoom').classList.toggle('active', mode === 'zoom');
+      document.getElementById('mode-full').classList.toggle('active', mode === 'full');
+
+      if (mode === 'zoom') {
+        timeSlider.min = -10;
+        timeSlider.max = 30;
+        timeSlider.step = 0.1;
+        timeScale = 1.0;
+        setSpeedButton('speed-1x');
+        if (simTime < -10 || simTime > 30) simTime = -5;
+      } else {
+        timeSlider.min = -10;
+        timeSlider.max = 900;
+        timeSlider.step = 0.5;
+        timeScale = 10.0;
+        setSpeedButton('speed-5x');
+      }
+
+      timeSlider.value = simTime;
+      timeDisplay.textContent = formatTime(simTime);
+      updateRuler();
+      updateSimulation(simTime);
+    }
+
+    document.getElementById('mode-zoom').addEventListener('click', () => setTimelineMode('zoom'));
+    document.getElementById('mode-full').addEventListener('click', () => setTimelineMode('full'));
+
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '⏸' : '▶';
+    });
+
+    timeSlider.addEventListener('input', (e) => {
+      simTime = parseFloat(e.target.value);
+      timeDisplay.textContent = formatTime(simTime);
+      updateSimulation(simTime);
+    });
+
+    function setSpeedButton(activeId) {
+      ['speed-1x', 'speed-5x', 'speed-20x'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', id === activeId);
+      });
+    }
+
+    // Speed buttons
+    const speeds = [
+      { id: 'speed-1x', val: 1.0 },
+      { id: 'speed-5x', val: 5.0 },
+      { id: 'speed-20x', val: 20.0 }
+    ];
+    speeds.forEach(s => {
+      document.getElementById(s.id).addEventListener('click', (e) => {
+        setSpeedButton(s.id);
+        timeScale = s.val;
+      });
+    });
+
+    // Parameter Sliders Listener
+    const sliders = [
+      { id: 'param-m1', valId: 'val-m1', unit: ' kg', fmt: v => parseFloat(v).toLocaleString() },
+      { id: 'param-m2', valId: 'val-m2', unit: ' kg', fmt: v => parseFloat(v).toLocaleString() },
+      { id: 'param-vimp', valId: 'val-vimp', unit: ' km/s', fmt: v => parseFloat(v).toFixed(1) },
+      { id: 'param-nfrags', valId: 'val-nfrags', unit: '', fmt: v => parseInt(v).toLocaleString() },
+      { id: 'param-skew', valId: 'val-skew', unit: '', fmt: v => parseFloat(v).toFixed(2) },
+      { id: 'param-speedbias', valId: 'val-speedbias', unit: '', fmt: v => parseFloat(v).toFixed(2) }
+    ];
+    sliders.forEach(s => {
+      document.getElementById(s.id).addEventListener('input', (e) => {
+        document.getElementById(s.valId).textContent = s.fmt(e.target.value) + s.unit;
+        buildModels();
+        runSimpleEngine();
+        updateSimulation(simTime);
+      });
+    });
+
+    // Primitive shape toggling
+    document.getElementById('shape-sphere').addEventListener('click', (e) => {
+      currentShape = 'sphere';
+      document.getElementById('shape-box').classList.remove('active');
+      e.target.classList.add('active');
+      buildModels();
+      updateSimulation(simTime);
+    });
+    document.getElementById('shape-box').addEventListener('click', (e) => {
+      currentShape = 'box';
+      document.getElementById('shape-sphere').classList.remove('active');
+      e.target.classList.add('active');
+      buildModels();
+      updateSimulation(simTime);
+    });
+
+    // Blast direction pattern toggling
+    document.getElementById('blast-sphere').addEventListener('click', (e) => {
+      blastMode = 'sphere';
+      document.getElementById('blast-cone').classList.remove('active');
+      e.target.classList.add('active');
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+    document.getElementById('blast-cone').addEventListener('click', (e) => {
+      blastMode = 'cone';
+      document.getElementById('blast-sphere').classList.remove('active');
+      e.target.classList.add('active');
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+
+    // Color mode buttons
+    const colorButtons = [
+      { id: 'color-contour', mode: 'contour' },
+      { id: 'color-density', mode: 'density' },
+      { id: 'color-smooth', mode: 'smooth' },
+      { id: 'color-origin', mode: 'origin' }
+    ];
+    colorButtons.forEach(c => {
+      const btn = document.getElementById(c.id);
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          colorButtons.forEach(o => {
+            const b = document.getElementById(o.id);
+            if (b) b.classList.remove('active');
+          });
+          e.target.classList.add('active');
+          currentColorMode = c.mode;
+          updateColors();
+          updateLegendBox();
+        });
+      }
+    });
+
+    function updateLegendBox() {
+      const titleEl = document.getElementById('legend-title');
+      const unitEl = document.getElementById('legend-unit');
+      const bandsEl = document.getElementById('legend-bands');
+      const labelsEl = document.getElementById('legend-labels');
+      if (!titleEl || !bandsEl || !labelsEl) return;
+
+      if (currentColorMode === 'density') {
+        titleEl.textContent = 'Volumetric Debris Density (ρ)';
+        unitEl.textContent = 'rel. to peak';
+        bandsEl.innerHTML = `
+          <div class="contour-band" style="background: #1e3a8a;" title="Sparse (< 6%)">&lt;6%</div>
+          <div class="contour-band" style="background: #06b6d4;" title="Low (6 - 18%)">18%</div>
+          <div class="contour-band" style="background: #10b981;" title="Moderate (18 - 35%)">35%</div>
+          <div class="contour-band" style="background: #eab308;" title="Elevated (35 - 55%)">55%</div>
+          <div class="contour-band" style="background: #f97316;" title="High (55 - 80%)">80%</div>
+          <div class="contour-band" style="background: #ef4444;" title="Hazard Core (> 80%)">&gt;80%</div>
+        `;
+        labelsEl.innerHTML = `
+          <span style="color: #06b6d4;">Dispersed 2σ</span>
+          <span style="color: #eab308;">Mid Envelope</span>
+          <span style="color: #ef4444;">1σ Hazard Core</span>
+        `;
+      } else if (currentColorMode === 'origin') {
+        titleEl.textContent = 'Fragment Parent Origin';
+        unitEl.textContent = 'satellite';
+        bandsEl.innerHTML = `
+          <div class="contour-band" style="background: #38bdf8; flex: 1;" title="Target Satellite">Target Satellite (M₁)</div>
+          <div class="contour-band" style="background: #f97316; flex: 1;" title="Projectile / Impactor">Impactor / Interceptor (M₂)</div>
+        `;
+        labelsEl.innerHTML = `
+          <span style="color: #38bdf8;">Target Body</span>
+          <span></span>
+          <span style="color: #f97316;">Impactor Body</span>
+        `;
+      } else if (currentColorMode === 'smooth') {
+        titleEl.textContent = 'Continuous Velocity Spectrum';
+        unitEl.textContent = '0.1 – 2.2 km/s';
+        bandsEl.innerHTML = `
+          <div class="contour-band" style="background: linear-gradient(to right, #3b82f6, #06b6d4, #10b981, #eab308, #ef4444); flex: 1; height: 16px;"></div>
+        `;
+        labelsEl.innerHTML = `
+          <span style="color: #3b82f6;">Low Δv (&lt;300 m/s)</span>
+          <span style="color: #10b981;">Median (~1.1 km/s)</span>
+          <span style="color: #ef4444;">Ejecta (&gt;2.2 km/s)</span>
+        `;
+      } else { // 'contour'
+        titleEl.textContent = 'Speed Iso-Contours (Δv)';
+        unitEl.textContent = 'm/s';
+        bandsEl.innerHTML = `
+          <div class="contour-band" style="background: #3b82f6;" title="< 250 m/s">&lt;250</div>
+          <div class="contour-band" style="background: #06b6d4;" title="250 - 500 m/s">500</div>
+          <div class="contour-band" style="background: #10b981;" title="500 - 1000 m/s">1.0k</div>
+          <div class="contour-band" style="background: #eab308;" title="1000 - 1500 m/s">1.5k</div>
+          <div class="contour-band" style="background: #f97316;" title="1500 - 2000 m/s">2.0k</div>
+          <div class="contour-band" style="background: #ef4444;" title="> 2000 m/s">&gt;2.0k</div>
+        `;
+        labelsEl.innerHTML = `
+          <span style="color: #3b82f6;">Slow Core</span>
+          <span style="color: #10b981;">Mid Shell</span>
+          <span style="color: #ef4444;">Hypersonic Bubble</span>
+        `;
+      }
+    }
+
+    // Reset camera
+    document.getElementById('cam-reset').addEventListener('click', () => {
+      controls.target.set(0, 0, 0);
+      camera.position.set(65, 45, 80);
+    });
+
+    /* =========================================================================
+       8. GABBARD DIAGRAM & WINDOW DRAG LOGIC
+       ========================================================================= */
+    function drawGabbardDiagram(hoverId = null) {
+      const canvas = document.getElementById('gabbard-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Clear
+      ctx.clearRect(0, 0, W, H);
+
+      // Background fill
+      ctx.fillStyle = '#0a0f1d';
+      ctx.fillRect(0, 0, W, H);
+
+      if (!fragments || fragments.length === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Simulating orbital elements...', W / 2, H / 2);
+        return;
+      }
+
+      // Plot area margins
+      const padL = 58;
+      const padR = 20;
+      const padT = 20;
+      const padB = 34;
+      const pw = W - padL - padR;
+      const ph = H - padT - padB;
+
+      // LEO Focus for Gabbard Analysis:
+      // Operational LEO bounds centered on 500 km breakup altitude (T0 = 94.62 min)
+      const minP = 86.0;   // minutes (near atmospheric plunge)
+      const maxP = 114.0;  // minutes (apogee ~2,300 km)
+      const minAlt = 0;    // km (Earth surface)
+      const maxAlt = 2500; // km (LEO upper boundary)
+
+      const xToPx = (p) => padL + Math.max(0, Math.min(pw, ((p - minP) / (maxP - minP)) * pw));
+      const yToPx = (h) => padT + ph - Math.max(0, Math.min(ph, ((h - minAlt) / (maxAlt - minAlt)) * ph));
+
+      // 1. Draw Subtle Grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([]);
+
+      // Vertical grid lines (Period ticks every 5 min: 90, 95, 100, 105, 110 min)
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      for (let p of [90, 95, 100, 105, 110]) {
+        const x = xToPx(p);
+        ctx.beginPath();
+        ctx.moveTo(x, padT);
+        ctx.lineTo(x, padT + ph);
+        ctx.stroke();
+        ctx.fillText(p + 'm', x, padT + ph + 6);
+      }
+
+      // Horizontal grid lines (Altitude ticks every 500 km: 0, 500, 1000, 1500, 2000, 2500 km)
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+
+      for (let h = 0; h <= maxAlt; h += 500) {
+        const y = yToPx(h);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + pw, y);
+        ctx.stroke();
+        ctx.fillText(h === 0 ? '0' : h.toLocaleString(), padL - 8, y);
+      }
+
+      // 2. Atmospheric Re-entry Zone (< 120 km)
+      const y120 = yToPx(120);
+      const y0 = yToPx(0);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.16)';
+      ctx.fillRect(padL, y120, pw, y0 - y120);
+
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(padL, y120);
+      ctx.lineTo(padL + pw, y120);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.font = '9px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('Re-entry Interface (120 km)', padL + pw - 4, y120 - 2);
+
+      // 3. Reference Breakup Altitude (h0 = 500 km) and Period (T0 = 94.62 min)
+      const h0 = 500;
+      const t0 = 94.62;
+      const xT0 = xToPx(t0);
+      const yH0 = yToPx(h0);
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 3]);
+
+      // Vertical line at T0
+      ctx.beginPath();
+      ctx.moveTo(xT0, padT);
+      ctx.lineTo(xT0, padT + ph);
+      ctx.stroke();
+
+      // Horizontal line at h0
+      ctx.beginPath();
+      ctx.moveTo(padL, yH0);
+      ctx.lineTo(padL + pw, yH0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('h₀=500km, T₀=94.6m', xT0 + 4, yH0 - 4);
+
+      // 4. Plot fragments: Apogee (ha) & Perigee (hp) points
+      for (let i = 0; i < fragments.length; i++) {
+        const f = fragments[i];
+        if (f.period < 75 || f.period > 140) continue;
+
+        const x = xToPx(f.period);
+        const yA = yToPx(Math.min(maxAlt, f.ha));
+        const yP = yToPx(Math.max(minAlt, f.hp));
+
+        // Connector line between apogee and perigee
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, yP);
+        ctx.lineTo(x, yA);
+        ctx.stroke();
+
+        // Apogee dot (Cyan)
+        ctx.fillStyle = f.ha > maxAlt ? 'rgba(56, 189, 248, 0.35)' : 'rgba(56, 189, 248, 0.75)';
+        ctx.beginPath();
+        ctx.arc(x, yA, 2.0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Perigee dot (Orange or Red for re-entry)
+        ctx.fillStyle = f.isReentry ? 'rgba(239, 68, 68, 0.85)' : 'rgba(249, 115, 22, 0.75)';
+        ctx.beginPath();
+        ctx.arc(x, yP, 2.0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 5. Highlight hovered fragment
+      if (hoverId !== null && fragments[hoverId]) {
+        const hf = fragments[hoverId];
+        const x = xToPx(hf.period);
+        const yA = yToPx(Math.min(maxAlt, hf.ha));
+        const yP = yToPx(Math.max(minAlt, hf.hp));
+
+        // Connecting highlight line
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        ctx.moveTo(x, yP);
+        ctx.lineTo(x, yA);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Apogee highlight ring
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, yA, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(x, yA, 6.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Perigee highlight ring
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, yP, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = hf.isReentry ? '#ef4444' : '#f97316';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(x, yP, 6.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 6. Axis Labels & Outer Border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padL, padT, pw, ph);
+
+      // Axis Titles
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.font = '10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Orbital Period P (minutes)', padL + pw / 2, H - 6);
+
+      ctx.save();
+      ctx.translate(14, padT + ph / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.fillText('Altitude h (km)', 0, 0);
+      ctx.restore();
+
+      // Store current coordinate mapping for mouse interaction
+      canvas._gabbardMeta = { minP, maxP, minAlt, maxAlt, padL, padR, padT, padB, pw, ph };
+    }
+
+    function setupGabbardInteraction() {
+      const canvas = document.getElementById('gabbard-canvas');
+      const box = document.getElementById('gabbard-canvas-box');
+      const tooltip = document.getElementById('gabbard-tooltip');
+      if (!canvas || !tooltip || !box) return;
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!canvas._gabbardMeta || !fragments || fragments.length === 0) return;
+        const meta = canvas._gabbardMeta;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (e.clientX - rect.left) * scaleX;
+        const my = (e.clientY - rect.top) * scaleY;
+
+        // Check if inside plot area
+        if (mx < meta.padL || mx > meta.padL + meta.pw || my < meta.padT || my > meta.padT + meta.ph) {
+          if (hoveredFragId !== null) {
+            hoveredFragId = null;
+            tooltip.style.display = 'none';
+            drawGabbardDiagram(null);
+            updateSimulation(simTime);
+          }
+          return;
+        }
+
+        const xToPx = (p) => meta.padL + Math.max(0, Math.min(meta.pw, ((p - meta.minP) / (meta.maxP - meta.minP)) * meta.pw));
+        const yToPx = (h) => meta.padT + meta.ph - Math.max(0, Math.min(meta.ph, ((h - meta.minAlt) / (meta.maxAlt - meta.minAlt)) * meta.ph));
+
+        let bestDist = 12.0; // hit radius in pixels
+        let bestId = null;
+
+        for (let i = 0; i < fragments.length; i++) {
+          const f = fragments[i];
+          if (f.period < 75 || f.period > 140) continue;
+          const px = xToPx(f.period);
+          const pyA = yToPx(Math.min(meta.maxAlt, f.ha));
+          const pyP = yToPx(Math.max(meta.minAlt, f.hp));
+
+          const distA = Math.hypot(mx - px, my - pyA);
+          const distP = Math.hypot(mx - px, my - pyP);
+
+          if (distA < bestDist) {
+            bestDist = distA;
+            bestId = i;
+          }
+          if (distP < bestDist) {
+            bestDist = distP;
+            bestId = i;
+          }
+        }
+
+        if (bestId !== null) {
+          hoveredFragId = bestId;
+          const f = fragments[bestId];
+
+          const boxRect = box.getBoundingClientRect();
+          let tx = e.clientX - boxRect.left + 14;
+          let ty = e.clientY - boxRect.top - 15;
+
+          if (tx + 210 > boxRect.width) tx = tx - 225;
+          if (ty + 160 > boxRect.height) ty = boxRect.height - 165;
+          if (ty < 5) ty = 5;
+
+          tooltip.style.left = tx + 'px';
+          tooltip.style.top = ty + 'px';
+          tooltip.style.display = 'block';
+
+          const massStr = f.mass >= 1.0 ? `${f.mass.toFixed(1)} kg` : `${(f.mass * 1000).toFixed(0)} g`;
+          const originBadge = f.origin === 0
+            ? '<span style="color: #38bdf8; font-weight: 700;">Target Satellite</span>'
+            : '<span style="color: #f97316; font-weight: 700;">Impactor Body</span>';
+
+          const reentryTag = f.isReentry
+            ? '<span style="color: #ef4444; font-weight: 800;">⚠️ Re-entry Risk (&lt;120 km)</span>'
+            : '<span style="color: #10b981; font-weight: 700;">✓ Stable Orbit</span>';
+
+          const haStr = f.ha > meta.maxAlt
+            ? `${Math.round(f.ha).toLocaleString()} km <span style="font-size:0.62rem;color:#facc15;">(LEO Outlier)</span>`
+            : `${Math.round(f.ha).toLocaleString()} km`;
+
+          const hpStr = f.hp < 0
+            ? `&lt;0 km <span style="font-size:0.62rem;color:#ef4444;">(Ground Impact)</span>`
+            : `${Math.round(f.hp).toLocaleString()} km`;
+
+          tooltip.innerHTML = `
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 3px; margin-bottom: 4px;">
+              <strong>Fragment #${f.id + 1}</strong>
+              ${originBadge}
+            </div>
+            <div>Mass: <strong style="color: #fff;">${massStr}</strong> (L<sub>c</sub>: ${f.Lc.toFixed(2)}m)</div>
+            <div>Speed Δv: <strong style="color: #fff;">${Math.round(f.speed)} m/s</strong></div>
+            <div>Period: <strong style="color: #fff;">${f.period.toFixed(2)} min</strong></div>
+            <div style="color: #38bdf8;">Apogee (h<sub>a</sub>): <strong>${haStr}</strong></div>
+            <div style="color: ${f.isReentry ? '#ef4444' : '#f97316'};">Perigee (h<sub>p</sub>): <strong>${hpStr}</strong></div>
+            <div style="margin-top: 4px; padding-top: 3px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.64rem;">
+              Status: ${reentryTag}
+            </div>
+          `;
+
+          drawGabbardDiagram(hoveredFragId);
+          updateSimulation(simTime);
+        } else {
+          if (hoveredFragId !== null) {
+            hoveredFragId = null;
+            tooltip.style.display = 'none';
+            drawGabbardDiagram(null);
+            updateSimulation(simTime);
+          }
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        if (hoveredFragId !== null) {
+          hoveredFragId = null;
+          tooltip.style.display = 'none';
+          drawGabbardDiagram(null);
+          updateSimulation(simTime);
+        }
+      });
+    }
+
+    function makeDraggable(winEl, handleEl) {
+      if (!winEl || !handleEl) return;
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let origX = 0, origY = 0;
+
+      handleEl.addEventListener('pointerdown', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = winEl.getBoundingClientRect();
+        origX = rect.left;
+        origY = rect.top;
+
+        winEl.style.left = origX + 'px';
+        winEl.style.top = origY + 'px';
+        winEl.style.right = 'auto';
+        winEl.style.bottom = 'auto';
+
+        handleEl.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+
+      handleEl.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        let newX = origX + dx;
+        let newY = origY + dy;
+
+        newX = Math.max(10, Math.min(window.innerWidth - winEl.offsetWidth - 10, newX));
+        newY = Math.max(10, Math.min(window.innerHeight - 50, newY));
+
+        winEl.style.left = newX + 'px';
+        winEl.style.top = newY + 'px';
+      });
+
+      const stopDrag = (e) => {
+        if (isDragging) {
+          isDragging = false;
+          try { handleEl.releasePointerCapture(e.pointerId); } catch(err) {}
+        }
+      };
+
+      handleEl.addEventListener('pointerup', stopDrag);
+      handleEl.addEventListener('pointercancel', stopDrag);
+    }
+
+    // Gabbard Window & Volume Header/Sidebar Toggles
+    const gabbardWin = document.getElementById('gabbard-window');
+    const btnToggleGabbard = document.getElementById('btn-toggle-gabbard');
+    const btnGabbardClose = document.getElementById('btn-gabbard-close');
+    const btnGabbardMin = document.getElementById('btn-gabbard-min');
+    const gabbardBody = document.getElementById('gabbard-body');
+
+    if (btnToggleGabbard && gabbardWin) {
+      btnToggleGabbard.addEventListener('click', () => {
+        const isHidden = (gabbardWin.style.display === 'none');
+        gabbardWin.style.display = isHidden ? 'flex' : 'none';
+        btnToggleGabbard.classList.toggle('active', isHidden);
+        if (isHidden) drawGabbardDiagram(hoveredFragId);
+      });
+    }
+
+    if (btnGabbardClose && gabbardWin) {
+      btnGabbardClose.addEventListener('click', () => {
+        gabbardWin.style.display = 'none';
+        if (btnToggleGabbard) btnToggleGabbard.classList.remove('active');
+      });
+    }
+
+    if (btnGabbardMin && gabbardBody) {
+      btnGabbardMin.addEventListener('click', () => {
+        const isMin = (gabbardBody.style.display === 'none');
+        gabbardBody.style.display = isMin ? 'block' : 'none';
+        btnGabbardMin.textContent = isMin ? '—' : '▢';
+        if (isMin) drawGabbardDiagram(hoveredFragId);
+      });
+    }
+
+    const btnToggleVolumes = document.getElementById('btn-toggle-volumes');
+    const checkVolumes = document.getElementById('check-volumes');
+
+    function setHazardVolumes(val) {
+      showHazardVolumes = val;
+      if (btnToggleVolumes) btnToggleVolumes.classList.toggle('active', val);
+      if (checkVolumes) checkVolumes.checked = val;
+      updateSimulation(simTime);
+    }
+
+    if (btnToggleVolumes) {
+      btnToggleVolumes.addEventListener('click', () => {
+        setHazardVolumes(!showHazardVolumes);
+      });
+    }
+
+    if (checkVolumes) {
+      checkVolumes.addEventListener('change', (e) => {
+        setHazardVolumes(e.target.checked);
+      });
+    }
+
+    /* =========================================================================
+       9. ANIMATION LOOP
+       ========================================================================= */
+    let lastTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000.0;
+      lastTime = now;
+
+      if (isPlaying) {
+        simTime += dt * timeScale;
+        const maxTime = currentTimelineMode === 'zoom' ? 30.0 : 900.0;
+        const minTime = -10.0;
+        if (simTime > maxTime) simTime = minTime; // loop back
+        timeSlider.value = simTime;
+        timeDisplay.textContent = formatTime(simTime);
+        updateSimulation(simTime);
+      }
+
+      // Subtle pulse on 3D highlight ring if active
+      if (hoveredFragId !== null && highlightRing && highlightRing.visible) {
+        const pulse = 1.0 + 0.25 * Math.sin(now * 0.008);
+        highlightRing.scale.set(pulse, pulse, pulse);
+        highlightRing.quaternion.copy(camera.quaternion);
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Read optional URL parameters (e.g. ?t=15&play=0&mode=full)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('mode')) {
+      currentTimelineMode = urlParams.get('mode');
+    } else if (urlParams.has('t')) {
+      const paramT = parseFloat(urlParams.get('t'));
+      if (paramT > 30.0) currentTimelineMode = 'full';
+    }
+    if (urlParams.has('t')) {
+      simTime = parseFloat(urlParams.get('t'));
+    }
+    if (urlParams.has('play')) {
+      const p = urlParams.get('play');
+      isPlaying = (p === 'true' || p === '1');
+      playBtn.textContent = isPlaying ? '⏸' : '▶';
+    }
+    if (urlParams.has('color')) {
+      const c = urlParams.get('color');
+      if (['contour', 'density', 'smooth', 'origin'].includes(c)) {
+        currentColorMode = c;
+        colorButtons.forEach(o => {
+          const b = document.getElementById(o.id);
+          if (b) b.classList.toggle('active', o.mode === c);
+        });
+      }
+    }
+    if (urlParams.has('gabbard')) {
+      const g = urlParams.get('gabbard');
+      const showG = (g === '1' || g === 'true');
+      gabbardWin.style.display = showG ? 'flex' : 'none';
+      if (btnToggleGabbard) btnToggleGabbard.classList.toggle('active', showG);
+    }
+    if (urlParams.has('volumes')) {
+      const v = urlParams.get('volumes');
+      setHazardVolumes(v === '1' || v === 'true');
+    }
+    if (urlParams.has('hover')) {
+      const hIdx = parseInt(urlParams.get('hover'));
+      if (!isNaN(hIdx)) hoveredFragId = hIdx;
+    }
+
+    // Initialize
+    setTimelineMode(currentTimelineMode);
+    buildModels();
+    runSimpleEngine();
+    updateLegendBox();
+    updateColors();
+    updateSimulation(simTime);
+    setupGabbardInteraction();
+    makeDraggable(gabbardWin, document.getElementById('gabbard-drag-handle'));
+    if (hoveredFragId !== null) drawGabbardDiagram(hoveredFragId);
+    animate();
+  </script>
+</body>
+</html>

@@ -7,20 +7,8 @@ console.log
 dom.html
 *.log
 
-# Temporary test screenshots
-screenshot.png
-screenshot_approach.png
-screenshot_debris.png
-screenshot_density.png
-screenshot_exact_timing.png
-screenshot_full.png
-screenshot_gabbard.png
-screenshot_t0.png
-screenshot_t0_impact.png
-screenshot_t15.png
-screenshot_t15_clean.png
-screenshot_t15_final.png
-screenshot_t300.png
+# Temporary test screenshots in root
+/*.png
 
 # Rust Build Artifacts
 target/
