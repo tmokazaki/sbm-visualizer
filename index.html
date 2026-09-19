@@ -116,11 +116,12 @@
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--panel-border) transparent;
+      padding: 10px 12px;
     }
 
     .panel-section {
-      margin-bottom: 8px;
-      padding-bottom: 6px;
+      margin-bottom: 6px;
+      padding-bottom: 5px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -131,18 +132,18 @@
     }
 
     .section-title {
-      font-size: 0.70rem;
+      font-size: 0.69rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--accent);
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       display: flex;
       justify-content: space-between;
     }
 
     .control-row {
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
     .control-row label {
@@ -417,8 +418,8 @@
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
-      padding: 6px 8px;
-      margin-top: 6px;
+      padding: 4px 7px;
+      margin-top: 4px;
     }
 
     .contour-title {
@@ -430,7 +431,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     .contour-bands {
@@ -439,16 +440,16 @@
       gap: 2px;
       border-radius: 4px;
       overflow: hidden;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
     .contour-band {
-      height: 19px;
+      height: 17px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 0.60rem;
+      font-size: 0.58rem;
       font-family: ui-monospace, monospace;
       font-weight: 800;
       color: #05101a;
@@ -458,7 +459,7 @@
     .contour-labels {
       display: flex;
       justify-content: space-between;
-      font-size: 0.62rem;
+      font-size: 0.60rem;
       color: var(--text-muted);
       margin-top: 2px;
       font-family: ui-monospace, monospace;
@@ -471,9 +472,9 @@
       background: rgba(56, 189, 248, 0.08);
       border: 1px solid rgba(56, 189, 248, 0.2);
       border-radius: 6px;
-      padding: 5px 8px;
-      margin-top: 6px;
-      font-size: 0.68rem;
+      padding: 4px 7px;
+      margin-top: 4px;
+      font-size: 0.67rem;
     }
 
     .weight-dot {
@@ -576,6 +577,65 @@
       font-size: 0.66rem;
       color: var(--text-muted);
     }
+
+    /* Floating Fragment Inspector Window */
+    .fragment-inspector {
+      position: absolute;
+      top: 72px;
+      right: 330px;
+      width: 310px;
+      background: rgba(10, 15, 29, 0.95);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      border-radius: 8px;
+      padding: 10px 14px;
+      z-index: 60;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(168, 85, 247, 0.2);
+      backdrop-filter: blur(10px);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .inspector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      margin-bottom: 8px;
+    }
+    .inspector-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      font-size: 0.70rem;
+    }
+    .inspector-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .inspector-label {
+      color: var(--text-muted);
+      font-size: 0.60rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #frag-sample-body tr {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    #frag-sample-body tr:hover {
+      background: rgba(56, 189, 248, 0.2);
+    }
+    #frag-sample-body tr.selected-row {
+      background: rgba(168, 85, 247, 0.25) !important;
+      outline: 1px solid #a855f7;
+    }
   </style>
 
   <!-- Local libraries (No CDN / Internet required) -->
@@ -597,6 +657,9 @@
       </button>
       <button class="btn active" id="btn-toggle-volumes" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(56, 189, 248, 0.2); border-color: var(--accent); color: #fff;">
         <span>🌐 Hazard Volumes</span>
+      </button>
+      <button class="btn" id="btn-toggle-inspector" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #fff;">
+        <span>🎯 Inspector & Trails</span>
       </button>
     </div>
   </header>
@@ -735,6 +798,36 @@
         </div>
       </div>
     </div>
+
+    <div class="panel-section">
+      <div class="section-title">4. Orbit Trails & Tracking</div>
+
+      <div class="control-row">
+        <label>Orbit Trail Mode</label>
+        <div class="btn-group">
+          <button class="btn" id="trail-off">Off</button>
+          <button class="btn active" id="trail-selected">Selected</button>
+          <button class="btn" id="trail-heaviest">Top 5 Heavy</button>
+        </div>
+        <div class="btn-group" style="margin-top: 4px;">
+          <button class="btn" id="trail-fastest">Top 5 Fast</button>
+          <button class="btn" id="trail-cardinal">4 Cardinal</button>
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label>Camera Tracking</label>
+        <div class="btn-group">
+          <button class="btn active" id="cam-mode-free">Free Orbit</button>
+          <button class="btn" id="cam-mode-follow">Follow Selected</button>
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label>Point Size Scale <span class="val" id="val-pointscale">1.0x</span></label>
+        <input type="range" id="param-pointscale" min="0.5" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
   </aside>
 
   <!-- Right Sidebar: Live Engine Telemetry & Inspector -->
@@ -846,6 +939,40 @@
       </div>
     </div>
   </footer>
+
+  <!-- Floating Interactive Fragment Inspector Window -->
+  <div id="fragment-inspector-window" class="overlay panel interactive fragment-inspector" style="display: none;">
+    <div class="inspector-header" id="inspector-drag-handle">
+      <div class="inspector-title">
+        <span style="font-size: 0.82rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span>🎯 Fragment Inspector</span>
+          <span id="inspector-frag-badge" class="badge" style="font-size: 0.62rem; background: rgba(168, 85, 247, 0.25); color: #c084fc;">#--</span>
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="win-btn" id="btn-inspector-follow" title="Toggle Camera Tracking">🎥</button>
+        <button class="win-btn" id="btn-inspector-close" title="Close / Deselect">✕</button>
+      </div>
+    </div>
+    <div id="inspector-body">
+      <div class="inspector-grid">
+        <div class="inspector-item"><span class="inspector-label">Mass</span><strong id="insp-mass" style="color: #fff;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Length (Lc)</span><strong id="insp-lc" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Area (Ax)</span><strong id="insp-area" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">A/M Ratio</span><strong id="insp-am" style="color: #a78bfa;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">B* Drag Coeff</span><strong id="insp-bstar" style="color: #67e8f9;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Ejection Δv</span><strong id="insp-speed" style="color: #facc15;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Apogee (ha)</span><strong id="insp-ha" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Perigee (hp)</span><strong id="insp-hp" style="color: #f97316;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Period (P)</span><strong id="insp-period" style="color: #fff;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label">Status</span><strong id="insp-status">--</strong></div>
+      </div>
+      <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(255, 255, 255, 0.1); font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <span>Parent: <strong id="insp-origin" style="color: #38bdf8;">Target</strong></span>
+        <span>Class: <strong id="insp-class" style="color: #a78bfa;">Spacecraft</strong></span>
+      </div>
+    </div>
+  </div>
 
   <!-- Floating Interactive Gabbard Diagram Window -->
   <div id="gabbard-window" class="overlay panel interactive gabbard-window">
@@ -1022,6 +1149,14 @@
 
     let showHazardVolumes = true;
     let hoveredFragId = null;
+    let selectedFragId = null;
+    let trailMode = 'selected'; // 'off' | 'selected' | 'heaviest' | 'fastest' | 'cardinal'
+    let cameraFollow = false;
+    let pointScaleFactor = 1.0;
+
+    // 3D Orbit Trail Visualization Group
+    const trailGroup = new THREE.Group();
+    scene.add(trailGroup);
 
     /* =========================================================================
        3. OBJECT MODELS & FLASH EFFECT
@@ -1144,6 +1279,7 @@
        4. BUILT-IN SIMPLE BREAKUP ENGINE
        ========================================================================= */
     let fragments = [];
+    let fragmentPoints = null;
     let instancedFragments = null;
     let currentTargetType = 'SC';     // 'SC' = Spacecraft (Eq. 6), 'RB' = Rocket Body (Eq. 5)
     let currentBreakupMode = 'COLL';  // 'COLL' = Hypervelocity Collision (Eq. 4), 'EXP' = Explosion (Eq. 3)
@@ -1472,6 +1608,12 @@
         else if (f.speed < 2000) cBadge = '<span style="color:#f97316;font-weight:800;">1.5k-2k (Orange)</span>';
         else cBadge = '<span style="color:#ef4444;font-weight:800;">&gt;2k (Red)</span>';
 
+        row.dataset.fragId = f.id;
+        row.title = `Click to inspect Fragment #${f.id + 1} & show its 3D orbit trail`;
+        row.addEventListener('click', () => {
+          selectFragment(f.id);
+        });
+
         row.innerHTML = `<td><strong>${labels[idx]}</strong></td><td>${massStr}</td><td style="color:var(--accent);font-weight:bold;">${ratioPct}%</td><td style="color:#fff;">${speedStr}</td><td>${cBadge}</td>`;
         tableBody.appendChild(row);
       });
@@ -1551,8 +1693,6 @@
     /* =========================================================================
        5. PROPAGATION ENGINE (CLOHESSY-WILTSHIRE / HILL'S DYNAMICS)
        ========================================================================= */
-    let fragmentPoints = null;
-
     function updateSimulation(t) {
       // 1. Pre-collision Approach (t < 0s)
       if (t < 0) {
@@ -1560,6 +1700,7 @@
         if (coreHazardGroup) coreHazardGroup.visible = false;
         if (secondaryHazardGroup) secondaryHazardGroup.visible = false;
         if (highlightRing) highlightRing.visible = false;
+        if (trailGroup) trailGroup.visible = false;
         flashMesh.material.opacity = 0.0;
         ringMesh.material.opacity = 0.0;
         targetGroup.visible = true;
@@ -1696,15 +1837,19 @@
         }
       }
 
-      // Update 3D Highlight Marker if fragment is hovered in Gabbard diagram
-      if (hoveredFragId !== null && fragments[hoveredFragId] && highlightRing) {
-        const hf = fragments[hoveredFragId];
+      // Update 3D Highlight Marker for selected or hovered fragment
+      const activeMarkerId = selectedFragId !== null ? selectedFragId : hoveredFragId;
+      if (activeMarkerId !== null && fragments[activeMarkerId] && highlightRing) {
+        const hf = fragments[activeMarkerId];
         highlightRing.position.set(hf.currX * SCALE, hf.currY * SCALE, hf.currZ * SCALE);
         highlightRing.quaternion.copy(camera.quaternion);
         highlightRing.visible = true;
       } else if (highlightRing) {
         highlightRing.visible = false;
       }
+
+      // Update 3D Orbit Trails
+      updateTrails(t);
 
       // Update particle colors if in Density mode
       if (currentColorMode === 'density') {
@@ -1797,6 +1942,179 @@
         colAttr.setXYZ(i, col.r, col.g, col.b);
       }
       colAttr.needsUpdate = true;
+    }
+
+    /* =========================================================================
+       6.5. FRAGMENT SELECTION & ORBIT TRAILS ENGINE
+       ========================================================================= */
+    function clearTrailGroup() {
+      while (trailGroup.children.length > 0) {
+        const obj = trailGroup.children[0];
+        trailGroup.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+      }
+    }
+
+    function buildTrailLine(f, tStart, tEnd, numSteps, colorHex, opacity = 0.9, isDashed = false) {
+      if (!f) return null;
+      const points = [];
+      const dt = (tEnd - tStart) / Math.max(1, numSteps);
+      const omega = OMEGA;
+      for (let i = 0; i <= numSteps; i++) {
+        const tau = tStart + i * dt;
+        const sin_wt = Math.sin(omega * tau);
+        const cos_wt = Math.cos(omega * tau);
+        const x_m = (f.vx / omega) * sin_wt + (2 * f.vy / omega) * (1 - cos_wt);
+        const y_m = (2 * f.vx / omega) * (cos_wt - 1) + (f.vy / omega) * (4 * sin_wt - 3 * omega * tau);
+        const z_m = (f.vz / omega) * sin_wt;
+        points.push(new THREE.Vector3(x_m * SCALE, y_m * SCALE, z_m * SCALE));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = isDashed
+        ? new THREE.LineDashedMaterial({
+            color: colorHex,
+            dashSize: 2.5,
+            gapSize: 2.0,
+            opacity: opacity,
+            transparent: true,
+            depthWrite: false
+          })
+        : new THREE.LineBasicMaterial({
+            color: colorHex,
+            linewidth: 2,
+            opacity: opacity,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+      const line = new THREE.Line(geo, mat);
+      if (isDashed) line.computeLineDistances();
+      return line;
+    }
+
+    function updateTrails(t) {
+      clearTrailGroup();
+      if (t < 0 || trailMode === 'off' || !fragments || fragments.length === 0) {
+        trailGroup.visible = false;
+        return;
+      }
+      trailGroup.visible = true;
+
+      const tPast = Math.max(0.1, t);
+      const T_orbit = 2 * Math.PI / OMEGA; // ~5677.2 s (1 orbit)
+
+      if (trailMode === 'selected') {
+        const targetId = selectedFragId !== null ? selectedFragId : (hoveredFragId !== null ? hoveredFragId : 0);
+        const f = fragments[targetId];
+        if (f) {
+          // Past trajectory: solid neon cyan
+          const pastLine = buildTrailLine(f, 0, tPast, 80, 0x38bdf8, 0.95, false);
+          if (pastLine) trailGroup.add(pastLine);
+          // Future orbit prediction: dashed gold line
+          const futureLine = buildTrailLine(f, tPast, tPast + T_orbit, 120, 0xfacc15, 0.55, true);
+          if (futureLine) trailGroup.add(futureLine);
+        }
+      } else if (trailMode === 'heaviest') {
+        // Top 5 heaviest
+        const sorted = [...fragments].sort((a, b) => b.mass - a.mass);
+        const palette = [0xfacc15, 0x38bdf8, 0x4ade80, 0xa78bfa, 0xf87171];
+        for (let i = 0; i < Math.min(5, sorted.length); i++) {
+          const f = sorted[i];
+          const line = buildTrailLine(f, 0, tPast, 70, palette[i % palette.length], 0.9, false);
+          if (line) trailGroup.add(line);
+        }
+      } else if (trailMode === 'fastest') {
+        // Top 5 fastest
+        const sorted = [...fragments].sort((a, b) => b.speed - a.speed);
+        const palette = [0xef4444, 0xf97316, 0xfacc15, 0xec4899, 0x06b6d4];
+        for (let i = 0; i < Math.min(5, sorted.length); i++) {
+          const f = sorted[i];
+          const line = buildTrailLine(f, 0, tPast, 70, palette[i % palette.length], 0.9, false);
+          if (line) trailGroup.add(line);
+        }
+      } else if (trailMode === 'cardinal') {
+        // 4 Cardinal Ejecta: +X (Radial Up), -X (Radial Down), +Y (In-track Forward), +Z (Cross-track)
+        let maxVx = fragments[0], minVx = fragments[0];
+        let maxVy = fragments[0], maxVz = fragments[0];
+        for (let f of fragments) {
+          if (f.vx > maxVx.vx) maxVx = f;
+          if (f.vx < minVx.vx) minVx = f;
+          if (f.vy > maxVy.vy) maxVy = f;
+          if (Math.abs(f.vz) > Math.abs(maxVz.vz)) maxVz = f;
+        }
+        const cardinals = [
+          { f: maxVx, col: 0x3b82f6 }, // +X Radial Outward (Blue)
+          { f: minVx, col: 0x06b6d4 }, // -X Radial Inward (Cyan)
+          { f: maxVy, col: 0xf97316 }, // +Y In-track Forward (Orange)
+          { f: maxVz, col: 0xa855f7 }  // +Z Out-of-plane Cross-track (Purple)
+        ];
+        for (let c of cardinals) {
+          const line = buildTrailLine(c.f, 0, tPast, 70, c.col, 0.95, false);
+          if (line) trailGroup.add(line);
+        }
+      }
+    }
+
+    function selectFragment(id) {
+      selectedFragId = id;
+      const inspectorWin = document.getElementById('fragment-inspector-window');
+      const badge = document.getElementById('inspector-frag-badge');
+      const btnToggle = document.getElementById('btn-toggle-inspector');
+
+      // Update table rows highlight
+      const rows = document.querySelectorAll('#frag-sample-body tr');
+      rows.forEach(r => {
+        if (id !== null && parseInt(r.dataset.fragId) === id) {
+          r.classList.add('selected-row');
+        } else {
+          r.classList.remove('selected-row');
+        }
+      });
+
+      if (id === null || !fragments || !fragments[id]) {
+        if (inspectorWin) inspectorWin.style.display = 'none';
+        if (btnToggle) btnToggle.classList.remove('active');
+        drawGabbardDiagram(null);
+        updateSimulation(simTime);
+        return;
+      }
+
+      const f = fragments[id];
+      if (inspectorWin) {
+        inspectorWin.style.display = 'block';
+        if (btnToggle) btnToggle.classList.add('active');
+        if (badge) badge.textContent = `#${f.id + 1}`;
+        document.getElementById('insp-mass').textContent = f.mass >= 1.0 ? `${f.mass.toFixed(2)} kg` : `${(f.mass * 1000).toFixed(1)} g`;
+        document.getElementById('insp-lc').textContent = f.Lc >= 0.1 ? `${f.Lc.toFixed(2)} m` : `${(f.Lc * 100).toFixed(1)} cm`;
+        document.getElementById('insp-area').textContent = `${(f.Ax * 10000).toFixed(1)} cm²`;
+        document.getElementById('insp-am').textContent = `${f.amRatio.toFixed(4)} m²/kg`;
+        document.getElementById('insp-bstar').textContent = `${(1.1 * f.amRatio).toFixed(4)} m²/kg`;
+        document.getElementById('insp-speed').textContent = `${Math.round(f.speed)} m/s`;
+        document.getElementById('insp-ha').textContent = `${Math.round(f.ha).toLocaleString()} km`;
+        document.getElementById('insp-hp').textContent = f.hp < 0 ? '<0 km (Impact)' : `${Math.round(f.hp).toLocaleString()} km`;
+        document.getElementById('insp-period').textContent = `${f.period.toFixed(2)} min`;
+        
+        const statusEl = document.getElementById('insp-status');
+        if (statusEl) {
+          if (f.hp <= 0) {
+            statusEl.innerHTML = '<span style="color:#ef4444;font-weight:800;">💥 Surface Impact</span>';
+          } else if (f.isReentry) {
+            statusEl.innerHTML = '<span style="color:#f97316;font-weight:800;">⚠️ Re-entry Decay</span>';
+          } else {
+            statusEl.innerHTML = '<span style="color:#10b981;font-weight:700;">✓ Stable Orbit</span>';
+          }
+        }
+
+        document.getElementById('insp-origin').textContent = f.origin === 0 ? 'Target Satellite' : 'Impactor Projectile';
+        document.getElementById('insp-class').textContent = f.origin === 0 ? (currentTargetType === 'SC' ? 'Spacecraft' : 'Rocket Body') : 'Spacecraft';
+      }
+
+      drawGabbardDiagram(null);
+      updateSimulation(simTime);
     }
 
     /* =========================================================================
@@ -2269,15 +2587,18 @@
       }
 
       // 5. Highlight hovered fragment
-      if (hoverId !== null && fragments[hoverId]) {
-        const hf = fragments[hoverId];
+      // 5b. Highlight for Hovered or Selected Fragment
+      const activeHighlightId = hoverId !== null ? hoverId : selectedFragId;
+      if (activeHighlightId !== null && fragments[activeHighlightId]) {
+        const hf = fragments[activeHighlightId];
+        const isSel = (activeHighlightId === selectedFragId);
         const x = xToPx(hf.period);
         const yA = yToPx(Math.min(maxAlt, hf.ha));
         const yP = yToPx(Math.max(minAlt, hf.hp));
 
         // Connecting highlight line
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = isSel ? 'rgba(250, 204, 21, 0.95)' : 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = isSel ? 2.5 : 1.8;
         ctx.setLineDash([3, 2]);
         ctx.beginPath();
         ctx.moveTo(x, yP);
@@ -2288,23 +2609,23 @@
         // Apogee highlight ring
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, yA, 4.5, 0, Math.PI * 2);
+        ctx.arc(x, yA, isSel ? 5.5 : 4.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = isSel ? '#facc15' : '#38bdf8';
+        ctx.lineWidth = isSel ? 3.0 : 2.5;
         ctx.beginPath();
-        ctx.arc(x, yA, 6.5, 0, Math.PI * 2);
+        ctx.arc(x, yA, isSel ? 8.5 : 6.5, 0, Math.PI * 2);
         ctx.stroke();
 
         // Perigee highlight ring
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, yP, 4.5, 0, Math.PI * 2);
+        ctx.arc(x, yP, isSel ? 5.5 : 4.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = hf.isReentry ? '#ef4444' : '#f97316';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = hf.isReentry ? '#ef4444' : (isSel ? '#facc15' : '#f97316');
+        ctx.lineWidth = isSel ? 3.0 : 2.5;
         ctx.beginPath();
-        ctx.arc(x, yP, 6.5, 0, Math.PI * 2);
+        ctx.arc(x, yP, isSel ? 8.5 : 6.5, 0, Math.PI * 2);
         ctx.stroke();
       }
 
@@ -2452,6 +2773,12 @@
           updateSimulation(simTime);
         }
       });
+
+      canvas.addEventListener('click', () => {
+        if (hoveredFragId !== null) {
+          selectFragment(hoveredFragId);
+        }
+      });
     }
 
     function makeDraggable(winEl, handleEl) {
@@ -2582,14 +2909,168 @@
       }
 
       // Subtle pulse on 3D highlight ring if active
-      if (hoveredFragId !== null && highlightRing && highlightRing.visible) {
-        const pulse = 1.0 + 0.25 * Math.sin(now * 0.008);
+      const activeRingId = selectedFragId !== null ? selectedFragId : hoveredFragId;
+      if (activeRingId !== null && highlightRing && highlightRing.visible) {
+        const pulse = 1.0 + 0.20 * Math.sin(now * 0.008);
         highlightRing.scale.set(pulse, pulse, pulse);
         highlightRing.quaternion.copy(camera.quaternion);
       }
 
+      // Smooth camera tracking if Follow mode is active
+      if (cameraFollow && selectedFragId !== null && fragments && fragments[selectedFragId]) {
+        const sf = fragments[selectedFragId];
+        const targetVec = new THREE.Vector3(sf.currX * SCALE, sf.currY * SCALE, sf.currZ * SCALE);
+        controls.target.lerp(targetVec, 0.08);
+      }
+
       controls.update();
       renderer.render(scene, camera);
+    }
+
+    // 3D Raycasting for Fragment Selection and Hover
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Points.threshold = 4.0;
+
+    let pDownPos = { x: 0, y: 0 };
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      pDownPos.x = e.clientX;
+      pDownPos.y = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const dist = Math.hypot(e.clientX - pDownPos.x, e.clientY - pDownPos.y);
+      if (dist > 6) return; // ignore camera rotate/pan drag
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      raycaster.setFromCamera(mouse, camera);
+      if (fragmentPoints && fragmentPoints.visible) {
+        const intersects = raycaster.intersectObject(fragmentPoints);
+        if (intersects.length > 0) {
+          selectFragment(intersects[0].index);
+        } else {
+          selectFragment(null);
+        }
+      }
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      raycaster.setFromCamera(mouse, camera);
+      if (fragmentPoints && fragmentPoints.visible) {
+        const intersects = raycaster.intersectObject(fragmentPoints);
+        if (intersects.length > 0) {
+          renderer.domElement.style.cursor = 'pointer';
+          const hId = intersects[0].index;
+          drawGabbardDiagram(hId);
+        } else {
+          renderer.domElement.style.cursor = 'default';
+          if (hoveredFragId === null) {
+            drawGabbardDiagram(null);
+          }
+        }
+      }
+    });
+
+    // Trail Mode Buttons
+    const trailBtns = [
+      { id: 'trail-off', mode: 'off' },
+      { id: 'trail-selected', mode: 'selected' },
+      { id: 'trail-heaviest', mode: 'heaviest' },
+      { id: 'trail-fastest', mode: 'fastest' },
+      { id: 'trail-cardinal', mode: 'cardinal' },
+    ];
+    trailBtns.forEach(item => {
+      const btn = document.getElementById(item.id);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          trailMode = item.mode;
+          trailBtns.forEach(o => {
+            const b = document.getElementById(o.id);
+            if (b) b.classList.toggle('active', o.mode === trailMode);
+          });
+          updateTrails(simTime);
+        });
+      }
+    });
+
+    // Camera Mode Buttons
+    const btnCamFree = document.getElementById('cam-mode-free');
+    const btnCamFollow = document.getElementById('cam-mode-follow');
+    if (btnCamFree) {
+      btnCamFree.addEventListener('click', () => {
+        cameraFollow = false;
+        btnCamFree.classList.add('active');
+        if (btnCamFollow) btnCamFollow.classList.remove('active');
+        controls.target.set(0, 0, 0);
+      });
+    }
+    if (btnCamFollow) {
+      btnCamFollow.addEventListener('click', () => {
+        cameraFollow = true;
+        btnCamFollow.classList.add('active');
+        if (btnCamFree) btnCamFree.classList.remove('active');
+        if (selectedFragId === null && fragments.length > 0) {
+          selectFragment(0);
+        }
+      });
+    }
+
+    // Point Size Scale Slider
+    const paramPointScale = document.getElementById('param-pointscale');
+    const valPointScale = document.getElementById('val-pointscale');
+    if (paramPointScale) {
+      paramPointScale.addEventListener('input', (e) => {
+        pointScaleFactor = parseFloat(e.target.value);
+        if (valPointScale) valPointScale.textContent = pointScaleFactor.toFixed(1) + 'x';
+        if (fragmentPoints && fragmentPoints.material && fragmentPoints.material.uniforms) {
+          fragmentPoints.material.uniforms.scaleRatio.value = 170.0 * pointScaleFactor;
+        }
+      });
+    }
+
+    // Inspector Window Buttons
+    const btnInspClose = document.getElementById('btn-inspector-close');
+    if (btnInspClose) {
+      btnInspClose.addEventListener('click', () => {
+        selectFragment(null);
+      });
+    }
+    const btnInspFollow = document.getElementById('btn-inspector-follow');
+    if (btnInspFollow) {
+      btnInspFollow.addEventListener('click', () => {
+        cameraFollow = !cameraFollow;
+        btnInspFollow.classList.toggle('active', cameraFollow);
+        if (btnCamFollow) btnCamFollow.classList.toggle('active', cameraFollow);
+        if (btnCamFree) btnCamFree.classList.toggle('active', !cameraFollow);
+        if (!cameraFollow) controls.target.set(0, 0, 0);
+      });
+    }
+    const btnToggleInspector = document.getElementById('btn-toggle-inspector');
+    if (btnToggleInspector) {
+      btnToggleInspector.addEventListener('click', () => {
+        const inspWin = document.getElementById('fragment-inspector-window');
+        if (inspWin.style.display === 'none') {
+          if (selectedFragId === null && fragments.length > 0) {
+            selectFragment(0);
+          } else {
+            inspWin.style.display = 'block';
+          }
+          btnToggleInspector.classList.add('active');
+        } else {
+          inspWin.style.display = 'none';
+          btnToggleInspector.classList.remove('active');
+        }
+      });
     }
 
     window.addEventListener('resize', () => {
@@ -2599,7 +3080,8 @@
     });
 
     // Read optional URL parameters (e.g. ?t=15&play=0&mode=full)
-    const urlParams = new URLSearchParams(window.location.search);
+    const searchStr = window.location.search || (window.location.href.includes('?') ? window.location.href.slice(window.location.href.indexOf('?')) : '');
+    const urlParams = new URLSearchParams(searchStr);
     if (urlParams.has('mode')) {
       currentTimelineMode = urlParams.get('mode');
     } else if (urlParams.has('t')) {
@@ -2638,6 +3120,16 @@
       const hIdx = parseInt(urlParams.get('hover'));
       if (!isNaN(hIdx)) hoveredFragId = hIdx;
     }
+    if (urlParams.has('trails')) {
+      const tr = urlParams.get('trails');
+      if (['off', 'selected', 'heaviest', 'fastest', 'cardinal'].includes(tr)) {
+        trailMode = tr;
+        trailBtns.forEach(o => {
+          const b = document.getElementById(o.id);
+          if (b) b.classList.toggle('active', o.mode === tr);
+        });
+      }
+    }
 
     // Initialize
     setTimelineMode(currentTimelineMode);
@@ -2645,9 +3137,21 @@
     runSimpleEngine();
     updateLegendBox();
     updateColors();
+    timeSlider.value = simTime;
+    timeDisplay.textContent = formatTime(simTime);
+    if (urlParams.has('select')) {
+      const sIdx = parseInt(urlParams.get('select'));
+      if (!isNaN(sIdx)) selectFragment(sIdx);
+    }
     updateSimulation(simTime);
+    controls.update();
+    renderer.render(scene, camera);
     setupGabbardInteraction();
     makeDraggable(gabbardWin, document.getElementById('gabbard-drag-handle'));
+    const inspWin = document.getElementById('fragment-inspector-window');
+    if (inspWin) {
+      makeDraggable(inspWin, document.getElementById('inspector-drag-handle'));
+    }
     if (hoveredFragId !== null) drawGabbardDiagram(hoveredFragId);
     animate();
   </script>
