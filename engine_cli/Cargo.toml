@@ -1,7 +1,14 @@
 [package]
-name = "sbm_simple_engine"
-version = "0.1.0"
+name = "sbm_cli"
+version = "0.2.0"
 edition = "2021"
+description = "CLI application for the NASA EVOLVE 4.0 Standard Breakup Model"
+license = "MIT OR Apache-2.0"
+authors = ["Antigravity Engineering Team"]
+
+[[bin]]
+name = "sbm_simple_engine"
+path = "src/main.rs"
 
 [dependencies]
-# Standard library only, zero external dependencies required for maximum portability
+sbm_core = { path = "../crates/sbm_core" }
