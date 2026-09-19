@@ -1,0 +1,13 @@
+[package]
+name = "sbm_core"
+version = "0.2.0"
+edition = "2021"
+description = "NASA EVOLVE 4.0 Standard Breakup Model (SBM) core physics and orbital debris simulation engine"
+license = "MIT OR Apache-2.0"
+authors = ["Antigravity Engineering Team"]
+readme = "README.md"
+keywords = ["astrodynamics", "orbital-debris", "breakup-model", "space", "nasa"]
+categories = ["science", "simulation"]
+
+[dependencies]
+# Zero external dependencies for maximum portability, headless testability, and embedded/WASM readiness
