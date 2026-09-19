@@ -27,14 +27,27 @@ A high-performance, offline-first 3D visualization and astrodynamics analysis su
   * Classical astrodynamics plot displaying orbital period ($P$) vs. apogee ($h_a$, cyan) and perigee ($h_p$, orange/red).
   * Calibrated LEO domain ($86\text{--}114\text{ min}$, $0\text{--}2,500\text{ km}$) highlighting the classic "X-wing" crossing at reference breakup altitude ($h_0 = 500\text{ km}$, $T_0 = 94.62\text{ min}$).
   * **Atmospheric Re-entry Danger Zone ($< 120\text{ km}$)** and direct ballistic surface impact ($0\text{ km}$) detection with live percentage tracking ($\sim 55\%$).
-  * **Bidirectional Cross-Highlighting**: Hovering any fragment point on the Gabbard canvas displays a full telemetry tooltip and illuminates a glowing yellow spotlight ring on the corresponding fragment in 3D space.
+  * **Bidirectional Cross-Highlighting**: Hovering or clicking any fragment point on the Gabbard canvas displays a full telemetry tooltip and illuminates a glowing yellow spotlight ring on the corresponding fragment in 3D space.
   * Draggable floating window with minimize/restore and header toggles.
+* **Interactive 3D Fragment Selection & Floating Inspector HUD**:
+  * Precision 3D raycasting with drag-filtering selects individual fragments directly in the 3D scene.
+  * Floating, draggable Fragment Inspector HUD displaying detailed physical and orbital parameters: mass, characteristic length ($L_c$), cross-sectional area ($A_x$), area-to-mass ratio ($A/M$), $B^*$ ballistic drag coefficient, ejection $\Delta v$, apogee, perigee, period, parent satellite origin, and orbit stability classification.
+  * Bidirectional synchronization across 3D viewport, Gabbard diagram, and data preview table.
+* **Dynamic Clohessy-Wiltshire (CW) 3D Orbit Trails**:
+  * Real-time closed-form evaluation of Hill relative orbit curves for past trajectories and future orbit predictions.
+  * Multiple display modes: **Selected Fragment**, **Top 5 Heaviest Fragments**, **Top 5 Fastest Fragments**, and **4 Cardinal Axes** (In-track, Radial, Cross-track).
+* **Follow Camera Tracking**:
+  * Smooth camera lerp tracking locked onto any selected fragment as it disperses along its orbital trajectory.
 * **100% Offline & Standalone Execution**:
   * Zero external network or CDN dependencies. Runs completely self-contained in modern web browsers.
 
 ---
 
 ## Gallery
+
+| Interactive Fragment Inspector & Orbit Trails | 3D Debris Cloud with Minimized Gabbard |
+| :---: | :---: |
+| ![Inspector & Trails](docs/images/screenshot_trails_verified.png) | ![3D Cloud Minimized Gabbard](docs/images/screenshot_gabbard_minimized.png) |
 
 | Volumetric Debris Density Heatmap ($\rho$) | 15-Minute Orbital Shear Dispersion |
 | :---: | :---: |
@@ -87,23 +100,35 @@ open "index.html?t=450&play=0&mode=full"
 ```
 
 Available query parameters:
-* `t`: Initial time in seconds (e.g., `-5`, `0`, `15`, `450`).
+* `t`: Initial time in seconds (e.g., `-5`, `0`, `8`, `450`).
 * `mode`: Timeline range (`zoom` for $-10\text{s}$ to $+30\text{s}$, `full` for $-10\text{s}$ to $+900\text{s}$).
 * `play`: Initial playback state (`1` or `0`).
 * `color`: Particle coloring mode (`contour`, `density`, `smooth`, `origin`).
 * `gabbard`: Gabbard window visibility (`1` or `0`).
 * `volumes`: 3D hazard envelopes visibility (`1` or `0`).
 * `hover`: Highlight fragment ID on start (e.g. `12`).
+* `select`: Select fragment ID and open Inspector on start (e.g. `0`).
+* `trails`: Orbit trail mode (`off`, `selected`, `heaviest`, `fastest`, `cardinal`).
 
 ---
 
-### Running the Offline Rust CLI Engine (Optional)
-The repository also includes an optional standalone Rust CLI tool (`engine_cli`) that generates NASA SBM fragment clouds in JSON format:
+### Rust Library & Standalone CLI Engine
+
+The repository provides a modular, multi-crate Rust architecture:
+
+* **`crates/sbm_core`**: A standalone, zero-dependency Rust library implementing the complete NASA EVOLVE 4.0 Standard Breakup Model physics engine, mathematical formulations, continuous cross-sectional area calculations, stochastic A/M sampling, and Clohessy-Wiltshire state transitions.
+* **`engine_cli`**: Standalone CLI application consuming `sbm_core` to run high-speed Monte Carlo breakup simulations, print telemetry metrics, and export debris clouds as JSON.
+
 ```bash
-cd engine_cli
-cargo run --release
+# Run the Rust CLI engine:
+cargo run -p sbm_simple_engine --release
+
+# Run the test suite:
+cargo test --workspace
+
+# Run clippy with zero warnings:
+cargo clippy --workspace --all-targets -- -D warnings
 ```
-This generates `fragments_output.json` containing the stochastic fragment distributions.
 
 ---
 
