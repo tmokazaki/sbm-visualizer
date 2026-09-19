@@ -12,4 +12,9 @@ dom.html
 
 # Rust Build Artifacts
 target/
-engine_cli/target/
+**/target/
+
+# Python Cache
+__pycache__/
+*.pyc
+

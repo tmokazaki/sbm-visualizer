@@ -622,6 +622,28 @@
       </div>
 
       <div class="control-row" style="margin-top: 8px;">
+        <label>Target Object Class</label>
+        <div class="btn-group">
+          <button class="btn active" id="type-sc">Spacecraft (S/C)</button>
+          <button class="btn" id="type-rb">Rocket Body (R/B)</button>
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label>Breakup Event Regime</label>
+        <div class="btn-group">
+          <button class="btn active" id="regime-collision">Collision</button>
+          <button class="btn" id="regime-explosion">Explosion</button>
+        </div>
+      </div>
+
+      <div class="control-row" id="row-explosion-s" style="display: none; margin-top: 6px;">
+        <label>Explosion Scaling (S) <span class="val" id="val-explosions">1.00</span></label>
+        <input type="range" id="param-explosions" min="0.1" max="2.5" step="0.05" value="1.0">
+        <div style="font-size: 0.68rem; color: var(--text-muted);">S=1.0 nominal upper stage (Johnson 2001, Eq. 3)</div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
         <label>Object Shapes</label>
         <div class="btn-group">
           <button class="btn active" id="shape-sphere">Spheres</button>
@@ -753,6 +775,14 @@
       <div class="metric-card">
         <div class="m-label">Re-entry Risk</div>
         <div class="m-val" style="color: #fb923c;" id="telemetry-reentry">0 (0.0%)</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Physical Yield (≥1cm)</div>
+        <div class="m-val" style="color: #38bdf8;" id="telemetry-phys-yield">50,239</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">SSN Trackable (≥10cm)</div>
+        <div class="m-val" style="color: #a78bfa;" id="telemetry-ssn-trackable">980</div>
       </div>
     </div>
 
@@ -1115,6 +1145,8 @@
        ========================================================================= */
     let fragments = [];
     let instancedFragments = null;
+    let currentTargetType = 'SC';     // 'SC' = Spacecraft (Eq. 6), 'RB' = Rocket Body (Eq. 5)
+    let currentBreakupMode = 'COLL';  // 'COLL' = Hypervelocity Collision (Eq. 4), 'EXP' = Explosion (Eq. 3)
 
     function runSimpleEngine() {
       const M1 = parseFloat(document.getElementById('param-m1').value);
@@ -1124,26 +1156,72 @@
       const N_samples = parseInt(document.getElementById('param-nfrags').value);
       const skew = parseFloat(document.getElementById('param-skew').value);
       const speedBias = parseFloat(document.getElementById('param-speedbias').value);
+      const sExpElem = document.getElementById('param-explosions');
+      const S_factor = sExpElem ? parseFloat(sExpElem.value) : 1.0;
 
-      // Impact Energy & Catastrophic Check
-      const Ep = (M2 * Math.pow(v_imp, 2)) / (2 * M1); // J/kg
-      const Ep_kJ = Ep / 1000.0;
-      const isCatastrophic = Ep >= 40000.0; // 40 kJ/kg threshold
+      const isCollision = (currentBreakupMode === 'COLL');
+      let Ep_kJ = 0;
+      let isCatastrophic = true;
+      let M_destroyed = M1 + M2;
+      let remnantMass = 0;
 
-      // Mass destroyed
-      const M_destroyed = isCatastrophic ? (M1 + M2) : Math.min(M1 + M2, M2 * (1.0 + Math.pow(v_imp_kms / 2.0, 1.5)));
+      if (isCollision) {
+        // 1. Catastrophic Disruption Criterion (Johnson et al. 2001, p. 1379)
+        const m_smaller = Math.min(M1, M2);
+        const m_larger = Math.max(M1, M2);
+        const Ep = (0.5 * m_smaller * Math.pow(v_imp, 2)) / m_larger; // J/kg
+        Ep_kJ = Ep / 1000.0;
+        isCatastrophic = Ep >= 40000.0; // 40 kJ/kg threshold
+
+        // 2. Effective Mass M for Cumulative Distribution (Eq. 4 & p. 1379, col 2)
+        M_destroyed = isCatastrophic ? (M1 + M2) : Math.min(M1 + M2, m_smaller * v_imp_kms);
+        remnantMass = isCatastrophic ? 0 : Math.max(0, M1 - M_destroyed);
+      } else {
+        // On-Orbit Explosion: M_destroyed is parent mass M1
+        M_destroyed = M1;
+        isCatastrophic = true;
+        Ep_kJ = 0;
+      }
+
+      // NASA EVOLVE 4.0 Cumulative Fragment Counts
+      const N_phys_1cm = isCollision
+        ? Math.round(0.1 * Math.pow(M_destroyed, 0.75) * Math.pow(0.01, -1.71))
+        : Math.round(S_factor * 6.0 * Math.pow(0.01, -1.60));
+      const N_ssn_10cm = isCollision
+        ? Math.round(0.1 * Math.pow(M_destroyed, 0.75) * Math.pow(0.10, -1.71))
+        : Math.round(S_factor * 6.0 * Math.pow(0.10, -1.60));
 
       // Update UI Telemetry
-      document.getElementById('telemetry-energy').textContent = Ep_kJ.toFixed(1) + ' kJ/kg';
+      document.getElementById('telemetry-energy').textContent = isCollision ? (Ep_kJ.toFixed(1) + ' kJ/kg') : 'N/A (Explosion)';
       const classElem = document.getElementById('telemetry-class');
-      classElem.textContent = isCatastrophic ? 'Catastrophic' : 'Partial/Crater';
-      classElem.className = 'tag-catastrophic ' + (isCatastrophic ? 'yes' : 'no');
-      document.getElementById('telemetry-mass').textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
+      if (isCollision) {
+        classElem.textContent = isCatastrophic ? 'Catastrophic' : 'Partial/Crater';
+        classElem.className = 'tag-catastrophic ' + (isCatastrophic ? 'yes' : 'no');
+      } else {
+        classElem.textContent = `Explosion (S=${S_factor.toFixed(2)})`;
+        classElem.className = 'tag-catastrophic yes';
+      }
+      
+      const massElem = document.getElementById('telemetry-mass');
+      if (!isCollision) {
+        massElem.textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
+      } else if (isCatastrophic) {
+        massElem.textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
+      } else {
+        massElem.innerHTML = `${Math.round(M_destroyed).toLocaleString()} kg <span style="font-size:0.62rem;color:#38bdf8;">(${Math.round(remnantMass).toLocaleString()}kg remnant)</span>`;
+      }
+
+      document.getElementById('telemetry-phys-yield').textContent = N_phys_1cm.toLocaleString();
+      document.getElementById('telemetry-ssn-trackable').textContent = N_ssn_10cm.toLocaleString();
 
       fragments = [];
       let totalRawMass = 0;
       const rawMasses = [];
       const sizes = [];
+      const chis = [];
+      const areas = [];
+      const origins = [];
+      const objTypes = [];
 
       function randNormal() {
         let u = 0, v = 0;
@@ -1152,20 +1230,95 @@
         return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
       }
 
-      // 1. Generate Fragment Sizes & Masses using Power-Law
+      // NASA EVOLVE 4.0 Average Cross-Sectional Area (Johnson et al. 2001, Eqs. 8 & 9)
+      function computeCrossSection(lc) {
+        if (lc < 0.00167) {
+          return 0.540424 * lc * lc;
+        } else {
+          return 0.556945 * Math.pow(lc, 2.0047077);
+        }
+      }
+
+      // Sample two-component Gaussian mixture: alpha * N(mu1, sigma1) + (1 - alpha) * N(mu2, sigma2)
+      function sampleGaussianMixture(alpha, mu1, sigma1, mu2, sigma2) {
+        if (Math.random() < alpha) {
+          return mu1 + sigma1 * randNormal();
+        } else {
+          return mu2 + sigma2 * randNormal();
+        }
+      }
+
+      // Sample Area-to-Mass ratio chi = log10(A/M) according to NASA EVOLVE 4.0 (Eqs. 5, 6, 7)
+      function sampleAmRatio(lc, objType = 'SC') {
+        const lambda_c = Math.log10(lc);
+        if (lc < 0.08) {
+          // Eq. (7): Small objects Lc < 8 cm (SOCIT distribution)
+          const mu_soc = (lambda_c <= -1.75) ? -0.30 : (lambda_c < -1.25 ? (-0.30 - 1.4 * (lambda_c + 1.75)) : -1.00);
+          const sigma_soc = (lambda_c <= -3.5) ? 0.20 : (0.20 + 0.1333 * (lambda_c + 3.5));
+          return mu_soc + sigma_soc * randNormal();
+        } else if (lc >= 0.11) {
+          if (objType === 'RB') {
+            // Eq. (5): Rocket Body
+            const alpha = (lambda_c <= -1.4) ? 1.0 : (lambda_c < 0.0 ? (1.0 - 0.3571 * (lambda_c + 1.4)) : 0.5);
+            const mu1 = (lambda_c <= -0.5) ? -0.45 : (lambda_c < 0.0 ? (-0.45 - 0.9 * (lambda_c + 0.5)) : -0.90);
+            const sigma1 = 0.55;
+            const mu2 = -0.90;
+            const sigma2 = (lambda_c <= -1.0) ? 0.28 : (lambda_c < 0.1 ? (0.28 - 0.1636 * (lambda_c + 1.0)) : 0.10);
+            return sampleGaussianMixture(alpha, mu1, sigma1, mu2, sigma2);
+          } else {
+            // Eq. (6): Spacecraft
+            const alpha = (lambda_c <= -1.95) ? 0.0 : (lambda_c < 0.55 ? (0.3 + 0.4 * (lambda_c + 1.2)) : 1.0);
+            const mu1 = (lambda_c <= -1.1) ? -0.60 : (lambda_c < 0.0 ? (-0.60 - 0.318 * (lambda_c + 1.1)) : -0.95);
+            const sigma1 = (lambda_c <= -1.3) ? 0.10 : (lambda_c < -0.3 ? (0.10 + 0.2 * (lambda_c + 1.3)) : 0.30);
+            const mu2 = (lambda_c <= -0.7) ? -1.20 : (lambda_c < -0.1 ? (-1.20 - 1.333 * (lambda_c + 0.7)) : -2.00);
+            const sigma2 = (lambda_c <= -0.5) ? 0.50 : (lambda_c < -0.3 ? (0.50 - (lambda_c + 0.5)) : 0.30);
+            return sampleGaussianMixture(alpha, mu1, sigma1, mu2, sigma2);
+          }
+        } else {
+          // Bridging region: 8 cm <= Lc < 11 cm
+          const t = (lc - 0.08) / (0.11 - 0.08);
+          const chi_low = sampleAmRatio(0.0799, objType);
+          const chi_high = sampleAmRatio(0.1101, objType);
+          return (1.0 - t) * chi_low + t * chi_high;
+        }
+      }
+
+      // Sample Ejection Velocity Delta-v magnitude (m/s) according to EVOLVE 4.0 (Eqs. 11, 12)
+      function sampleDeltaV(chi, isCollision = true) {
+        const mu = isCollision ? (0.90 * chi + 2.90) : (0.20 * chi + 1.85);
+        const sigma = 0.40;
+        const logDv = mu + sigma * randNormal();
+        return Math.pow(10, logDv);
+      }
+
+      // 1. Generate Fragment Sizes & Sample A/M (EVOLVE 4.0 Stochastic Pipeline)
       for (let i = 0; i < N_samples; i++) {
-        // Power-law sampling for size (Lc from ~0.01m to 1.5m)
+        // Power-law sampling for Lc in [0.01m, 2.50m]
         const u = Math.random();
-        const Lc = 0.01 * Math.pow(1.0 - u * 0.995, -1.0 / skew);
+        const Lc = Math.min(2.50, 0.01 * Math.pow(1.0 - u, -1.0 / (skew - 1.0)));
         sizes.push(Lc);
 
-        // Mass loosely scales with size (thin plate / irregular chunk: mass ~ Lc^2.3)
-        const rawM = Math.pow(Lc, 2.3);
+        const origin = (Math.random() < (M1 / (M1 + M2))) ? 0 : 1;
+        const objType = (origin === 0) ? currentTargetType : 'SC';
+        origins.push(origin);
+        objTypes.push(objType);
+
+        // Sample chi = log10(A/M) from EVOLVE 4.0 Eqs. (5), (6), (7)
+        const chi = sampleAmRatio(Lc, objType);
+        chis.push(chi);
+        const am = Math.pow(10, chi);
+
+        // Compute cross-sectional area Ax from Eqs. (8), (9)
+        const Ax = computeCrossSection(Lc);
+        areas.push(Ax);
+
+        // Raw mass from Eq. (10): M = Ax / (A/M)
+        const rawM = Math.max(1e-9, Ax / am);
         rawMasses.push(rawM);
         totalRawMass += rawM;
       }
 
-      // 2. Normalize Masses to conserve M_destroyed, and calculate Ejection Velocity (Δv)
+      // 2. Normalize Masses to conserve M_destroyed, and sample EVOLVE 4.0 Delta-v
       let maxSpeed = 0;
       const sampleList = [];
 
@@ -1180,15 +1333,17 @@
       for (let i = 0; i < N_samples; i++) {
         const mass_kg = (rawMasses[i] / totalRawMass) * M_destroyed;
         const Lc = sizes[i];
+        const Ax = areas[i];
+        const origin = origins[i];
+        const objType = objTypes[i];
 
-        // Ejection Speed based on NASA SBM EVOLVE 4.0:
-        // log10(Δv) ~ μ(Lc) + σ * N(0,1)
-        // Lighter fragments (small Lc) get hypersonic kicks (> 2 km/s), heavy fragments stay clustered (< 250 m/s)
-        const logLc = Math.log10(Lc);
-        const mu = 2.02 - 0.58 * logLc * (speedBias / 0.60);
-        const sigma = 0.16;
-        const logDv = mu + sigma * randNormal();
-        const speed = Math.max(30, Math.min(3200, Math.pow(10, logDv) * (v_imp / 10000.0)));
+        // Recompute consistent physical A/M and chi = log10(A/M)
+        const amRatio = Math.max(1e-6, Ax / Math.max(1e-9, mass_kg));
+        const chi = Math.log10(amRatio);
+
+        // EVOLVE 4.0 Eq. (12) for collision / Eq. (11) for explosion: Ejection speed conditioned on chi = log10(A/M)
+        const rawSpeed = sampleDeltaV(chi, isCollision);
+        const speed = Math.max(5.0, Math.min(25000.0, rawSpeed));
 
         if (speed > maxSpeed) maxSpeed = speed;
 
@@ -1211,8 +1366,6 @@
           dirY = Math.cos(theta); // bias along +Y
           dirZ = Math.sin(theta) * Math.sin(phi);
         }
-
-        const origin = Math.random() < (M1 / (M1 + M2)) ? 0 : 1;
 
         // Inertial velocity vector at breakup (LVLH frame to Inertial)
         // vx: Radial, vy: In-track, vz: Cross-track
@@ -1249,6 +1402,9 @@
         const frag = {
           id: i,
           Lc,
+          Ax,
+          amRatio,
+          chi,
           mass: mass_kg,
           speed,
           vx: dirX * speed,
@@ -1820,6 +1976,49 @@
       updateSimulation(simTime);
     });
 
+    // Target object class toggling (Spacecraft vs Rocket Body, Eqs. 5 & 6)
+    document.getElementById('type-sc').addEventListener('click', (e) => {
+      currentTargetType = 'SC';
+      document.getElementById('type-rb').classList.remove('active');
+      e.target.classList.add('active');
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+    document.getElementById('type-rb').addEventListener('click', (e) => {
+      currentTargetType = 'RB';
+      document.getElementById('type-sc').classList.remove('active');
+      e.target.classList.add('active');
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+
+    // Breakup event regime toggling (Collision vs Explosion, Eqs. 3 & 4)
+    document.getElementById('regime-collision').addEventListener('click', (e) => {
+      currentBreakupMode = 'COLL';
+      document.getElementById('regime-explosion').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('row-explosion-s').style.display = 'none';
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+    document.getElementById('regime-explosion').addEventListener('click', (e) => {
+      currentBreakupMode = 'EXP';
+      document.getElementById('regime-collision').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('row-explosion-s').style.display = 'block';
+      runSimpleEngine();
+      updateSimulation(simTime);
+    });
+
+    const expSlider = document.getElementById('param-explosions');
+    if (expSlider) {
+      expSlider.addEventListener('input', (e) => {
+        document.getElementById('val-explosions').textContent = parseFloat(e.target.value).toFixed(2);
+        runSimpleEngine();
+        updateSimulation(simTime);
+      });
+    }
+
     // Color mode buttons
     const colorButtons = [
       { id: 'color-contour', mode: 'contour' },
@@ -2222,6 +2421,8 @@
               ${originBadge}
             </div>
             <div>Mass: <strong style="color: #fff;">${massStr}</strong> (L<sub>c</sub>: ${f.Lc.toFixed(2)}m)</div>
+            <div>A/M: <strong style="color: #a78bfa;">${f.amRatio.toFixed(4)} m²/kg</strong> (A<sub>x</sub>: ${(f.Ax * 10000).toFixed(1)} cm²)</div>
+            <div>B* drag: <strong style="color: #67e8f9;">${(1.1 * f.amRatio).toFixed(4)} m²/kg</strong> (C<sub>D</sub>=2.2)</div>
             <div>Speed Δv: <strong style="color: #fff;">${Math.round(f.speed)} m/s</strong></div>
             <div>Period: <strong style="color: #fff;">${f.period.toFixed(2)} min</strong></div>
             <div style="color: #38bdf8;">Apogee (h<sub>a</sub>): <strong>${haStr}</strong></div>

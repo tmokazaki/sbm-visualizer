@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "crates/sbm_core",
+    "engine_cli",
+]
+resolver = "2"
