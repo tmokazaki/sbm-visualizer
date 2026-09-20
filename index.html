@@ -116,11 +116,12 @@
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--panel-border) transparent;
+      padding: 10px 12px;
     }
 
     .panel-section {
-      margin-bottom: 8px;
-      padding-bottom: 6px;
+      margin-bottom: 6px;
+      padding-bottom: 5px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -131,18 +132,18 @@
     }
 
     .section-title {
-      font-size: 0.70rem;
+      font-size: 0.69rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--accent);
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       display: flex;
       justify-content: space-between;
     }
 
     .control-row {
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
     .control-row label {
@@ -417,8 +418,8 @@
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
-      padding: 6px 8px;
-      margin-top: 6px;
+      padding: 4px 7px;
+      margin-top: 4px;
     }
 
     .contour-title {
@@ -430,7 +431,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     .contour-bands {
@@ -439,16 +440,16 @@
       gap: 2px;
       border-radius: 4px;
       overflow: hidden;
-      margin-top: 3px;
+      margin-top: 2px;
     }
 
     .contour-band {
-      height: 19px;
+      height: 17px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 0.60rem;
+      font-size: 0.58rem;
       font-family: ui-monospace, monospace;
       font-weight: 800;
       color: #05101a;
@@ -458,7 +459,7 @@
     .contour-labels {
       display: flex;
       justify-content: space-between;
-      font-size: 0.62rem;
+      font-size: 0.60rem;
       color: var(--text-muted);
       margin-top: 2px;
       font-family: ui-monospace, monospace;
@@ -471,9 +472,9 @@
       background: rgba(56, 189, 248, 0.08);
       border: 1px solid rgba(56, 189, 248, 0.2);
       border-radius: 6px;
-      padding: 5px 8px;
-      margin-top: 6px;
-      font-size: 0.68rem;
+      padding: 4px 7px;
+      margin-top: 4px;
+      font-size: 0.67rem;
     }
 
     .weight-dot {
@@ -498,6 +499,8 @@
       padding: 10px 14px;
       z-index: 50;
       transition: opacity 0.2s ease, transform 0.2s ease;
+      display: flex;
+      flex-direction: column;
     }
 
     .gabbard-header {
@@ -576,11 +579,102 @@
       font-size: 0.66rem;
       color: var(--text-muted);
     }
+
+    /* Floating Fragment Inspector Window */
+    .fragment-inspector {
+      position: absolute;
+      top: 72px;
+      right: 330px;
+      width: 310px;
+      background: rgba(10, 15, 29, 0.95);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      border-radius: 8px;
+      padding: 10px 14px;
+      z-index: 60;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(168, 85, 247, 0.2);
+      backdrop-filter: blur(10px);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .inspector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      margin-bottom: 8px;
+    }
+    .inspector-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      font-size: 0.70rem;
+    }
+    .inspector-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .inspector-label {
+      color: var(--text-muted);
+      font-size: 0.60rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #frag-sample-body tr {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    #frag-sample-body tr:hover {
+      background: rgba(56, 189, 248, 0.2);
+    }
+    #frag-sample-body tr.selected-row {
+      background: rgba(168, 85, 247, 0.25) !important;
+      outline: 1px solid #a855f7;
+    }
+
+    /* Language Selector */
+    .lang-selector {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .btn-lang {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 5px 9px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn-lang:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .btn-lang.active {
+      background: var(--accent);
+      color: #05101a;
+      font-weight: 800;
+    }
   </style>
 
   <!-- Local libraries (No CDN / Internet required) -->
   <script src="libs/three.min.js"></script>
   <script src="libs/OrbitControls.js"></script>
+  <script src="libs/i18n.js"></script>
 </head>
 <body>
   <div id="viewport"></div>
@@ -588,15 +682,22 @@
   <!-- Header -->
   <header class="overlay">
     <div class="title-box interactive">
-      <h1>NASA Breakup Model Visualizer <span class="badge">Built-in Simple Engine</span></h1>
-      <p>0–15 minute satellite collision, fragment yield & orbital dispersion</p>
+      <h1><span data-i18n="header.title">NASA Breakup Model Visualizer</span> <span class="badge" data-i18n="header.badge">Built-in Simple Engine</span></h1>
+      <p data-i18n="header.subtitle">0–15 minute satellite collision, fragment yield & orbital dispersion</p>
     </div>
-    <div class="header-actions interactive" style="display: flex; gap: 8px;">
+    <div class="header-actions interactive" style="display: flex; gap: 8px; align-items: center;">
+      <div class="lang-selector">
+        <button class="btn-lang active" id="lang-en" data-lang="en" title="English">EN</button>
+        <button class="btn-lang" id="lang-ja" data-lang="ja" title="日本語">日本語</button>
+      </div>
       <button class="btn active" id="btn-toggle-gabbard" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(56, 189, 248, 0.2); border-color: var(--accent); color: #fff;">
-        <span>📊 Gabbard Diagram</span>
+        <span data-i18n="header.btn_gabbard">📊 Gabbard Diagram</span>
       </button>
       <button class="btn active" id="btn-toggle-volumes" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(56, 189, 248, 0.2); border-color: var(--accent); color: #fff;">
-        <span>🌐 Hazard Volumes</span>
+        <span data-i18n="header.btn_volumes">🌐 Hazard Volumes</span>
+      </button>
+      <button class="btn" id="btn-toggle-inspector" style="font-weight: 700; display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: rgba(168, 85, 247, 0.15); border-color: #a855f7; color: #fff;">
+        <span data-i18n="header.btn_inspector">🎯 Inspector & Trails</span>
       </button>
     </div>
   </header>
@@ -604,101 +705,101 @@
   <!-- Left Controls: Model & Engine Parameters -->
   <aside class="overlay control-panel panel interactive">
     <div class="panel-section">
-      <div class="section-title">1. Collision Setup</div>
+      <div class="section-title" data-i18n="sec1.title">1. Collision Setup</div>
       
       <div class="control-row">
-        <label>Target Mass (M₁) <span class="val" id="val-m1">1,000 kg</span></label>
+        <label><span data-i18n="sec1.target_mass">Target Mass (M₁)</span> <span class="val" id="val-m1">1,000 kg</span></label>
         <input type="range" id="param-m1" min="100" max="5000" step="50" value="1000">
       </div>
 
       <div class="control-row">
-        <label>Projectile Mass (M₂) <span class="val" id="val-m2">100 kg</span></label>
+        <label><span data-i18n="sec1.proj_mass">Projectile Mass (M₂)</span> <span class="val" id="val-m2">100 kg</span></label>
         <input type="range" id="param-m2" min="1" max="500" step="5" value="100">
       </div>
 
       <div class="control-row">
-        <label>Impact Speed (v_imp) <span class="val" id="val-vimp">10.0 km/s</span></label>
+        <label><span data-i18n="sec1.impact_speed">Impact Speed (v_imp)</span> <span class="val" id="val-vimp">10.0 km/s</span></label>
         <input type="range" id="param-vimp" min="1.0" max="16.0" step="0.5" value="10.0">
       </div>
 
       <div class="control-row" style="margin-top: 8px;">
-        <label>Target Object Class</label>
+        <label data-i18n="sec1.target_class">Target Object Class</label>
         <div class="btn-group">
-          <button class="btn active" id="type-sc">Spacecraft (S/C)</button>
-          <button class="btn" id="type-rb">Rocket Body (R/B)</button>
+          <button class="btn active" id="type-sc" data-i18n="sec1.class_sc">Spacecraft (S/C)</button>
+          <button class="btn" id="type-rb" data-i18n="sec1.class_rb">Rocket Body (R/B)</button>
         </div>
       </div>
 
       <div class="control-row" style="margin-top: 8px;">
-        <label>Breakup Event Regime</label>
+        <label data-i18n="sec1.regime">Breakup Event Regime</label>
         <div class="btn-group">
-          <button class="btn active" id="regime-collision">Collision</button>
-          <button class="btn" id="regime-explosion">Explosion</button>
+          <button class="btn active" id="regime-collision" data-i18n="sec1.regime_collision">Collision</button>
+          <button class="btn" id="regime-explosion" data-i18n="sec1.regime_explosion">Explosion</button>
         </div>
       </div>
 
       <div class="control-row" id="row-explosion-s" style="display: none; margin-top: 6px;">
-        <label>Explosion Scaling (S) <span class="val" id="val-explosions">1.00</span></label>
+        <label><span data-i18n="sec1.explosion_scale">Explosion Scaling (S)</span> <span class="val" id="val-explosions">1.00</span></label>
         <input type="range" id="param-explosions" min="0.1" max="2.5" step="0.05" value="1.0">
-        <div style="font-size: 0.68rem; color: var(--text-muted);">S=1.0 nominal upper stage (Johnson 2001, Eq. 3)</div>
+        <div style="font-size: 0.68rem; color: var(--text-muted);" data-i18n="sec1.explosion_hint">S=1.0 nominal upper stage (Johnson 2001, Eq. 3)</div>
       </div>
 
       <div class="control-row" style="margin-top: 8px;">
-        <label>Object Shapes</label>
+        <label data-i18n="sec1.shapes">Object Shapes</label>
         <div class="btn-group">
-          <button class="btn active" id="shape-sphere">Spheres</button>
-          <button class="btn" id="shape-box">Satellite Boxes</button>
+          <button class="btn active" id="shape-sphere" data-i18n="sec1.shape_spheres">Spheres</button>
+          <button class="btn" id="shape-box" data-i18n="sec1.shape_boxes">Satellite Boxes</button>
         </div>
       </div>
     </div>
 
     <div class="panel-section">
-      <div class="section-title">2. Simple Engine Rules</div>
+      <div class="section-title" data-i18n="sec2.title">2. Simple Engine Rules</div>
 
       <div class="control-row">
-        <label>Fragment Resolution <span class="val" id="val-nfrags">1,500</span></label>
+        <label><span data-i18n="sec2.resolution">Fragment Resolution</span> <span class="val" id="val-nfrags">1,500</span></label>
         <input type="range" id="param-nfrags" min="100" max="3000" step="100" value="1500">
       </div>
 
       <div class="control-row">
-        <label>Size Skew (Power-Law) <span class="val" id="val-skew">1.71</span></label>
+        <label><span data-i18n="sec2.skew">Size Skew (Power-Law)</span> <span class="val" id="val-skew">1.71</span></label>
         <input type="range" id="param-skew" min="1.1" max="2.5" step="0.05" value="1.71">
-        <div style="font-size: 0.68rem; color: var(--text-muted);">Higher = far more tiny shards than large chunks</div>
+        <div style="font-size: 0.68rem; color: var(--text-muted);" data-i18n="sec2.skew_hint">Higher = far more tiny shards than large chunks</div>
       </div>
 
       <div class="control-row">
-        <label>Light-to-Heavy Speed Bias <span class="val" id="val-speedbias">0.60</span></label>
+        <label><span data-i18n="sec2.speedbias">Light-to-Heavy Speed Bias</span> <span class="val" id="val-speedbias">0.60</span></label>
         <input type="range" id="param-speedbias" min="0.1" max="1.0" step="0.05" value="0.60">
-        <div style="font-size: 0.68rem; color: var(--text-muted);">Higher = light pieces fly significantly faster</div>
+        <div style="font-size: 0.68rem; color: var(--text-muted);" data-i18n="sec2.speedbias_hint">Higher = light pieces fly significantly faster</div>
       </div>
 
       <div class="control-row">
-        <label>Blast Direction Pattern</label>
+        <label data-i18n="sec2.blast_pattern">Blast Direction Pattern</label>
         <div class="btn-group">
-          <button class="btn active" id="blast-sphere">Spherical Burst</button>
-          <button class="btn" id="blast-cone">Forward Impact Cone</button>
+          <button class="btn active" id="blast-sphere" data-i18n="sec2.blast_spherical">Spherical Burst</button>
+          <button class="btn" id="blast-cone" data-i18n="sec2.blast_cone">Forward Impact Cone</button>
         </div>
       </div>
     </div>
 
     <div class="panel-section">
-      <div class="section-title">3. Speed Contour & Density Analytics</div>
+      <div class="section-title" data-i18n="sec3.title">3. Speed Contour & Density Analytics</div>
       
       <div class="btn-group">
-        <button class="btn active" id="color-contour">Speed Contours</button>
-        <button class="btn" id="color-density">Density Heatmap (ρ)</button>
+        <button class="btn active" id="color-contour" data-i18n="sec3.btn_contours">Speed Contours</button>
+        <button class="btn" id="color-density" data-i18n="sec3.btn_density">Density Heatmap (ρ)</button>
       </div>
       <div class="btn-group" style="margin-top: 4px;">
-        <button class="btn" id="color-smooth">Smooth Gradient</button>
-        <button class="btn" id="color-origin">Parent Origin</button>
+        <button class="btn" id="color-smooth" data-i18n="sec3.btn_smooth">Smooth Gradient</button>
+        <button class="btn" id="color-origin" data-i18n="sec3.btn_origin">Parent Origin</button>
       </div>
 
       <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
         <label style="font-size: 0.70rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
           <input type="checkbox" id="check-volumes" checked style="accent-color: var(--accent); cursor: pointer;">
-          <span>Show 1σ / 2σ Hazard Shells</span>
+          <span data-i18n="sec3.check_volumes">Show 1σ / 2σ Hazard Shells</span>
         </label>
-        <button class="btn" id="cam-reset" style="padding: 2px 7px; font-size: 0.68rem;">Reset Cam</button>
+        <button class="btn" id="cam-reset" style="padding: 2px 7px; font-size: 0.68rem;" data-i18n="sec3.btn_reset_cam">Reset Cam</button>
       </div>
 
       <!-- Dynamic Contour / Density Legend Box -->
@@ -725,8 +826,8 @@
       <!-- Weight-to-Size Ratio Indicator -->
       <div class="weight-ratio-info">
         <div>
-          <strong style="color: #fff;">Weight Ratio Scaling:</strong><br>
-          <span style="color: var(--text-muted); font-size: 0.68rem;">Linear Size R ∝ ∛Mass (Physical Volume Ratio)</span>
+          <strong style="color: #fff;" data-i18n="sec3.weight_scaling_title">Weight Ratio Scaling:</strong><br>
+          <span style="color: var(--text-muted); font-size: 0.68rem;" data-i18n="sec3.weight_scaling_desc">Linear Size R ∝ ∛Mass (Physical Volume Ratio)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
           <span class="weight-dot" style="width: 5px; height: 5px;" title="Light Shard (~50g)"></span>
@@ -735,68 +836,98 @@
         </div>
       </div>
     </div>
+
+    <div class="panel-section">
+      <div class="section-title" data-i18n="sec4.title">4. Orbit Trails & Tracking</div>
+
+      <div class="control-row">
+        <label data-i18n="sec4.trail_mode">Orbit Trail Mode</label>
+        <div class="btn-group">
+          <button class="btn" id="trail-off" data-i18n="sec4.trail_off">Off</button>
+          <button class="btn active" id="trail-selected" data-i18n="sec4.trail_selected">Selected</button>
+          <button class="btn" id="trail-heaviest" data-i18n="sec4.trail_heaviest">Top 5 Heavy</button>
+        </div>
+        <div class="btn-group" style="margin-top: 4px;">
+          <button class="btn" id="trail-fastest" data-i18n="sec4.trail_fastest">Top 5 Fast</button>
+          <button class="btn" id="trail-cardinal" data-i18n="sec4.trail_cardinal">4 Cardinal</button>
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label data-i18n="sec4.cam_tracking">Camera Tracking</label>
+        <div class="btn-group">
+          <button class="btn active" id="cam-mode-free" data-i18n="sec4.cam_free">Free Orbit</button>
+          <button class="btn" id="cam-mode-follow" data-i18n="sec4.cam_follow">Follow Selected</button>
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top: 8px;">
+        <label><span data-i18n="sec4.point_scale">Point Size Scale</span> <span class="val" id="val-pointscale">1.0x</span></label>
+        <input type="range" id="param-pointscale" min="0.5" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
   </aside>
 
   <!-- Right Sidebar: Live Engine Telemetry & Inspector -->
   <aside class="overlay telemetry-panel panel interactive">
-    <div class="section-title">Live Engine Telemetry</div>
+    <div class="section-title" data-i18n="telemetry.title">Live Engine Telemetry</div>
     
     <div class="metric-grid">
       <div class="metric-card">
-        <div class="m-label">Impact Energy</div>
+        <div class="m-label" data-i18n="telemetry.impact_energy">Impact Energy</div>
         <div class="m-val" id="telemetry-energy">50.0 kJ/kg</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Outcome</div>
+        <div class="m-label" data-i18n="telemetry.outcome">Outcome</div>
         <div style="margin-top: 2px;">
-          <span class="tag-catastrophic yes" id="telemetry-class">Catastrophic</span>
+          <span class="tag-catastrophic yes" id="telemetry-class" data-i18n="telemetry.catastrophic">Catastrophic</span>
         </div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Destroyed Mass</div>
+        <div class="m-label" data-i18n="telemetry.destroyed_mass">Destroyed Mass</div>
         <div class="m-val" id="telemetry-mass">1,100 kg</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Max Δv Kick</div>
+        <div class="m-label" data-i18n="telemetry.max_dv">Max Δv Kick</div>
         <div class="m-val" id="telemetry-maxdv">2.4 km/s</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Cloud Width (Y)</div>
+        <div class="m-label" data-i18n="telemetry.cloud_width">Cloud Width (Y)</div>
         <div class="m-val" id="telemetry-width">0.0 km</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Stage</div>
+        <div class="m-label" data-i18n="telemetry.stage">Stage</div>
         <div class="m-val" style="font-size: 0.8rem; color: var(--accent);" id="telemetry-stage">Pre-Impact</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Peak Density (ρ)</div>
+        <div class="m-label" data-i18n="telemetry.peak_density">Peak Density (ρ)</div>
         <div class="m-val" style="color: #f43f5e;" id="telemetry-density">0.0 /km³</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Re-entry Risk</div>
+        <div class="m-label" data-i18n="telemetry.reentry_risk">Re-entry Risk</div>
         <div class="m-val" style="color: #fb923c;" id="telemetry-reentry">0 (0.0%)</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">Physical Yield (≥1cm)</div>
+        <div class="m-label" data-i18n="telemetry.phys_yield">Physical Yield (≥1cm)</div>
         <div class="m-val" style="color: #38bdf8;" id="telemetry-phys-yield">50,239</div>
       </div>
       <div class="metric-card">
-        <div class="m-label">SSN Trackable (≥10cm)</div>
+        <div class="m-label" data-i18n="telemetry.ssn_trackable">SSN Trackable (≥10cm)</div>
         <div class="m-val" style="color: #a78bfa;" id="telemetry-ssn-trackable">980</div>
       </div>
     </div>
 
     <!-- Fragment Samples Inspector -->
     <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
-      <div class="section-title">Fragment Yield by Weight & Speed</div>
+      <div class="section-title" data-i18n="telemetry.table_title">Fragment Yield by Weight & Speed</div>
       <table class="frag-table">
         <thead>
           <tr>
-            <th>Class</th>
-            <th>Weight</th>
-            <th>Size Ratio</th>
-            <th>Speed</th>
-            <th>Contour</th>
+            <th data-i18n="telemetry.th_class">Class</th>
+            <th data-i18n="telemetry.th_weight">Weight</th>
+            <th data-i18n="telemetry.th_size_ratio">Size Ratio</th>
+            <th data-i18n="telemetry.th_speed">Speed</th>
+            <th data-i18n="telemetry.th_contour">Contour</th>
           </tr>
         </thead>
         <tbody id="frag-sample-body">
@@ -804,8 +935,8 @@
         </tbody>
       </table>
       <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 6px;">
-        • <strong style="color: #3b82f6;">Heavy core:</strong> high weight ratio, slow & clustered.<br>
-        • <strong style="color: #ef4444;">Light shards:</strong> low weight ratio, fast outer contour shell.
+        • <strong style="color: #3b82f6;" data-i18n="telemetry.class_heavy">Heavy core:</strong> <span data-i18n="telemetry.legend_note_heavy">high weight ratio, slow & clustered.</span><br>
+        • <strong style="color: #ef4444;" data-i18n="telemetry.class_light">Light shards:</strong> <span data-i18n="telemetry.legend_note_light">low weight ratio, fast outer contour shell.</span>
       </div>
     </div>
   </aside>
@@ -814,14 +945,14 @@
   <footer class="overlay timeline-bar panel interactive">
     <div class="timeline-top-row">
       <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
-        <span style="text-transform: uppercase; font-weight: 700; color: var(--accent);">Timeline Mode:</span>
+        <span style="text-transform: uppercase; font-weight: 700; color: var(--accent);" data-i18n="timeline.mode_label">Timeline Mode:</span>
         <div class="timeline-mode-toggles">
-          <button class="timeline-mode-btn active" id="mode-zoom">Impact Zoom (-10s to +30s)</button>
-          <button class="timeline-mode-btn" id="mode-full">Full 15-Min Orbit</button>
+          <button class="timeline-mode-btn active" id="mode-zoom" data-i18n="timeline.mode_zoom">Impact Zoom (-10s to +30s)</button>
+          <button class="timeline-mode-btn" id="mode-full" data-i18n="timeline.mode_full">Full 15-Min Orbit</button>
         </div>
       </div>
       <div style="font-size: 0.72rem; color: var(--text-muted);">
-        Collision Pin: <span style="color:#ff3344; font-weight:bold;">T = 0.0s [Impact]</span>
+        <span data-i18n-html="timeline.collision_pin">Collision Pin: <span style="color:#ff3344; font-weight:bold;">T = 0.0s [Impact]</span></span>
       </div>
     </div>
 
@@ -847,27 +978,61 @@
     </div>
   </footer>
 
+  <!-- Floating Interactive Fragment Inspector Window -->
+  <div id="fragment-inspector-window" class="overlay panel interactive fragment-inspector" style="display: none;">
+    <div class="inspector-header" id="inspector-drag-handle">
+      <div class="inspector-title">
+        <span style="font-size: 0.82rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+          <span data-i18n="inspector.title">🎯 Fragment Inspector</span>
+          <span id="inspector-frag-badge" class="badge" style="font-size: 0.62rem; background: rgba(168, 85, 247, 0.25); color: #c084fc;">#--</span>
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="win-btn" id="btn-inspector-follow" data-i18n-title="inspector.btn_follow_title" title="Toggle Camera Tracking">🎥</button>
+        <button class="win-btn" id="btn-inspector-close" data-i18n-title="inspector.btn_close_title" title="Close / Deselect">✕</button>
+      </div>
+    </div>
+    <div id="inspector-body">
+      <div class="inspector-grid">
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.mass">Mass</span><strong id="insp-mass" style="color: #fff;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.lc">Length (Lc)</span><strong id="insp-lc" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.area">Area (Ax)</span><strong id="insp-area" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.am">A/M Ratio</span><strong id="insp-am" style="color: #a78bfa;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.bstar">B* Drag Coeff</span><strong id="insp-bstar" style="color: #67e8f9;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.speed">Ejection Δv</span><strong id="insp-speed" style="color: #facc15;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.ha">Apogee (ha)</span><strong id="insp-ha" style="color: #38bdf8;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.hp">Perigee (hp)</span><strong id="insp-hp" style="color: #f97316;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.period">Period (P)</span><strong id="insp-period" style="color: #fff;">--</strong></div>
+        <div class="inspector-item"><span class="inspector-label" data-i18n="inspector.status">Status</span><strong id="insp-status">--</strong></div>
+      </div>
+      <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(255, 255, 255, 0.1); font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <span><span data-i18n="inspector.parent">Parent:</span> <strong id="insp-origin" style="color: #38bdf8;">Target</strong></span>
+        <span><span data-i18n="inspector.class">Class:</span> <strong id="insp-class" style="color: #a78bfa;">Spacecraft</strong></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Interactive Gabbard Diagram Window -->
   <div id="gabbard-window" class="overlay panel interactive gabbard-window">
     <div class="gabbard-header" id="gabbard-drag-handle">
       <div class="gabbard-title">
         <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
-          <span>📊 Gabbard Diagram</span>
-          <span class="badge" style="font-size: 0.62rem;">Orbital Period vs Altitude</span>
+          <span data-i18n="gabbard.title">📊 Gabbard Diagram</span>
+          <span class="badge" style="font-size: 0.62rem;" data-i18n="gabbard.badge">Orbital Period vs Altitude</span>
         </span>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
-        <button class="win-btn" id="btn-gabbard-min" title="Minimize / Restore">—</button>
-        <button class="win-btn" id="btn-gabbard-close" title="Close">✕</button>
+        <button class="win-btn" id="btn-gabbard-min" data-i18n-title="gabbard.min_title" title="Minimize / Restore">—</button>
+        <button class="win-btn" id="btn-gabbard-close" data-i18n-title="gabbard.close_title" title="Close">✕</button>
       </div>
     </div>
 
     <div id="gabbard-body">
       <!-- Gabbard Sub-bar / Key Metrics -->
       <div class="gabbard-metrics-bar">
-        <span>Ref: <strong>h₀ = 500 km</strong> (T₀ = 94.6m)</span>
-        <span>Max Apogee: <strong id="gabbard-max-ha" style="color: #38bdf8;">-- km</strong></span>
-        <span>Re-entry Risk: <strong id="gabbard-reentry-count" style="color: #ef4444;">--</strong></span>
+        <span><span data-i18n="gabbard.ref">Ref: h₀ = 500 km (T₀ = 94.6m)</span></span>
+        <span><span data-i18n="gabbard.max_ha">Max Apogee:</span> <strong id="gabbard-max-ha" style="color: #38bdf8;">-- km</strong></span>
+        <span><span data-i18n="gabbard.reentry_risk">Re-entry Risk:</span> <strong id="gabbard-reentry-count" style="color: #ef4444;">--</strong></span>
       </div>
 
       <!-- Canvas Container -->
@@ -880,18 +1045,18 @@
         <div style="display: flex; gap: 10px; align-items: center;">
           <span style="display: flex; align-items: center; gap: 4px;">
             <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8;"></span>
-            <span>Apogee (h<sub>a</sub>)</span>
+            <span data-i18n="gabbard.apogee">Apogee (h<sub>a</sub>)</span>
           </span>
           <span style="display: flex; align-items: center; gap: 4px;">
             <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f97316;"></span>
-            <span>Perigee (h<sub>p</sub>)</span>
+            <span data-i18n="gabbard.perigee">Perigee (h<sub>p</sub>)</span>
           </span>
           <span style="display: flex; align-items: center; gap: 4px;">
             <span style="display: inline-block; width: 12px; height: 2px; background: #ef4444;"></span>
-            <span style="color: #ef4444;">Re-entry &lt;120km</span>
+            <span style="color: #ef4444;" data-i18n="gabbard.reentry_threshold">Re-entry &lt;120km</span>
           </span>
         </div>
-        <div style="font-size: 0.64rem; color: var(--text-muted);">
+        <div style="font-size: 0.64rem; color: var(--text-muted);" data-i18n="gabbard.hover_hint">
           Hover point to inspect & highlight in 3D
         </div>
       </div>
@@ -1022,6 +1187,14 @@
 
     let showHazardVolumes = true;
     let hoveredFragId = null;
+    let selectedFragId = null;
+    let trailMode = 'selected'; // 'off' | 'selected' | 'heaviest' | 'fastest' | 'cardinal'
+    let cameraFollow = false;
+    let pointScaleFactor = 1.0;
+
+    // 3D Orbit Trail Visualization Group
+    const trailGroup = new THREE.Group();
+    scene.add(trailGroup);
 
     /* =========================================================================
        3. OBJECT MODELS & FLASH EFFECT
@@ -1144,9 +1317,89 @@
        4. BUILT-IN SIMPLE BREAKUP ENGINE
        ========================================================================= */
     let fragments = [];
+    let fragmentPoints = null;
     let instancedFragments = null;
     let currentTargetType = 'SC';     // 'SC' = Spacecraft (Eq. 6), 'RB' = Rocket Body (Eq. 5)
     let currentBreakupMode = 'COLL';  // 'COLL' = Hypervelocity Collision (Eq. 4), 'EXP' = Explosion (Eq. 3)
+    let currentMaxMass = 0.001;
+    let currentEp_kJ = 0;
+    let isCurrentCatastrophic = true;
+    let currentDestroyedMass = 1100;
+    let currentRemnantMass = 0;
+    let currentSFactor = 1.0;
+
+    function updateTelemetryOutcome() {
+      const isCollision = (currentBreakupMode === 'COLL');
+      const energyElem = document.getElementById('telemetry-energy');
+      if (energyElem) {
+        energyElem.textContent = isCollision ? (currentEp_kJ.toFixed(1) + ' kJ/kg') : I18N.t('telemetry.not_applicable_explosion');
+      }
+
+      const classElem = document.getElementById('telemetry-class');
+      if (classElem) {
+        if (isCollision) {
+          classElem.textContent = isCurrentCatastrophic ? I18N.t('telemetry.catastrophic') : I18N.t('telemetry.partial');
+          classElem.className = 'tag-catastrophic ' + (isCurrentCatastrophic ? 'yes' : 'no');
+        } else {
+          classElem.textContent = I18N.t('telemetry.explosion', { s: currentSFactor.toFixed(2) });
+          classElem.className = 'tag-catastrophic yes';
+        }
+      }
+
+      const massElem = document.getElementById('telemetry-mass');
+      if (massElem) {
+        if (!isCollision || isCurrentCatastrophic) {
+          massElem.textContent = Math.round(currentDestroyedMass).toLocaleString() + ' kg';
+        } else {
+          massElem.innerHTML = `${Math.round(currentDestroyedMass).toLocaleString()} kg <span style="font-size:0.62rem;color:#38bdf8;">${I18N.t('telemetry.remnant', { remnant: Math.round(currentRemnantMass).toLocaleString() })}</span>`;
+        }
+      }
+    }
+
+    function populateSampleTable(maxMass) {
+      const tableBody = document.getElementById('frag-sample-body');
+      if (!tableBody || !fragments || fragments.length === 0) return;
+      tableBody.innerHTML = '';
+      const sortedSamples = [...fragments].sort((a, b) => b.mass - a.mass);
+      const previewFrags = [
+        sortedSamples[0],
+        sortedSamples[Math.floor(sortedSamples.length * 0.15)],
+        sortedSamples[sortedSamples.length - 1]
+      ];
+
+      const labels = [
+        I18N.t('telemetry.class_heavy'),
+        I18N.t('telemetry.class_medium'),
+        I18N.t('telemetry.class_light')
+      ];
+      const effectiveMaxMass = maxMass || sortedSamples[0].mass || 0.001;
+
+      previewFrags.forEach((f, idx) => {
+        const row = document.createElement('tr');
+        const massStr = f.mass >= 1.0 ? `${f.mass.toFixed(1)} kg` : `${(f.mass * 1000).toFixed(0)} g`;
+        // Physical linear dimension ratio: R ~ cbrt(m / maxMass)
+        const ratioPct = Math.round((Math.cbrt(f.mass) / Math.cbrt(effectiveMaxMass)) * 100);
+        const speedStr = `${Math.round(f.speed)} m/s`;
+
+        let cBadge = '';
+        if (f.speed < 250) cBadge = `<span style="color:#3b82f6;font-weight:800;">${I18N.t('telemetry.color_blue')}</span>`;
+        else if (f.speed < 500) cBadge = `<span style="color:#06b6d4;font-weight:800;">${I18N.t('telemetry.color_cyan')}</span>`;
+        else if (f.speed < 1000) cBadge = `<span style="color:#10b981;font-weight:800;">${I18N.t('telemetry.color_green')}</span>`;
+        else if (f.speed < 1500) cBadge = `<span style="color:#eab308;font-weight:800;">${I18N.t('telemetry.color_yellow')}</span>`;
+        else if (f.speed < 2000) cBadge = `<span style="color:#f97316;font-weight:800;">${I18N.t('telemetry.color_orange')}</span>`;
+        else cBadge = `<span style="color:#ef4444;font-weight:800;">${I18N.t('telemetry.color_red')}</span>`;
+
+        row.dataset.fragId = f.id;
+        if (selectedFragId === f.id) row.classList.add('selected-row');
+        row.title = I18N.t('telemetry.row_tooltip', { id: f.id + 1 });
+        row.addEventListener('click', () => {
+          selectFragment(f.id);
+        });
+
+        row.innerHTML = `<td><strong>${labels[idx]}</strong></td><td>${massStr}</td><td style="color:var(--accent);font-weight:bold;">${ratioPct}%</td><td style="color:#fff;">${speedStr}</td><td>${cBadge}</td>`;
+        tableBody.appendChild(row);
+      });
+    }
 
     function runSimpleEngine() {
       const M1 = parseFloat(document.getElementById('param-m1').value);
@@ -1192,24 +1445,12 @@
         : Math.round(S_factor * 6.0 * Math.pow(0.10, -1.60));
 
       // Update UI Telemetry
-      document.getElementById('telemetry-energy').textContent = isCollision ? (Ep_kJ.toFixed(1) + ' kJ/kg') : 'N/A (Explosion)';
-      const classElem = document.getElementById('telemetry-class');
-      if (isCollision) {
-        classElem.textContent = isCatastrophic ? 'Catastrophic' : 'Partial/Crater';
-        classElem.className = 'tag-catastrophic ' + (isCatastrophic ? 'yes' : 'no');
-      } else {
-        classElem.textContent = `Explosion (S=${S_factor.toFixed(2)})`;
-        classElem.className = 'tag-catastrophic yes';
-      }
-      
-      const massElem = document.getElementById('telemetry-mass');
-      if (!isCollision) {
-        massElem.textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
-      } else if (isCatastrophic) {
-        massElem.textContent = Math.round(M_destroyed).toLocaleString() + ' kg';
-      } else {
-        massElem.innerHTML = `${Math.round(M_destroyed).toLocaleString()} kg <span style="font-size:0.62rem;color:#38bdf8;">(${Math.round(remnantMass).toLocaleString()}kg remnant)</span>`;
-      }
+      currentEp_kJ = Ep_kJ;
+      isCurrentCatastrophic = isCatastrophic;
+      currentDestroyedMass = M_destroyed;
+      currentRemnantMass = remnantMass;
+      currentSFactor = S_factor;
+      updateTelemetryOutcome();
 
       document.getElementById('telemetry-phys-yield').textContent = N_phys_1cm.toLocaleString();
       document.getElementById('telemetry-ssn-trackable').textContent = N_ssn_10cm.toLocaleString();
@@ -1447,34 +1688,8 @@
       drawGabbardDiagram();
 
       // Populate Fragment Samples Table with Weight Ratio & Speed Contour
-      const tableBody = document.getElementById('frag-sample-body');
-      tableBody.innerHTML = '';
-      const sortedSamples = [...fragments].sort((a,b) => b.mass - a.mass);
-      const previewFrags = [
-        sortedSamples[0],
-        sortedSamples[Math.floor(sortedSamples.length * 0.15)],
-        sortedSamples[sortedSamples.length - 1]
-      ];
-      
-      const labels = ['Heavy Core', 'Medium Shell', 'Light Shard'];
-      previewFrags.forEach((f, idx) => {
-        const row = document.createElement('tr');
-        const massStr = f.mass >= 1.0 ? `${f.mass.toFixed(1)} kg` : `${(f.mass * 1000).toFixed(0)} g`;
-        // Physical linear dimension ratio: R ~ cbrt(m / maxMass)
-        const ratioPct = Math.round((Math.cbrt(f.mass) / Math.cbrt(maxMass)) * 100);
-        const speedStr = `${Math.round(f.speed)} m/s`;
-        
-        let cBadge = '';
-        if (f.speed < 250) cBadge = '<span style="color:#3b82f6;font-weight:800;">&lt;250 (Blue)</span>';
-        else if (f.speed < 500) cBadge = '<span style="color:#06b6d4;font-weight:800;">250-500 (Cyan)</span>';
-        else if (f.speed < 1000) cBadge = '<span style="color:#10b981;font-weight:800;">500-1k (Green)</span>';
-        else if (f.speed < 1500) cBadge = '<span style="color:#eab308;font-weight:800;">1k-1.5k (Yellow)</span>';
-        else if (f.speed < 2000) cBadge = '<span style="color:#f97316;font-weight:800;">1.5k-2k (Orange)</span>';
-        else cBadge = '<span style="color:#ef4444;font-weight:800;">&gt;2k (Red)</span>';
-
-        row.innerHTML = `<td><strong>${labels[idx]}</strong></td><td>${massStr}</td><td style="color:var(--accent);font-weight:bold;">${ratioPct}%</td><td style="color:#fff;">${speedStr}</td><td>${cBadge}</td>`;
-        tableBody.appendChild(row);
-      });
+      currentMaxMass = maxMass;
+      populateSampleTable(currentMaxMass);
 
       // Build Glowing Fragment Particle System with Weight-Proportional Sizes (ShaderMaterial)
       if (fragmentPoints) scene.remove(fragmentPoints);
@@ -1551,8 +1766,6 @@
     /* =========================================================================
        5. PROPAGATION ENGINE (CLOHESSY-WILTSHIRE / HILL'S DYNAMICS)
        ========================================================================= */
-    let fragmentPoints = null;
-
     function updateSimulation(t) {
       // 1. Pre-collision Approach (t < 0s)
       if (t < 0) {
@@ -1560,6 +1773,7 @@
         if (coreHazardGroup) coreHazardGroup.visible = false;
         if (secondaryHazardGroup) secondaryHazardGroup.visible = false;
         if (highlightRing) highlightRing.visible = false;
+        if (trailGroup) trailGroup.visible = false;
         flashMesh.material.opacity = 0.0;
         ringMesh.material.opacity = 0.0;
         targetGroup.visible = true;
@@ -1584,7 +1798,7 @@
 
         document.getElementById('telemetry-width').textContent = '0.0 km';
         document.getElementById('telemetry-density').textContent = '0.0 /km³';
-        document.getElementById('telemetry-stage').textContent = 'Approaching (' + absT.toFixed(1) + 's to impact)';
+        document.getElementById('telemetry-stage').textContent = I18N.t('telemetry.stage_approaching', { s: absT.toFixed(1) });
         return;
       }
 
@@ -1663,7 +1877,7 @@
 
       // Telemetry density formatting
       let densStr = '';
-      if (t <= 0.2) densStr = 'Collision Core (∞)';
+      if (t <= 0.2) densStr = I18N.t('telemetry.stage_collision_core');
       else if (peakDensity >= 1.0) densStr = peakDensity.toFixed(1) + ' /km³';
       else if (peakDensity >= 0.001) densStr = peakDensity.toFixed(4) + ' /km³';
       else densStr = peakDensity.toExponential(2) + ' /km³';
@@ -1696,15 +1910,19 @@
         }
       }
 
-      // Update 3D Highlight Marker if fragment is hovered in Gabbard diagram
-      if (hoveredFragId !== null && fragments[hoveredFragId] && highlightRing) {
-        const hf = fragments[hoveredFragId];
+      // Update 3D Highlight Marker for selected or hovered fragment
+      const activeMarkerId = selectedFragId !== null ? selectedFragId : hoveredFragId;
+      if (activeMarkerId !== null && fragments[activeMarkerId] && highlightRing) {
+        const hf = fragments[activeMarkerId];
         highlightRing.position.set(hf.currX * SCALE, hf.currY * SCALE, hf.currZ * SCALE);
         highlightRing.quaternion.copy(camera.quaternion);
         highlightRing.visible = true;
       } else if (highlightRing) {
         highlightRing.visible = false;
       }
+
+      // Update 3D Orbit Trails
+      updateTrails(t);
 
       // Update particle colors if in Density mode
       if (currentColorMode === 'density') {
@@ -1716,11 +1934,13 @@
       document.getElementById('telemetry-width').textContent = widthKm.toFixed(1) + ' km';
 
       if (t <= 0.2) {
-        document.getElementById('telemetry-stage').textContent = '💥 IMPACT CONTACT';
+        document.getElementById('telemetry-stage').textContent = I18N.t('telemetry.stage_impact');
       } else if (t < 120) {
-        document.getElementById('telemetry-stage').textContent = 'Spherical Blast (0–2m)';
+        document.getElementById('telemetry-stage').textContent = I18N.t('telemetry.stage_spherical');
+      } else if (t < 900) {
+        document.getElementById('telemetry-stage').textContent = I18N.t('telemetry.stage_shear');
       } else {
-        document.getElementById('telemetry-stage').textContent = 'C-W Orbital Shear (2–15m)';
+        document.getElementById('telemetry-stage').textContent = I18N.t('telemetry.stage_secular');
       }
     }
 
@@ -1800,6 +2020,179 @@
     }
 
     /* =========================================================================
+       6.5. FRAGMENT SELECTION & ORBIT TRAILS ENGINE
+       ========================================================================= */
+    function clearTrailGroup() {
+      while (trailGroup.children.length > 0) {
+        const obj = trailGroup.children[0];
+        trailGroup.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+      }
+    }
+
+    function buildTrailLine(f, tStart, tEnd, numSteps, colorHex, opacity = 0.9, isDashed = false) {
+      if (!f) return null;
+      const points = [];
+      const dt = (tEnd - tStart) / Math.max(1, numSteps);
+      const omega = OMEGA;
+      for (let i = 0; i <= numSteps; i++) {
+        const tau = tStart + i * dt;
+        const sin_wt = Math.sin(omega * tau);
+        const cos_wt = Math.cos(omega * tau);
+        const x_m = (f.vx / omega) * sin_wt + (2 * f.vy / omega) * (1 - cos_wt);
+        const y_m = (2 * f.vx / omega) * (cos_wt - 1) + (f.vy / omega) * (4 * sin_wt - 3 * omega * tau);
+        const z_m = (f.vz / omega) * sin_wt;
+        points.push(new THREE.Vector3(x_m * SCALE, y_m * SCALE, z_m * SCALE));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = isDashed
+        ? new THREE.LineDashedMaterial({
+            color: colorHex,
+            dashSize: 2.5,
+            gapSize: 2.0,
+            opacity: opacity,
+            transparent: true,
+            depthWrite: false
+          })
+        : new THREE.LineBasicMaterial({
+            color: colorHex,
+            linewidth: 2,
+            opacity: opacity,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+      const line = new THREE.Line(geo, mat);
+      if (isDashed) line.computeLineDistances();
+      return line;
+    }
+
+    function updateTrails(t) {
+      clearTrailGroup();
+      if (t < 0 || trailMode === 'off' || !fragments || fragments.length === 0) {
+        trailGroup.visible = false;
+        return;
+      }
+      trailGroup.visible = true;
+
+      const tPast = Math.max(0.1, t);
+      const T_orbit = 2 * Math.PI / OMEGA; // ~5677.2 s (1 orbit)
+
+      if (trailMode === 'selected') {
+        const targetId = selectedFragId !== null ? selectedFragId : (hoveredFragId !== null ? hoveredFragId : 0);
+        const f = fragments[targetId];
+        if (f) {
+          // Past trajectory: solid neon cyan
+          const pastLine = buildTrailLine(f, 0, tPast, 80, 0x38bdf8, 0.95, false);
+          if (pastLine) trailGroup.add(pastLine);
+          // Future orbit prediction: dashed gold line
+          const futureLine = buildTrailLine(f, tPast, tPast + T_orbit, 120, 0xfacc15, 0.55, true);
+          if (futureLine) trailGroup.add(futureLine);
+        }
+      } else if (trailMode === 'heaviest') {
+        // Top 5 heaviest
+        const sorted = [...fragments].sort((a, b) => b.mass - a.mass);
+        const palette = [0xfacc15, 0x38bdf8, 0x4ade80, 0xa78bfa, 0xf87171];
+        for (let i = 0; i < Math.min(5, sorted.length); i++) {
+          const f = sorted[i];
+          const line = buildTrailLine(f, 0, tPast, 70, palette[i % palette.length], 0.9, false);
+          if (line) trailGroup.add(line);
+        }
+      } else if (trailMode === 'fastest') {
+        // Top 5 fastest
+        const sorted = [...fragments].sort((a, b) => b.speed - a.speed);
+        const palette = [0xef4444, 0xf97316, 0xfacc15, 0xec4899, 0x06b6d4];
+        for (let i = 0; i < Math.min(5, sorted.length); i++) {
+          const f = sorted[i];
+          const line = buildTrailLine(f, 0, tPast, 70, palette[i % palette.length], 0.9, false);
+          if (line) trailGroup.add(line);
+        }
+      } else if (trailMode === 'cardinal') {
+        // 4 Cardinal Ejecta: +X (Radial Up), -X (Radial Down), +Y (In-track Forward), +Z (Cross-track)
+        let maxVx = fragments[0], minVx = fragments[0];
+        let maxVy = fragments[0], maxVz = fragments[0];
+        for (let f of fragments) {
+          if (f.vx > maxVx.vx) maxVx = f;
+          if (f.vx < minVx.vx) minVx = f;
+          if (f.vy > maxVy.vy) maxVy = f;
+          if (Math.abs(f.vz) > Math.abs(maxVz.vz)) maxVz = f;
+        }
+        const cardinals = [
+          { f: maxVx, col: 0x3b82f6 }, // +X Radial Outward (Blue)
+          { f: minVx, col: 0x06b6d4 }, // -X Radial Inward (Cyan)
+          { f: maxVy, col: 0xf97316 }, // +Y In-track Forward (Orange)
+          { f: maxVz, col: 0xa855f7 }  // +Z Out-of-plane Cross-track (Purple)
+        ];
+        for (let c of cardinals) {
+          const line = buildTrailLine(c.f, 0, tPast, 70, c.col, 0.95, false);
+          if (line) trailGroup.add(line);
+        }
+      }
+    }
+
+    function selectFragment(id) {
+      selectedFragId = id;
+      const inspectorWin = document.getElementById('fragment-inspector-window');
+      const badge = document.getElementById('inspector-frag-badge');
+      const btnToggle = document.getElementById('btn-toggle-inspector');
+
+      // Update table rows highlight
+      const rows = document.querySelectorAll('#frag-sample-body tr');
+      rows.forEach(r => {
+        if (id !== null && parseInt(r.dataset.fragId) === id) {
+          r.classList.add('selected-row');
+        } else {
+          r.classList.remove('selected-row');
+        }
+      });
+
+      if (id === null || !fragments || !fragments[id]) {
+        if (inspectorWin) inspectorWin.style.display = 'none';
+        if (btnToggle) btnToggle.classList.remove('active');
+        drawGabbardDiagram(null);
+        updateSimulation(simTime);
+        return;
+      }
+
+      const f = fragments[id];
+      if (inspectorWin) {
+        inspectorWin.style.display = 'block';
+        if (btnToggle) btnToggle.classList.add('active');
+        if (badge) badge.textContent = `#${f.id + 1}`;
+        document.getElementById('insp-mass').textContent = f.mass >= 1.0 ? `${f.mass.toFixed(2)} kg` : `${(f.mass * 1000).toFixed(1)} g`;
+        document.getElementById('insp-lc').textContent = f.Lc >= 0.1 ? `${f.Lc.toFixed(2)} m` : `${(f.Lc * 100).toFixed(1)} cm`;
+        document.getElementById('insp-area').textContent = `${(f.Ax * 10000).toFixed(1)} cm²`;
+        document.getElementById('insp-am').textContent = `${f.amRatio.toFixed(4)} m²/kg`;
+        document.getElementById('insp-bstar').textContent = `${(1.1 * f.amRatio).toFixed(4)} m²/kg`;
+        document.getElementById('insp-speed').textContent = `${Math.round(f.speed)} m/s`;
+        document.getElementById('insp-ha').textContent = `${Math.round(f.ha).toLocaleString()} km`;
+        document.getElementById('insp-hp').textContent = f.hp < 0 ? (I18N.currentLang === 'ja' ? '<0 km (地表衝突)' : '<0 km (Impact)') : `${Math.round(f.hp).toLocaleString()} km`;
+        document.getElementById('insp-period').textContent = `${f.period.toFixed(2)} ${I18N.currentLang === 'ja' ? '分' : 'min'}`;
+        
+        const statusEl = document.getElementById('insp-status');
+        if (statusEl) {
+          if (f.hp <= 0) {
+            statusEl.innerHTML = `<span style="color:#ef4444;font-weight:800;">${I18N.t('inspector.status_impact')}</span>`;
+          } else if (f.isReentry) {
+            statusEl.innerHTML = `<span style="color:#f97316;font-weight:800;">${I18N.t('inspector.status_reentry')}</span>`;
+          } else {
+            statusEl.innerHTML = `<span style="color:#10b981;font-weight:700;">${I18N.t('inspector.status_stable')}</span>`;
+          }
+        }
+
+        document.getElementById('insp-origin').textContent = f.origin === 0 ? I18N.t('inspector.parent_target') : I18N.t('inspector.parent_projectile');
+        document.getElementById('insp-class').textContent = f.origin === 0 ? (currentTargetType === 'SC' ? I18N.t('inspector.class_spacecraft') : I18N.t('inspector.class_rocket_body')) : I18N.t('inspector.class_spacecraft');
+      }
+
+      drawGabbardDiagram(null);
+      updateSimulation(simTime);
+    }
+
+    /* =========================================================================
        7. EVENT LISTENERS & UI WIRING
        ========================================================================= */
     const timeSlider = document.getElementById('time-slider');
@@ -1819,7 +2212,7 @@
         // Range: -10 to +30s (total span 40s)
         const marks = [
           { val: -10, label: '-10s' },
-          { val: 0, label: 'T=0s [IMPACT]', isImpact: true },
+          { val: 0, label: I18N.t('timeline.mark_impact'), isImpact: true },
           { val: 10, label: '+10s' },
           { val: 20, label: '+20s' },
           { val: 30, label: '+30s' }
@@ -1834,12 +2227,13 @@
         });
       } else {
         // Range: -10 to +900s (total span 910s)
+        const minSuffix = I18N.currentLang === 'ja' ? '分' : ' min';
         const marks = [
-          { val: 0, label: 'T=0s [IMPACT]', isImpact: true },
-          { val: 225, label: '+3.7 min' },
-          { val: 450, label: '+7.5 min' },
-          { val: 675, label: '+11 min' },
-          { val: 900, label: '+15 min' }
+          { val: 0, label: I18N.t('timeline.mark_impact'), isImpact: true },
+          { val: 225, label: '+3.7' + minSuffix },
+          { val: 450, label: '+7.5' + minSuffix },
+          { val: 675, label: '+11' + minSuffix },
+          { val: 900, label: '+15' + minSuffix }
         ];
         marks.forEach(m => {
           const pct = ((m.val - (-10)) / 910.0) * 100.0;
@@ -1854,7 +2248,7 @@
 
     function formatTime(sec) {
       if (Math.abs(sec) < 0.05) {
-        return 'T 00.0s [IMPACT]';
+        return I18N.t('timeline.time_impact');
       }
       const sign = sec < 0 ? '-' : '+';
       const abs = Math.abs(sec);
@@ -2050,8 +2444,8 @@
       if (!titleEl || !bandsEl || !labelsEl) return;
 
       if (currentColorMode === 'density') {
-        titleEl.textContent = 'Volumetric Debris Density (ρ)';
-        unitEl.textContent = 'rel. to peak';
+        titleEl.textContent = I18N.t('sec3.legend_density_title');
+        unitEl.textContent = I18N.t('sec3.legend_density_unit');
         bandsEl.innerHTML = `
           <div class="contour-band" style="background: #1e3a8a;" title="Sparse (< 6%)">&lt;6%</div>
           <div class="contour-band" style="background: #06b6d4;" title="Low (6 - 18%)">18%</div>
@@ -2061,35 +2455,35 @@
           <div class="contour-band" style="background: #ef4444;" title="Hazard Core (> 80%)">&gt;80%</div>
         `;
         labelsEl.innerHTML = `
-          <span style="color: #06b6d4;">Dispersed 2σ</span>
-          <span style="color: #eab308;">Mid Envelope</span>
-          <span style="color: #ef4444;">1σ Hazard Core</span>
+          <span style="color: #06b6d4;">${I18N.t('sec3.legend_density_label1')}</span>
+          <span style="color: #eab308;">${I18N.t('sec3.legend_density_label2')}</span>
+          <span style="color: #ef4444;">${I18N.t('sec3.legend_density_label3')}</span>
         `;
       } else if (currentColorMode === 'origin') {
-        titleEl.textContent = 'Fragment Parent Origin';
-        unitEl.textContent = 'satellite';
+        titleEl.textContent = I18N.t('sec3.legend_origin_title');
+        unitEl.textContent = I18N.t('sec3.legend_origin_unit');
         bandsEl.innerHTML = `
-          <div class="contour-band" style="background: #38bdf8; flex: 1;" title="Target Satellite">Target Satellite (M₁)</div>
-          <div class="contour-band" style="background: #f97316; flex: 1;" title="Projectile / Impactor">Impactor / Interceptor (M₂)</div>
+          <div class="contour-band" style="background: #38bdf8; flex: 1;" title="${I18N.t('sec3.legend_origin_label1')}">${I18N.t('sec3.legend_origin_target')}</div>
+          <div class="contour-band" style="background: #f97316; flex: 1;" title="${I18N.t('sec3.legend_origin_label2')}">${I18N.t('sec3.legend_origin_impactor')}</div>
         `;
         labelsEl.innerHTML = `
-          <span style="color: #38bdf8;">Target Body</span>
+          <span style="color: #38bdf8;">${I18N.t('sec3.legend_origin_label1')}</span>
           <span></span>
-          <span style="color: #f97316;">Impactor Body</span>
+          <span style="color: #f97316;">${I18N.t('sec3.legend_origin_label2')}</span>
         `;
       } else if (currentColorMode === 'smooth') {
-        titleEl.textContent = 'Continuous Velocity Spectrum';
-        unitEl.textContent = '0.1 – 2.2 km/s';
+        titleEl.textContent = I18N.t('sec3.legend_smooth_title');
+        unitEl.textContent = I18N.t('sec3.legend_smooth_unit');
         bandsEl.innerHTML = `
           <div class="contour-band" style="background: linear-gradient(to right, #3b82f6, #06b6d4, #10b981, #eab308, #ef4444); flex: 1; height: 16px;"></div>
         `;
         labelsEl.innerHTML = `
-          <span style="color: #3b82f6;">Low Δv (&lt;300 m/s)</span>
-          <span style="color: #10b981;">Median (~1.1 km/s)</span>
-          <span style="color: #ef4444;">Ejecta (&gt;2.2 km/s)</span>
+          <span style="color: #3b82f6;">${I18N.t('sec3.legend_smooth_label1')}</span>
+          <span style="color: #10b981;">${I18N.t('sec3.legend_smooth_label2')}</span>
+          <span style="color: #ef4444;">${I18N.t('sec3.legend_smooth_label3')}</span>
         `;
       } else { // 'contour'
-        titleEl.textContent = 'Speed Iso-Contours (Δv)';
+        titleEl.textContent = I18N.t('sec3.legend_speed_title');
         unitEl.textContent = 'm/s';
         bandsEl.innerHTML = `
           <div class="contour-band" style="background: #3b82f6;" title="< 250 m/s">&lt;250</div>
@@ -2100,9 +2494,9 @@
           <div class="contour-band" style="background: #ef4444;" title="> 2000 m/s">&gt;2.0k</div>
         `;
         labelsEl.innerHTML = `
-          <span style="color: #3b82f6;">Slow Core</span>
-          <span style="color: #10b981;">Mid Shell</span>
-          <span style="color: #ef4444;">Hypersonic Bubble</span>
+          <span style="color: #3b82f6;">${I18N.t('sec3.legend_slow_core')}</span>
+          <span style="color: #10b981;">${I18N.t('sec3.legend_mid_shell')}</span>
+          <span style="color: #ef4444;">${I18N.t('sec3.legend_hyper_bubble')}</span>
         `;
       }
     }
@@ -2111,6 +2505,25 @@
     document.getElementById('cam-reset').addEventListener('click', () => {
       controls.target.set(0, 0, 0);
       camera.position.set(65, 45, 80);
+    });
+
+    // Language Selector Handlers
+    const btnLangEn = document.getElementById('lang-en');
+    const btnLangJa = document.getElementById('lang-ja');
+    if (btnLangEn) btnLangEn.addEventListener('click', () => I18N.setLanguage('en'));
+    if (btnLangJa) btnLangJa.addEventListener('click', () => I18N.setLanguage('ja'));
+
+    window.addEventListener('languageChanged', () => {
+      updateTelemetryOutcome();
+      updateRuler();
+      timeDisplay.textContent = formatTime(simTime);
+      updateLegendBox();
+      drawGabbardDiagram(hoveredFragId);
+      populateSampleTable(currentMaxMass);
+      if (selectedFragId !== null) {
+        selectFragment(selectedFragId);
+      }
+      updateSimulation(simTime);
     });
 
     /* =========================================================================
@@ -2134,7 +2547,7 @@
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.font = '12px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Simulating orbital elements...', W / 2, H / 2);
+        ctx.fillText(I18N.t('gabbard.canvas_loading'), W / 2, H / 2);
         return;
       }
 
@@ -2173,7 +2586,7 @@
         ctx.moveTo(x, padT);
         ctx.lineTo(x, padT + ph);
         ctx.stroke();
-        ctx.fillText(p + 'm', x, padT + ph + 6);
+        ctx.fillText(p + (I18N.currentLang === 'ja' ? '分' : 'm'), x, padT + ph + 6);
       }
 
       // Horizontal grid lines (Altitude ticks every 500 km: 0, 500, 1000, 1500, 2000, 2500 km)
@@ -2207,7 +2620,7 @@
       ctx.font = '9px Inter, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('Re-entry Interface (120 km)', padL + pw - 4, y120 - 2);
+      ctx.fillText(I18N.t('gabbard.canvas_reentry'), padL + pw - 4, y120 - 2);
 
       // 3. Reference Breakup Altitude (h0 = 500 km) and Period (T0 = 94.62 min)
       const h0 = 500;
@@ -2236,7 +2649,7 @@
       ctx.font = '9px monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('h₀=500km, T₀=94.6m', xT0 + 4, yH0 - 4);
+      ctx.fillText(I18N.t('gabbard.canvas_breakup_ref'), xT0 + 4, yH0 - 4);
 
       // 4. Plot fragments: Apogee (ha) & Perigee (hp) points
       for (let i = 0; i < fragments.length; i++) {
@@ -2269,15 +2682,18 @@
       }
 
       // 5. Highlight hovered fragment
-      if (hoverId !== null && fragments[hoverId]) {
-        const hf = fragments[hoverId];
+      // 5b. Highlight for Hovered or Selected Fragment
+      const activeHighlightId = hoverId !== null ? hoverId : selectedFragId;
+      if (activeHighlightId !== null && fragments[activeHighlightId]) {
+        const hf = fragments[activeHighlightId];
+        const isSel = (activeHighlightId === selectedFragId);
         const x = xToPx(hf.period);
         const yA = yToPx(Math.min(maxAlt, hf.ha));
         const yP = yToPx(Math.max(minAlt, hf.hp));
 
         // Connecting highlight line
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = isSel ? 'rgba(250, 204, 21, 0.95)' : 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = isSel ? 2.5 : 1.8;
         ctx.setLineDash([3, 2]);
         ctx.beginPath();
         ctx.moveTo(x, yP);
@@ -2288,23 +2704,23 @@
         // Apogee highlight ring
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, yA, 4.5, 0, Math.PI * 2);
+        ctx.arc(x, yA, isSel ? 5.5 : 4.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = isSel ? '#facc15' : '#38bdf8';
+        ctx.lineWidth = isSel ? 3.0 : 2.5;
         ctx.beginPath();
-        ctx.arc(x, yA, 6.5, 0, Math.PI * 2);
+        ctx.arc(x, yA, isSel ? 8.5 : 6.5, 0, Math.PI * 2);
         ctx.stroke();
 
         // Perigee highlight ring
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, yP, 4.5, 0, Math.PI * 2);
+        ctx.arc(x, yP, isSel ? 5.5 : 4.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = hf.isReentry ? '#ef4444' : '#f97316';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = hf.isReentry ? '#ef4444' : (isSel ? '#facc15' : '#f97316');
+        ctx.lineWidth = isSel ? 3.0 : 2.5;
         ctx.beginPath();
-        ctx.arc(x, yP, 6.5, 0, Math.PI * 2);
+        ctx.arc(x, yP, isSel ? 8.5 : 6.5, 0, Math.PI * 2);
         ctx.stroke();
       }
 
@@ -2317,13 +2733,13 @@
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.font = '10px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Orbital Period P (minutes)', padL + pw / 2, H - 6);
+      ctx.fillText(I18N.t('gabbard.canvas_x_label'), padL + pw / 2, H - 6);
 
       ctx.save();
       ctx.translate(14, padT + ph / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = 'center';
-      ctx.fillText('Altitude h (km)', 0, 0);
+      ctx.fillText(I18N.t('gabbard.canvas_y_label'), 0, 0);
       ctx.restore();
 
       // Store current coordinate mapping for mouse interaction
@@ -2400,35 +2816,38 @@
 
           const massStr = f.mass >= 1.0 ? `${f.mass.toFixed(1)} kg` : `${(f.mass * 1000).toFixed(0)} g`;
           const originBadge = f.origin === 0
-            ? '<span style="color: #38bdf8; font-weight: 700;">Target Satellite</span>'
-            : '<span style="color: #f97316; font-weight: 700;">Impactor Body</span>';
+            ? `<span style="color: #38bdf8; font-weight: 700;">${I18N.t('inspector.parent_target')}</span>`
+            : `<span style="color: #f97316; font-weight: 700;">${I18N.t('inspector.parent_projectile')}</span>`;
 
           const reentryTag = f.isReentry
-            ? '<span style="color: #ef4444; font-weight: 800;">⚠️ Re-entry Risk (&lt;120 km)</span>'
-            : '<span style="color: #10b981; font-weight: 700;">✓ Stable Orbit</span>';
+            ? `<span style="color: #ef4444; font-weight: 800;">${I18N.t('gabbard.tt_reentry_risk')}</span>`
+            : `<span style="color: #10b981; font-weight: 700;">${I18N.t('gabbard.tt_stable_orbit')}</span>`;
 
           const haStr = f.ha > meta.maxAlt
-            ? `${Math.round(f.ha).toLocaleString()} km <span style="font-size:0.62rem;color:#facc15;">(LEO Outlier)</span>`
+            ? `${Math.round(f.ha).toLocaleString()} km <span style="font-size:0.62rem;color:#facc15;">${I18N.t('gabbard.tt_leo_outlier')}</span>`
             : `${Math.round(f.ha).toLocaleString()} km`;
 
           const hpStr = f.hp < 0
-            ? `&lt;0 km <span style="font-size:0.62rem;color:#ef4444;">(Ground Impact)</span>`
+            ? `&lt;0 km <span style="font-size:0.62rem;color:#ef4444;">${I18N.t('gabbard.tt_ground_impact')}</span>`
             : `${Math.round(f.hp).toLocaleString()} km`;
+
+          const fragLabel = I18N.currentLang === 'ja' ? `破片 #${f.id + 1}` : `Fragment #${f.id + 1}`;
+          const minSuffix = I18N.currentLang === 'ja' ? '分' : 'min';
 
           tooltip.innerHTML = `
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 3px; margin-bottom: 4px;">
-              <strong>Fragment #${f.id + 1}</strong>
+              <strong>${fragLabel}</strong>
               ${originBadge}
             </div>
-            <div>Mass: <strong style="color: #fff;">${massStr}</strong> (L<sub>c</sub>: ${f.Lc.toFixed(2)}m)</div>
-            <div>A/M: <strong style="color: #a78bfa;">${f.amRatio.toFixed(4)} m²/kg</strong> (A<sub>x</sub>: ${(f.Ax * 10000).toFixed(1)} cm²)</div>
-            <div>B* drag: <strong style="color: #67e8f9;">${(1.1 * f.amRatio).toFixed(4)} m²/kg</strong> (C<sub>D</sub>=2.2)</div>
-            <div>Speed Δv: <strong style="color: #fff;">${Math.round(f.speed)} m/s</strong></div>
-            <div>Period: <strong style="color: #fff;">${f.period.toFixed(2)} min</strong></div>
-            <div style="color: #38bdf8;">Apogee (h<sub>a</sub>): <strong>${haStr}</strong></div>
-            <div style="color: ${f.isReentry ? '#ef4444' : '#f97316'};">Perigee (h<sub>p</sub>): <strong>${hpStr}</strong></div>
+            <div>${I18N.t('inspector.mass')}: <strong style="color: #fff;">${massStr}</strong> (${I18N.t('inspector.lc')}: ${f.Lc.toFixed(2)}m)</div>
+            <div>${I18N.t('inspector.am')}: <strong style="color: #a78bfa;">${f.amRatio.toFixed(4)} m²/kg</strong> (A<sub>x</sub>: ${(f.Ax * 10000).toFixed(1)} cm²)</div>
+            <div>${I18N.t('inspector.bstar')}: <strong style="color: #67e8f9;">${(1.1 * f.amRatio).toFixed(4)} m²/kg</strong> (C<sub>D</sub>=2.2)</div>
+            <div>${I18N.t('inspector.speed')}: <strong style="color: #fff;">${Math.round(f.speed)} m/s</strong></div>
+            <div>${I18N.t('inspector.period')}: <strong style="color: #fff;">${f.period.toFixed(2)} ${minSuffix}</strong></div>
+            <div style="color: #38bdf8;">${I18N.t('inspector.ha')}: <strong>${haStr}</strong></div>
+            <div style="color: ${f.isReentry ? '#ef4444' : '#f97316'};">${I18N.t('inspector.hp')}: <strong>${hpStr}</strong></div>
             <div style="margin-top: 4px; padding-top: 3px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.64rem;">
-              Status: ${reentryTag}
+              ${I18N.t('inspector.status')}: ${reentryTag}
             </div>
           `;
 
@@ -2450,6 +2869,12 @@
           tooltip.style.display = 'none';
           drawGabbardDiagram(null);
           updateSimulation(simTime);
+        }
+      });
+
+      canvas.addEventListener('click', () => {
+        if (hoveredFragId !== null) {
+          selectFragment(hoveredFragId);
         }
       });
     }
@@ -2582,14 +3007,168 @@
       }
 
       // Subtle pulse on 3D highlight ring if active
-      if (hoveredFragId !== null && highlightRing && highlightRing.visible) {
-        const pulse = 1.0 + 0.25 * Math.sin(now * 0.008);
+      const activeRingId = selectedFragId !== null ? selectedFragId : hoveredFragId;
+      if (activeRingId !== null && highlightRing && highlightRing.visible) {
+        const pulse = 1.0 + 0.20 * Math.sin(now * 0.008);
         highlightRing.scale.set(pulse, pulse, pulse);
         highlightRing.quaternion.copy(camera.quaternion);
       }
 
+      // Smooth camera tracking if Follow mode is active
+      if (cameraFollow && selectedFragId !== null && fragments && fragments[selectedFragId]) {
+        const sf = fragments[selectedFragId];
+        const targetVec = new THREE.Vector3(sf.currX * SCALE, sf.currY * SCALE, sf.currZ * SCALE);
+        controls.target.lerp(targetVec, 0.08);
+      }
+
       controls.update();
       renderer.render(scene, camera);
+    }
+
+    // 3D Raycasting for Fragment Selection and Hover
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Points.threshold = 4.0;
+
+    let pDownPos = { x: 0, y: 0 };
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      pDownPos.x = e.clientX;
+      pDownPos.y = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const dist = Math.hypot(e.clientX - pDownPos.x, e.clientY - pDownPos.y);
+      if (dist > 6) return; // ignore camera rotate/pan drag
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      raycaster.setFromCamera(mouse, camera);
+      if (fragmentPoints && fragmentPoints.visible) {
+        const intersects = raycaster.intersectObject(fragmentPoints);
+        if (intersects.length > 0) {
+          selectFragment(intersects[0].index);
+        } else {
+          selectFragment(null);
+        }
+      }
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      raycaster.setFromCamera(mouse, camera);
+      if (fragmentPoints && fragmentPoints.visible) {
+        const intersects = raycaster.intersectObject(fragmentPoints);
+        if (intersects.length > 0) {
+          renderer.domElement.style.cursor = 'pointer';
+          const hId = intersects[0].index;
+          drawGabbardDiagram(hId);
+        } else {
+          renderer.domElement.style.cursor = 'default';
+          if (hoveredFragId === null) {
+            drawGabbardDiagram(null);
+          }
+        }
+      }
+    });
+
+    // Trail Mode Buttons
+    const trailBtns = [
+      { id: 'trail-off', mode: 'off' },
+      { id: 'trail-selected', mode: 'selected' },
+      { id: 'trail-heaviest', mode: 'heaviest' },
+      { id: 'trail-fastest', mode: 'fastest' },
+      { id: 'trail-cardinal', mode: 'cardinal' },
+    ];
+    trailBtns.forEach(item => {
+      const btn = document.getElementById(item.id);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          trailMode = item.mode;
+          trailBtns.forEach(o => {
+            const b = document.getElementById(o.id);
+            if (b) b.classList.toggle('active', o.mode === trailMode);
+          });
+          updateTrails(simTime);
+        });
+      }
+    });
+
+    // Camera Mode Buttons
+    const btnCamFree = document.getElementById('cam-mode-free');
+    const btnCamFollow = document.getElementById('cam-mode-follow');
+    if (btnCamFree) {
+      btnCamFree.addEventListener('click', () => {
+        cameraFollow = false;
+        btnCamFree.classList.add('active');
+        if (btnCamFollow) btnCamFollow.classList.remove('active');
+        controls.target.set(0, 0, 0);
+      });
+    }
+    if (btnCamFollow) {
+      btnCamFollow.addEventListener('click', () => {
+        cameraFollow = true;
+        btnCamFollow.classList.add('active');
+        if (btnCamFree) btnCamFree.classList.remove('active');
+        if (selectedFragId === null && fragments.length > 0) {
+          selectFragment(0);
+        }
+      });
+    }
+
+    // Point Size Scale Slider
+    const paramPointScale = document.getElementById('param-pointscale');
+    const valPointScale = document.getElementById('val-pointscale');
+    if (paramPointScale) {
+      paramPointScale.addEventListener('input', (e) => {
+        pointScaleFactor = parseFloat(e.target.value);
+        if (valPointScale) valPointScale.textContent = pointScaleFactor.toFixed(1) + 'x';
+        if (fragmentPoints && fragmentPoints.material && fragmentPoints.material.uniforms) {
+          fragmentPoints.material.uniforms.scaleRatio.value = 170.0 * pointScaleFactor;
+        }
+      });
+    }
+
+    // Inspector Window Buttons
+    const btnInspClose = document.getElementById('btn-inspector-close');
+    if (btnInspClose) {
+      btnInspClose.addEventListener('click', () => {
+        selectFragment(null);
+      });
+    }
+    const btnInspFollow = document.getElementById('btn-inspector-follow');
+    if (btnInspFollow) {
+      btnInspFollow.addEventListener('click', () => {
+        cameraFollow = !cameraFollow;
+        btnInspFollow.classList.toggle('active', cameraFollow);
+        if (btnCamFollow) btnCamFollow.classList.toggle('active', cameraFollow);
+        if (btnCamFree) btnCamFree.classList.toggle('active', !cameraFollow);
+        if (!cameraFollow) controls.target.set(0, 0, 0);
+      });
+    }
+    const btnToggleInspector = document.getElementById('btn-toggle-inspector');
+    if (btnToggleInspector) {
+      btnToggleInspector.addEventListener('click', () => {
+        const inspWin = document.getElementById('fragment-inspector-window');
+        if (inspWin.style.display === 'none') {
+          if (selectedFragId === null && fragments.length > 0) {
+            selectFragment(0);
+          } else {
+            inspWin.style.display = 'block';
+          }
+          btnToggleInspector.classList.add('active');
+        } else {
+          inspWin.style.display = 'none';
+          btnToggleInspector.classList.remove('active');
+        }
+      });
     }
 
     window.addEventListener('resize', () => {
@@ -2599,7 +3178,8 @@
     });
 
     // Read optional URL parameters (e.g. ?t=15&play=0&mode=full)
-    const urlParams = new URLSearchParams(window.location.search);
+    const searchStr = window.location.search || (window.location.href.includes('?') ? window.location.href.slice(window.location.href.indexOf('?')) : '');
+    const urlParams = new URLSearchParams(searchStr);
     if (urlParams.has('mode')) {
       currentTimelineMode = urlParams.get('mode');
     } else if (urlParams.has('t')) {
@@ -2638,6 +3218,16 @@
       const hIdx = parseInt(urlParams.get('hover'));
       if (!isNaN(hIdx)) hoveredFragId = hIdx;
     }
+    if (urlParams.has('trails')) {
+      const tr = urlParams.get('trails');
+      if (['off', 'selected', 'heaviest', 'fastest', 'cardinal'].includes(tr)) {
+        trailMode = tr;
+        trailBtns.forEach(o => {
+          const b = document.getElementById(o.id);
+          if (b) b.classList.toggle('active', o.mode === tr);
+        });
+      }
+    }
 
     // Initialize
     setTimelineMode(currentTimelineMode);
@@ -2645,9 +3235,22 @@
     runSimpleEngine();
     updateLegendBox();
     updateColors();
+    I18N.setLanguage(I18N.currentLang);
+    timeSlider.value = simTime;
+    timeDisplay.textContent = formatTime(simTime);
+    if (urlParams.has('select')) {
+      const sIdx = parseInt(urlParams.get('select'));
+      if (!isNaN(sIdx)) selectFragment(sIdx);
+    }
     updateSimulation(simTime);
+    controls.update();
+    renderer.render(scene, camera);
     setupGabbardInteraction();
     makeDraggable(gabbardWin, document.getElementById('gabbard-drag-handle'));
+    const inspWin = document.getElementById('fragment-inspector-window');
+    if (inspWin) {
+      makeDraggable(inspWin, document.getElementById('inspector-drag-handle'));
+    }
     if (hoveredFragId !== null) drawGabbardDiagram(hoveredFragId);
     animate();
   </script>
