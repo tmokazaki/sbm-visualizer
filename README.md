@@ -71,6 +71,11 @@ Detailed engineering and mathematical specifications are provided in the `docs/`
    * Component architecture and module-by-module breakdown.
    * UI/UX glassmorphism layout and window management.
    * Headless Chrome verification protocol and URL parameter automation.
+3. [**Operational Space Domain Awareness (SDA) Roadmap**](docs/operational_space_situational_awareness_roadmap.md):
+   * Detailed gap analysis between academic breakup models and real-world operational environments (NASA CARA, USSF 18th SDS, ESA).
+   * Canonical and SOTA reference papers across 7 operational domains (HPOP, Sensor/RCS, Conjunction Assessment, Frame Standards, UQ, Component Breakup, Parallel Compute).
+   * Governing equations for Gim-Alfriend $J_2$ STM, NASA SEM radar cross-section conversion, Hall fast 2D $P_c$ collision probability, and CCSDS CDM/OEM standards.
+   * 6-phase engineering transition roadmap.
 
 ---
 
