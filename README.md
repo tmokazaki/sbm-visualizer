@@ -36,8 +36,12 @@ A high-performance, offline-first 3D visualization and astrodynamics analysis su
 * **Dynamic Clohessy-Wiltshire (CW) 3D Orbit Trails**:
   * Real-time closed-form evaluation of Hill relative orbit curves for past trajectories and future orbit predictions.
   * Multiple display modes: **Selected Fragment**, **Top 5 Heaviest Fragments**, **Top 5 Fastest Fragments**, and **4 Cardinal Axes** (In-track, Radial, Cross-track).
-* **Follow Camera Tracking**:
-  * Smooth camera lerp tracking locked onto any selected fragment as it disperses along its orbital trajectory.
+* **AutoOrbit: Physics-Informed Satellite Orbit Prediction (KDD 2026)**:
+  * Pure-Rust, zero-dependency implementation of the hierarchical orbit prediction framework:
+    * **Global Structure**: Ground-track recurrence phase-averaged reference orbit ($s_{ref}$) and residual learning.
+    * **Local Dynamics**: 1D Fourier Neural Operator (FNO1d) with low-frequency mode truncation ($k_{max}$) and acceleration-level physics loss ($\vec{a}_{pred} = \frac{-\vec{v}_{+2} + 8\vec{v}_{+1} - 8\vec{v}_{-1} + \vec{v}_{-2}}{12\tau}$).
+    * **Maneuver Correction**: Gaussian Variational Equations (GVEs) mapping impulsive RAC thrust $\Delta \vec{v}$ to instantaneous element jumps $(\Delta a, \Delta e, \Delta \omega, \Delta i, \Delta \Omega)$ with $O(H)$ Keplerian propagation.
+  * Python training & weight export pipeline (`scripts/autoorbit/`) and reproduction test suite (`tests/test_autoorbit_reproduction.py`).
 * **100% Offline & Standalone Execution**:
   * Zero external network or CDN dependencies. Runs completely self-contained in modern web browsers.
 
@@ -116,7 +120,9 @@ Available query parameters:
 
 The repository provides a modular, multi-crate Rust architecture:
 
-* **`crates/sbm_core`**: A standalone, zero-dependency Rust library implementing the complete NASA EVOLVE 4.0 Standard Breakup Model physics engine, mathematical formulations, continuous cross-sectional area calculations, stochastic A/M sampling, and Clohessy-Wiltshire state transitions.
+* **`crates/sbm_core`**: A standalone, zero-dependency Rust library implementing:
+  - **NASA EVOLVE 4.0 Standard Breakup Model**: Complete collision and explosion physics engine.
+  - **AutoOrbit (KDD 2026)**: Hierarchical satellite orbit prediction with FNO and Gaussian Variational Equations.
 * **`engine_cli`**: Standalone CLI application consuming `sbm_core` to run high-speed Monte Carlo breakup simulations, print telemetry metrics, and export debris clouds as JSON.
 
 ```bash
@@ -128,6 +134,9 @@ cargo test --workspace
 
 # Run clippy with zero warnings:
 cargo clippy --workspace --all-targets -- -D warnings
+
+# Run Python paper reproduction test suite:
+python3 -m unittest tests/test_autoorbit_reproduction.py
 ```
 
 ---

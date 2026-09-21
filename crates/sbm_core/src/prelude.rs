@@ -13,3 +13,8 @@ pub use crate::sampling::{
     sample_gaussian_mixture,
 };
 pub use crate::types::{BreakupResult, BreakupType, Fragment, ObjectType};
+pub use crate::autoorbit::{
+    apply_maneuver_correction, cartesian_to_keplerian, compute_gve_element_deltas,
+    keplerian_to_cartesian, AutoOrbitError, AutoOrbitPredictor, KeplerianElements, ManeuverImpulse,
+    NormalizationStats, PredictionHorizon, PredictionMetrics, ReferenceOrbit, StateVector,
+};
