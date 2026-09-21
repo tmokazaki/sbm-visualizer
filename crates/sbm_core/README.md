@@ -139,15 +139,64 @@ This simulates the nominal scenario, displays formatted console summaries, and e
 
 ---
 
+## 2. AutoOrbit: Physics-Informed Satellite Orbit Prediction (KDD 2026)
+
+`sbm_core::autoorbit` provides a pure-Rust, zero-dependency implementation of the **AutoOrbit** framework for long-term physics-informed satellite orbit prediction and discrete maneuver correction.
+
+Based on the research paper:
+> **Yuan, T., Gao, D., Long, R., Zhang, J., Zhao, X., Xu, M., & Li, Y. (2026).**  
+> *AutoOrbit: Towards Long-term Satellite Orbit Prediction with Global-Local Physics.*  
+> In Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD '26).  
+> DOI: [10.1145/3770855.3818960](https://doi.org/10.1145/3770855.3818960)
+
+### 3-Level Hierarchical Architecture
+1. **Global Orbital Structure**: Mean reference orbit $s_{ref}(t)$ constructed via ground-track recurrence phase-averaging (Eq. 1). Residual deviations $r_{res}(t) = s_{obs}(t) - s_{ref}(t)$ are predicted to avoid numerical dynamic range issues and long-horizon drift (Eqs. 2–3).
+2. **Local Orbital Dynamics**: 1D Fourier Neural Operator (FNO1d) with low-frequency mode truncation ($k_{max}$) and acceleration-level physics loss (Eqs. 8–9) regularizing kinematic motion against Earth gravity, $J_2\text{--}J_4$ harmonics, and atmospheric drag.
+3. **Discrete Maneuver Correction**: Gaussian Variational Equations (GVEs, Eqs. 10–12) mapping impulsive RAC velocity increments $[\Delta v_r, \Delta v_a, \Delta v_c]^T$ to instantaneous orbital element jumps $(\Delta a, \Delta e, \Delta \omega, \Delta i, \Delta \Omega)$, analytically propagated with $O(H)$ complexity via Kepler's equation.
+
+### Rust Usage Example
+
+```rust
+use sbm_core::prelude::*;
+
+fn main() -> Result<(), AutoOrbitError> {
+    // 1. Initialize calibrated predictor preset (e.g. Sentinel-1A sun-synchronous orbit)
+    let predictor = AutoOrbitPredictor::sentinel_1a_preset();
+
+    // 2. Feed historical in-orbit GNSS measurements (e.g. 128 past steps at 10s cadence)
+    let observations: Vec<StateVector> = (0..128)
+        .map(|step| predictor.reference_orbit.state_at_step(step))
+        .collect();
+
+    // 3. Optional: Define a scheduled orbit maintenance or collision avoidance maneuver
+    let maneuver = ManeuverImpulse::new(0.0, 0.5, 0.0, 0.0); // +0.5 m/s along-track burn
+
+    // 4. Run real-time forward prediction across target horizon (e.g. 30 minutes)
+    let predicted_trajectory = predictor.predict(
+        &observations,
+        128,
+        PredictionHorizon::HalfHour,
+        Some(&maneuver),
+    )?;
+
+    println!("Predicted {} future states at 10s cadence.", predicted_trajectory.len());
+    println!("Post-maneuver state at step 0: {:?}", predicted_trajectory[0]);
+
+    Ok(())
+}
+```
+
+---
+
 ## Testing & Quality Assurance
 
 ```bash
 # Run all unit tests, integration tests, and doc-tests
-cargo test
+cargo test --workspace
 
 # Enforce zero-warning linting across all targets
-cargo clippy --all-targets -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 
-# Build documentation
-cargo doc --no-deps
+# Run Python paper reproduction test suite
+python3 -m unittest tests/test_autoorbit_reproduction.py
 ```
