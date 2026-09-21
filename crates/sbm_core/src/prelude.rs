@@ -18,3 +18,11 @@ pub use crate::autoorbit::{
     keplerian_to_cartesian, AutoOrbitError, AutoOrbitPredictor, KeplerianElements, ManeuverImpulse,
     NormalizationStats, PredictionHorizon, PredictionMetrics, ReferenceOrbit, StateVector,
 };
+pub use crate::cr3bp::{
+    compute_earth_moon_l1_to_l2_transfer, compute_lagrange_points, equations_of_motion,
+    equations_of_motion_9d, is_region_accessible, jacobi_constant, pseudo_potential,
+    pseudo_potential_gradient, pseudo_potential_hessian, Cr3bpError, Cr3bpState, Cr3bpState9D,
+    Cr3bpSystem, DormandPrinceIntegrator, EventCondition, EventDirection, FrameTransformer,
+    IntegratorOptions, LagrangePoint, LibrationPointInfo, MultiBodyTransferPlan,
+    PeriodicOrbitBenchmark, PropagationResult, StopReason, TrajectoryPoint,
+};

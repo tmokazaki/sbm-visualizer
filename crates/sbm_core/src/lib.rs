@@ -55,6 +55,7 @@
 //! ```
 
 pub mod autoorbit;
+pub mod cr3bp;
 pub mod engine;
 pub mod error;
 pub mod math;

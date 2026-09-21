@@ -154,7 +154,7 @@ Based on the research paper:
 2. **Local Orbital Dynamics**: 1D Fourier Neural Operator (FNO1d) with low-frequency mode truncation ($k_{max}$) and acceleration-level physics loss (Eqs. 8–9) regularizing kinematic motion against Earth gravity, $J_2\text{--}J_4$ harmonics, and atmospheric drag.
 3. **Discrete Maneuver Correction**: Gaussian Variational Equations (GVEs, Eqs. 10–12) mapping impulsive RAC velocity increments $[\Delta v_r, \Delta v_a, \Delta v_c]^T$ to instantaneous orbital element jumps $(\Delta a, \Delta e, \Delta \omega, \Delta i, \Delta \Omega)$, analytically propagated with $O(H)$ complexity via Kepler's equation.
 
-### Rust Usage Example
+### AutoOrbit Usage Example
 
 ```rust
 use sbm_core::prelude::*;
@@ -188,6 +188,52 @@ fn main() -> Result<(), AutoOrbitError> {
 
 ---
 
+## 3. Circular Restricted Three-Body Problem (CR3BP) Propagator & Deep Space Engine
+
+A high-precision, zero-dependency implementation of the Circular Restricted Three-Body Problem (CR3BP) for cislunar and deep space trajectory design, grounded in the peer-reviewed specification:
+> **Short, C., Haapala, A., & Bosanac, N. (2020).**  
+> *Technical Implementation of the Circular Restricted Three-Body Model in STK Astrogator.*  
+> AAS/AIAA Astrodynamics Specialist Conference, AAS 20-459.
+
+### Core Capabilities
+- **Equations of Motion & Pseudo-Potential**: $U^*$, $\nabla U^*$, Hessian $U^*_{ij}$, and variational equations for State Transition Matrix (STM) propagation (Eqs. 1–3, 10).
+- **Astrogator Frame Transformations**: 6D and 9D transformations between STK Central Body Inertial (CBI) and Rotating Barycentric frames (Table 1, Eqs. 4–9, 11).
+- **High-Order Adaptive Integration**: Dormand-Prince 5(4) with adaptive step size control, Jacobi conservation $\Delta C_J < 10^{-12}$, and root-finding event detection for Poincaré sections and hyperplanes.
+- **Equilibrium Points & Periodic Orbit Families**: Euler quintic solver for $L_1\text{--}L_5$, Planar Lyapunov, 3D Halo, NRHO ($86\text{ km}$ perilune), and JWST deep space mission orbits.
+- **Multi-Body Low-Energy Transfers**: Reproduction of the AAS 20-459 Section 5 3-maneuver itinerary ($\Delta v_1 \approx 0.19\text{ mm/s}$, $\Delta v_2 \approx 23.2\text{ m/s}$ at $\Sigma: x = 1-\mu$, $\Delta v_3 \approx 9\text{ mm/s}$).
+
+### CR3BP Usage Example
+
+```rust
+use sbm_core::prelude::*;
+
+fn main() -> Result<(), Cr3bpError> {
+    // 1. Initialize Earth-Moon CR3BP system (mu = 0.0121505856)
+    let system = Cr3bpSystem::earth_moon();
+
+    // 2. Compute exact Lagrange libration points L1-L5
+    let l_points = compute_lagrange_points(&system)?;
+    println!("L1 position: x = {:.6}, CJ = {:.6}", l_points[0].state.x, l_points[0].jacobi_constant);
+
+    // 3. Propagate benchmark L1 Planar Lyapunov orbit
+    let lyap = PeriodicOrbitBenchmark::earth_moon_l1_lyapunov();
+    let integrator = DormandPrinceIntegrator::new(&system, IntegratorOptions::default());
+    let result = integrator.propagate_6d(&lyap.initial_state, 0.0, lyap.period_nondim, None)?;
+
+    println!("Orbit period: {:.2} days", lyap.period_days);
+    println!("Max Jacobi variation: {:.2e}", result.max_jacobi_variation);
+
+    // 4. Compute AAS 20-459 L1 -> L2 Low-Energy Multi-Body Transfer
+    let transfer = compute_earth_moon_l1_to_l2_transfer(&system, None)?;
+    println!("Total Delta-V: {:.2} m/s (vs 800+ m/s for 2-body transfer)", transfer.total_dv_ms);
+    println!("Transfer duration: {:.2} days", transfer.transfer_duration_days);
+
+    Ok(())
+}
+```
+
+---
+
 ## Testing & Quality Assurance
 
 ```bash
@@ -199,4 +245,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 # Run Python paper reproduction test suite
 python3 -m unittest tests/test_autoorbit_reproduction.py
+
+# Run the CR3BP Deep Space Demo executable
+cargo run --example cr3bp_deep_space_demo
 ```
