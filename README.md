@@ -128,11 +128,15 @@ The repository provides a modular, multi-crate Rust architecture:
 * **`crates/sbm_core`**: A standalone, zero-dependency Rust library implementing:
   - **NASA EVOLVE 4.0 Standard Breakup Model**: Complete collision and explosion physics engine.
   - **AutoOrbit (KDD 2026)**: Hierarchical satellite orbit prediction with FNO and Gaussian Variational Equations.
+  - **CR3BP Propagator & Deep Space Engine (AAS 20-459)**: High-precision Circular Restricted Three-Body Problem propagator reproducing STK Astrogator, exact $L_1\text{--}L_5$ libration points, periodic Lyapunov/Halo/NRHO orbits, frame transformations (CBI $\leftrightarrow$ Rotating), and multi-body low-energy transfers ($\Delta v \approx 23.2\text{ m/s}$).
 * **`engine_cli`**: Standalone CLI application consuming `sbm_core` to run high-speed Monte Carlo breakup simulations, print telemetry metrics, and export debris clouds as JSON.
 
 ```bash
 # Run the Rust CLI engine:
 cargo run -p sbm_simple_engine --release
+
+# Run the CR3BP Deep Space & Multi-Body Transfer Demo:
+cargo run --example cr3bp_deep_space_demo
 
 # Run the test suite:
 cargo test --workspace
@@ -143,6 +147,13 @@ cargo clippy --workspace --all-targets -- -D warnings
 # Run Python paper reproduction test suite:
 python3 -m unittest tests/test_autoorbit_reproduction.py
 ```
+
+---
+
+## Interactive 3D Visualizers
+
+* **NASA EVOLVE 4.0 Collision Visualizer**: Open [`index.html`](file:///Users/tomohiko/work/sbm_visualizer/index.html) in any modern web browser.
+* **CR3BP Deep Space & Multi-Body Transfer Visualizer**: Open [`cr3bp_deep_space_visualizer.html`](file:///Users/tomohiko/work/sbm_visualizer/cr3bp_deep_space_visualizer.html) for interactive 3D exploration of Earth-Moon and Sun-Earth libration points, Zero-Velocity Curves, periodic orbits, and the AAS 20-459 low-energy manifold transfer itinerary!
 
 ---
 

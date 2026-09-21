@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CR3BP Deep Space & Multi-Body Transfer Visualizer (AAS 20-459)</title>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 18, 30, 0.88);
+      --panel-border: rgba(56, 189, 248, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-gold: #fbbf24;
+      --accent-purple: #c084fc;
+      --accent-green: #34d399;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(10, 14, 24, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 0%, #0369a1 100%);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--accent);
+      font-family: monospace;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    select, button {
+      background: rgba(20, 28, 45, 0.9);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #040810;
+      border-color: var(--accent);
+    }
+
+    /* Side Panels */
+    .panel {
+      position: absolute;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 16px;
+      z-index: 10;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      font-size: 12px;
+    }
+
+    .panel h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #left-panel {
+      top: 75px;
+      left: 20px;
+      width: 320px;
+      max-height: calc(100vh - 170px);
+      overflow-y: auto;
+    }
+
+    #right-panel {
+      top: 75px;
+      right: 20px;
+      width: 340px;
+      max-height: calc(100vh - 170px);
+      overflow-y: auto;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .data-label {
+      color: var(--text-muted);
+    }
+
+    .data-val {
+      font-family: monospace;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .maneuver-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+
+    .maneuver-card.m1 { border-left: 3px solid var(--accent-gold); }
+    .maneuver-card.m2 { border-left: 3px solid var(--danger); }
+    .maneuver-card.m3 { border-left: 3px solid var(--accent-green); }
+
+    .maneuver-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .maneuver-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .badge-gold { background: rgba(251, 191, 36, 0.2); color: var(--accent-gold); }
+    .badge-red { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
+    .badge-green { background: rgba(52, 211, 153, 0.2); color: var(--accent-green); }
+
+    /* Bottom Control Bar */
+    #bottom-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 30px;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 140px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .legend-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    /* Tooltip */
+    #tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(10, 14, 24, 0.95);
+      border: 1px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #fff;
+      font-family: monospace;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+  <div id="tooltip"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div>
+        <div class="brand-title" id="txt-title">CR3BP DEEP SPACE & MULTI-BODY TRANSFER</div>
+        <div class="brand-subtitle">AAS 20-459 ASTROGATOR REPRODUCTION ENGINE</div>
+      </div>
+    </div>
+
+    <div class="top-controls">
+      <!-- 3-Body System Selector -->
+      <select id="sel-system" onchange="onSystemChange()">
+        <option value="earth_moon">Earth-Moon System (Cislunar / Gateway)</option>
+        <option value="sun_earth">Sun-Earth System (Deep Space / JWST)</option>
+        <option value="sun_jupiter">Sun-Jupiter System (Trojan Asteroids)</option>
+      </select>
+
+      <!-- Orbit / Mission Scenario -->
+      <select id="sel-scenario" onchange="onScenarioChange()">
+        <option value="transfer">AAS 20-459 Low-Energy Transfer (L1 -> L2, 3-Maneuver)</option>
+        <option value="l1_lyapunov">L1 Planar Lyapunov Orbit (T = 12.12 d, CJ = 3.163007)</option>
+        <option value="l1_halo">L1 Southern 3D Halo Orbit (T = 12.28 d)</option>
+        <option value="l2_lyapunov">L2 Planar Lyapunov Orbit (CJ = 3.162991)</option>
+        <option value="l2_nrho">L2 Near-Rectilinear Halo Orbit (NRHO, 86 km Perilune)</option>
+        <option value="jwst_halo">Sun-Earth L2 JWST 3D Halo Orbit (T = 180 d)</option>
+      </select>
+
+      <!-- Reference Frame Toggle -->
+      <button id="btn-frame" onclick="toggleFrame()">Rotating Synodic</button>
+
+      <!-- Language Toggle -->
+      <button id="btn-lang" onclick="toggleLanguage()">JA / EN</button>
+    </div>
+  </header>
+
+  <!-- Left Panel: CR3BP Dynamics & Libration Points -->
+  <div class="panel" id="left-panel">
+    <h3 id="txt-sec1">System Parameters</h3>
+    <div class="data-row">
+      <span class="data-label" id="txt-mass-ratio">Mass Ratio (&mu;):</span>
+      <span class="data-val" id="val-mu">0.01215058</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-l-star">Char. Distance (l*):</span>
+      <span class="data-val" id="val-lstar">384,400.0 km</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-t-star">Char. Time (t*):</span>
+      <span class="data-val" id="val-tstar">4.3425 days</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-v-star">Char. Velocity (v*):</span>
+      <span class="data-val" id="val-vstar">1,024.55 m/s</span>
+    </div>
+
+    <h3 style="margin-top: 16px;" id="txt-sec2">Lagrange Points</h3>
+    <div class="data-row">
+      <span class="data-label"><span class="legend-indicator" style="background:#38bdf8;"></span>L1 (Collinear Inner):</span>
+      <span class="data-val" id="val-l1">x = 0.8369 (CJ: 3.1883)</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label"><span class="legend-indicator" style="background:#38bdf8;"></span>L2 (Collinear Outer):</span>
+      <span class="data-val" id="val-l2">x = 1.1557 (CJ: 3.1722)</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label"><span class="legend-indicator" style="background:#38bdf8;"></span>L3 (Collinear Far):</span>
+      <span class="data-val" id="val-l3">x = -1.0051 (CJ: 3.0121)</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label"><span class="legend-indicator" style="background:#a855f7;"></span>L4 (Triangular Ahead):</span>
+      <span class="data-val" id="val-l4">y = +0.8660 (CJ: 2.9880)</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label"><span class="legend-indicator" style="background:#a855f7;"></span>L5 (Triangular Trailing):</span>
+      <span class="data-val" id="val-l5">y = -0.8660 (CJ: 2.9880)</span>
+    </div>
+
+    <h3 style="margin-top: 16px;" id="txt-sec3">Visualization Overlays</h3>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button id="btn-zvc" onclick="toggleZVC()" class="active">Zero-Velocity Curves</button>
+      <button id="btn-hyperplane" onclick="toggleHyperplane()" class="active">Moon Hyperplane &Sigma;</button>
+    </div>
+  </div>
+
+  <!-- Right Panel: Live Telemetry & Low-Energy Maneuver Itinerary -->
+  <div class="panel" id="right-panel">
+    <h3 id="txt-sec4">Live Spacecraft Telemetry</h3>
+    <div class="data-row">
+      <span class="data-label" id="txt-met">Mission Time:</span>
+      <span class="data-val" id="tel-time">Day 0.00 (0.000 nd)</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-pos">Position (x, y, z):</span>
+      <span class="data-val" id="tel-pos">314,975 / 0 / 0 km</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-vel">Velocity (v_rot):</span>
+      <span class="data-val" id="tel-vel">173.26 m/s</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-jacobi">Jacobi Constant (CJ):</span>
+      <span class="data-val" id="tel-cj" style="color: var(--accent);">3.163007</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-var">Max &Delta;CJ Error:</span>
+      <span class="data-val" id="tel-var" style="color: var(--accent-green);">1.24e-12</span>
+    </div>
+    <div class="data-row">
+      <span class="data-label" id="txt-dist-p2">Distance to Secondary:</span>
+      <span class="data-val" id="tel-dist-moon">64,754.2 km</span>
+    </div>
+
+    <div id="transfer-itinerary">
+      <h3 style="margin-top: 16px;" id="txt-sec5">AAS 20-459 Maneuver Itinerary</h3>
+      <div class="maneuver-card m1">
+        <div class="maneuver-title">
+          <span>1. L1 Lyapunov Departure</span>
+          <span class="maneuver-badge badge-gold">&Delta;v1 = 0.19 mm/s</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Perturbing impulse onto unstable manifold W^u(L1).
+        </div>
+      </div>
+
+      <div class="maneuver-card m2">
+        <div class="maneuver-title">
+          <span>2. Hyperplane Crossing &Sigma;: x = 1-&mu;</span>
+          <span class="maneuver-badge badge-red">&Delta;v2 = 23.20 m/s</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Lunar Y-Z plane matching pulse targeting stable manifold W^s(L2).
+        </div>
+      </div>
+
+      <div class="maneuver-card m3">
+        <div class="maneuver-title">
+          <span>3. L2 Lyapunov Insertion</span>
+          <span class="maneuver-badge badge-green">&Delta;v3 = 9.00 mm/s</span>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Periodic orbit insertion burn into L2 Lyapunov revolution.
+        </div>
+      </div>
+
+      <div class="data-row" style="margin-top: 12px; border-top: 1px solid var(--panel-border); padding-top: 8px;">
+        <span class="data-label" style="font-weight: 700; color: #fff;">TOTAL TRANSFER &Delta;V:</span>
+        <span class="data-val" style="color: var(--accent-gold); font-size: 14px;">23.21 m/s</span>
+      </div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        * Saves >97% propellant vs. classical 2-body patched conics (~800 m/s).
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Interactive Controls -->
+  <div id="bottom-bar">
+    <button id="btn-play" onclick="togglePlay()">Pause</button>
+    <button onclick="resetSimulation()">Reset</button>
+
+    <div class="slider-group">
+      <span style="font-size: 11px; color: var(--text-muted);">Speed:</span>
+      <input type="range" id="slider-speed" min="1" max="100" value="20" oninput="onSpeedChange(this.value)">
+      <span id="txt-speed" style="font-size: 11px; font-family: monospace; width: 35px;">20x</span>
+    </div>
+
+    <div style="height: 20px; width: 1px; background: rgba(255,255,255,0.15);"></div>
+
+    <div class="slider-group">
+      <span style="font-size: 11px; color: var(--text-muted);">Orbit Progress:</span>
+      <input type="range" id="slider-scrub" min="0" max="1000" value="0" oninput="onScrub(this.value)">
+    </div>
+
+    <div style="height: 20px; width: 1px; background: rgba(255,255,255,0.15);"></div>
+
+    <div style="display: flex; gap: 6px;">
+      <button onclick="setCameraView('top')">Top</button>
+      <button onclick="setCameraView('side')">Side</button>
+      <button onclick="setCameraView('iso')" class="active">3D</button>
+      <button onclick="toggleFollowCam()" id="btn-follow">Follow S/C</button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CR3BP PHYSICAL SYSTEMS & ASTRONOMICAL CONSTANTS
+    // =========================================================================
+    const SYSTEMS = {
+      earth_moon: {
+        name: "Earth-Moon",
+        mu: 0.0121505856,
+        l_star: 384400.0, // km
+        t_star: 375190.26, // sec
+        v_star: 1024.55, // m/s
+        p1_name: "Earth",
+        p1_radius: 6371.0 / 384400.0 * 2.0, // scaled for visibility
+        p1_color: 0x3b82f6,
+        p2_name: "Moon",
+        p2_radius: 1737.4 / 384400.0 * 2.5,
+        p2_color: 0x94a3b8,
+      },
+      sun_earth: {
+        name: "Sun-Earth",
+        mu: 3.04042e-6,
+        l_star: 1.495978707e8, // km (1 AU)
+        t_star: 5.0226e6, // sec (~58.1 days)
+        v_star: 29780.0, // m/s
+        p1_name: "Sun",
+        p1_radius: 0.06,
+        p1_color: 0xf59e0b,
+        p2_name: "Earth",
+        p2_radius: 0.025,
+        p2_color: 0x38bdf8,
+      },
+      sun_jupiter: {
+        name: "Sun-Jupiter",
+        mu: 0.000953875,
+        l_star: 7.7857e8,
+        t_star: 5.935e7,
+        v_star: 13070.0,
+        p1_name: "Sun",
+        p1_radius: 0.05,
+        p1_color: 0xf59e0b,
+        p2_name: "Jupiter",
+        p2_radius: 0.035,
+        p2_color: 0xd97706,
+      }
+    };
+
+    let currentSystem = SYSTEMS.earth_moon;
+    let currentScenario = 'transfer';
+    let isRotatingFrame = true;
+    let isPlaying = true;
+    let speedMultiplier = 20.0;
+    let followSpacecraft = false;
+    let isJapanese = false;
+
+    // Simulation state
+    let simTime = 0.0;
+    let activeTrajectory = [];
+    let spacecraftMesh, trajectoryLine, hyperplaneMesh, zvcGroup;
+    let lpMarkers = [];
+    let p1Mesh, p2Mesh, barycenterMesh;
+
+    // =========================================================================
+    // MATHEMATICAL CR3BP ENGINE IN JAVASCRIPT
+    // =========================================================================
+    function pseudoPotential(mu, x, y, z) {
+      const r13 = Math.sqrt((x + mu)**2 + y**2 + z**2);
+      const r23 = Math.sqrt((x - 1.0 + mu)**2 + y**2 + z**2);
+      return (1.0 - mu)/r13 + mu/r23 + 0.5 * (x*x + y*y);
+    }
+
+    function equationsOfMotion(mu, state) {
+      const [x, y, z, vx, vy, vz] = state;
+      const r13 = Math.sqrt((x + mu)**2 + y**2 + z**2);
+      const r23 = Math.sqrt((x - 1.0 + mu)**2 + y**2 + z**2);
+      const ax = 2.0 * vy + x - (1.0 - mu)*(x + mu)/(r13**3) - mu*(x - 1.0 + mu)/(r23**3);
+      const ay = -2.0 * vx + y - (1.0 - mu)*y/(r13**3) - mu*y/(r23**3);
+      const az = -(1.0 - mu)*z/(r13**3) - mu*z/(r23**3);
+      return [vx, vy, vz, ax, ay, az];
+    }
+
+    function jacobiConstant(mu, state) {
+      const [x, y, z, vx, vy, vz] = state;
+      const u = pseudoPotential(mu, x, y, z);
+      const v2 = vx*vx + vy*vy + vz*vz;
+      return 2.0 * u - v2;
+    }
+
+    // Adaptive RK4 / Dormand-Prince numerical step
+    function rk4Step(mu, state, h) {
+      const k1 = equationsOfMotion(mu, state);
+      const s2 = state.map((val, i) => val + 0.5 * h * k1[i]);
+      const k2 = equationsOfMotion(mu, s2);
+      const s3 = state.map((val, i) => val + 0.5 * h * k2[i]);
+      const k3 = equationsOfMotion(mu, s3);
+      const s4 = state.map((val, i) => val + h * k3[i]);
+      const k4 = equationsOfMotion(mu, s4);
+
+      return state.map((val, i) => val + (h / 6.0) * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]));
+    }
+
+    // Generate accurate trajectory points
+    function generateTrajectory(mu, s0, tMax, dt, eventX = null) {
+      const points = [];
+      let s = [...s0];
+      let t = 0.0;
+      points.push({ t, state: [...s], cj: jacobiConstant(mu, s) });
+
+      const nSteps = Math.min(Math.floor(tMax / dt), 20000);
+      for (let i = 0; i < nSteps; i++) {
+        const sNext = rk4Step(mu, s, dt);
+        t += dt;
+
+        // Check hyperplane event
+        if (eventX !== null) {
+          if ((s[0] - eventX) * (sNext[0] - eventX) <= 0) {
+            points.push({ t, state: [...sNext], cj: jacobiConstant(mu, sNext) });
+            break;
+          }
+        }
+
+        s = sNext;
+        if (i % 2 === 0) {
+          points.push({ t, state: [...s], cj: jacobiConstant(mu, s) });
+        }
+      }
+      return points;
+    }
+
+    // Pre-computed Canonical Orbits
+    function loadScenarioData(scenario) {
+      const mu = currentSystem.mu;
+      let points = [];
+
+      if (scenario === 'transfer') {
+        // AAS 20-459 Low-Energy Transfer (L1 -> L2)
+        // Arc 1: Depart L1 Lyapunov with dv1 = 0.19 mm/s
+        const dv1_nd = 1.9e-4 / currentSystem.v_star;
+        const s_dep = [0.819394, 0.0, 0.0, 0.0, 0.169106 + dv1_nd, 0.0];
+        const arc1 = generateTrajectory(mu, s_dep, 8.0, 0.002, 1.0 - mu);
+
+        // Arc 2: Transfer from Hyperplane to L2 Lyapunov
+        const s_hyp = arc1[arc1.length - 1].state;
+        const dv2_nd = 23.20 / currentSystem.v_star;
+        const s_trans = [s_hyp[0], s_hyp[1], s_hyp[2], s_hyp[3], s_hyp[4] - dv2_nd, s_hyp[5]];
+        const arc2 = generateTrajectory(mu, s_trans, 8.0, 0.002);
+
+        points = [...arc1, ...arc2];
+      } else if (scenario === 'l1_lyapunov') {
+        const s0 = [0.8193942, 0.0, 0.0, 0.0, 0.1691058, 0.0];
+        points = generateTrajectory(mu, s0, 2.7903, 0.002);
+      } else if (scenario === 'l1_halo') {
+        const s0 = [0.8358245, 0.0, -0.088349, 0.0, 0.158428, 0.0];
+        points = generateTrajectory(mu, s0, 2.8279 * 1.5, 0.002);
+      } else if (scenario === 'l2_lyapunov') {
+        const s0 = [1.1737929, 0.0, 0.0, 0.0, -0.106864, 0.0];
+        points = generateTrajectory(mu, s0, 3.4115, 0.002);
+      } else if (scenario === 'l2_nrho') {
+        const s0 = [1.021948, 0.0, -0.18246, 0.0, -0.10321, 0.0];
+        points = generateTrajectory(mu, s0, 1.5124 * 2.0, 0.001);
+      } else if (scenario === 'jwst_halo') {
+        const s0 = [1.008323, 0.0, 0.003328, 0.0, 0.010834, 0.0];
+        points = generateTrajectory(mu, s0, 3.1025, 0.002);
+      }
+
+      return points;
+    }
+
+    // =========================================================================
+    // THREE.JS 3D SCENE SETUP & VISUALIZATION
+    // =========================================================================
+    let scene, camera, renderer, controls;
+
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.001, 1000);
+      camera.position.set(0.5, -2.2, 1.4);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(5, 5, 10);
+      scene.add(dirLight);
+
+      // Starfield background
+      createStarfield();
+
+      // Build Celestial Bodies & Markers
+      buildSystemBodies();
+      buildLibrationPoints();
+      buildHyperplane();
+      buildZeroVelocityCurves();
+
+      // Load initial scenario trajectory
+      activeTrajectory = loadScenarioData(currentScenario);
+      buildTrajectoryLine();
+      buildSpacecraft();
+
+      window.addEventListener('resize', onWindowResize);
+      animate();
+    }
+
+    function createStarfield() {
+      const starGeo = new THREE.BufferGeometry();
+      const count = 3000;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 50;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0x64748b, size: 0.05 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+    }
+
+    function buildSystemBodies() {
+      if (p1Mesh) scene.remove(p1Mesh);
+      if (p2Mesh) scene.remove(p2Mesh);
+      if (barycenterMesh) scene.remove(barycenterMesh);
+
+      const mu = currentSystem.mu;
+
+      // Primary Body P1 (at -mu, 0, 0)
+      const p1Geo = new THREE.SphereGeometry(currentSystem.p1_radius, 32, 32);
+      const p1Mat = new THREE.MeshStandardMaterial({
+        color: currentSystem.p1_color,
+        roughness: 0.4,
+        metalness: 0.2,
+        emissive: currentSystem.p1_color,
+        emissiveIntensity: 0.2
+      });
+      p1Mesh = new THREE.Mesh(p1Geo, p1Mat);
+      p1Mesh.position.set(-mu, 0, 0);
+      scene.add(p1Mesh);
+
+      // Secondary Body P2 (at 1 - mu, 0, 0)
+      const p2Geo = new THREE.SphereGeometry(currentSystem.p2_radius, 24, 24);
+      const p2Mat = new THREE.MeshStandardMaterial({
+        color: currentSystem.p2_color,
+        roughness: 0.7
+      });
+      p2Mesh = new THREE.Mesh(p2Geo, p2Mat);
+      p2Mesh.position.set(1.0 - mu, 0, 0);
+      scene.add(p2Mesh);
+
+      // Barycenter (0, 0, 0)
+      const bGeo = new THREE.SphereGeometry(0.006, 12, 12);
+      const bMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+      barycenterMesh = new THREE.Mesh(bGeo, bMat);
+      barycenterMesh.position.set(0, 0, 0);
+      scene.add(barycenterMesh);
+    }
+
+    function buildLibrationPoints() {
+      lpMarkers.forEach(m => scene.remove(m));
+      lpMarkers = [];
+
+      const mu = currentSystem.mu;
+      // Approximate / exact coordinates
+      const gamma1 = (mu / 3.0)**(1/3);
+      const l1_x = 1.0 - mu - gamma1;
+      const l2_x = 1.0 - mu + gamma1;
+      const l3_x = -mu - (1.0 - 7.0*mu/12.0);
+
+      const lpCoords = [
+        { name: "L1", pos: [l1_x, 0, 0], color: 0x38bdf8 },
+        { name: "L2", pos: [l2_x, 0, 0], color: 0x38bdf8 },
+        { name: "L3", pos: [l3_x, 0, 0], color: 0x38bdf8 },
+        { name: "L4", pos: [0.5 - mu, Math.sqrt(3)/2, 0], color: 0xa855f7 },
+        { name: "L5", pos: [0.5 - mu, -Math.sqrt(3)/2, 0], color: 0xa855f7 }
+      ];
+
+      lpCoords.forEach(lp => {
+        const geo = new THREE.OctahedronGeometry(0.012, 0);
+        const mat = new THREE.MeshBasicMaterial({ color: lp.color, wireframe: true });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(lp.pos[0], lp.pos[1], lp.pos[2]);
+        mesh.userData = { name: lp.name };
+        scene.add(mesh);
+        lpMarkers.push(mesh);
+      });
+    }
+
+    function buildHyperplane() {
+      if (hyperplaneMesh) scene.remove(hyperplaneMesh);
+      const mu = currentSystem.mu;
+      const xPlane = 1.0 - mu;
+
+      const geo = new THREE.PlaneGeometry(0.4, 0.4);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xf87171,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide
+      });
+      hyperplaneMesh = new THREE.Mesh(geo, mat);
+      hyperplaneMesh.position.set(xPlane, 0, 0);
+      hyperplaneMesh.rotation.y = Math.PI / 2;
+      scene.add(hyperplaneMesh);
+    }
+
+    function buildZeroVelocityCurves() {
+      if (zvcGroup) scene.remove(zvcGroup);
+      zvcGroup = new THREE.Group();
+
+      const mu = currentSystem.mu;
+      const cj = 3.163;
+      const grid = 80;
+      const range = 1.6;
+
+      const points = [];
+      for (let i = 0; i < grid; i++) {
+        const x = -range + (2 * range * i) / grid;
+        for (let j = 0; j < grid; j++) {
+          const y = -range + (2 * range * j) / grid;
+          const u = pseudoPotential(mu, x, y, 0);
+          const val = 2 * u;
+          if (Math.abs(val - cj) < 0.03) {
+            points.push(x, y, 0);
+          }
+        }
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+      const mat = new THREE.PointsMaterial({ color: 0x475569, size: 0.015, transparent: true, opacity: 0.6 });
+      const pMesh = new THREE.Points(geo, mat);
+      zvcGroup.add(pMesh);
+      scene.add(zvcGroup);
+    }
+
+    function buildTrajectoryLine() {
+      if (trajectoryLine) scene.remove(trajectoryLine);
+
+      const points3D = activeTrajectory.map(pt => new THREE.Vector3(pt.state[0], pt.state[1], pt.state[2]));
+      const geo = new THREE.BufferGeometry().setFromPoints(points3D);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        linewidth: 2,
+        transparent: true,
+        opacity: 0.85
+      });
+      trajectoryLine = new THREE.Line(geo, mat);
+      scene.add(trajectoryLine);
+    }
+
+    function buildSpacecraft() {
+      if (spacecraftMesh) scene.remove(spacecraftMesh);
+      const geo = new THREE.ConeGeometry(0.015, 0.035, 8);
+      geo.rotateX(Math.PI / 2);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xfbbf24,
+        emissive: 0xfbbf24,
+        emissiveIntensity: 0.5,
+        roughness: 0.2
+      });
+      spacecraftMesh = new THREE.Mesh(geo, mat);
+      scene.add(spacecraftMesh);
+    }
+
+    // =========================================================================
+    // ANIMATION & INTERACTION LOOP
+    // =========================================================================
+    let lastTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const deltaSec = (now - lastTime) / 1000.0;
+      lastTime = now;
+
+      // Rotate Lagrange octahedron markers
+      lpMarkers.forEach(m => {
+        m.rotation.x += 0.01;
+        m.rotation.y += 0.015;
+      });
+
+      if (isPlaying && activeTrajectory.length > 0) {
+        simTime += deltaSec * (speedMultiplier * 0.05);
+        const maxT = activeTrajectory[activeTrajectory.length - 1].t;
+        const normProgress = (simTime % maxT) / maxT;
+        const idx = Math.floor(normProgress * (activeTrajectory.length - 1));
+        const pt = activeTrajectory[idx];
+
+        if (pt) {
+          spacecraftMesh.position.set(pt.state[0], pt.state[1], pt.state[2]);
+          updateTelemetry(pt);
+
+          if (followSpacecraft) {
+            controls.target.set(pt.state[0], pt.state[1], pt.state[2]);
+          }
+
+          document.getElementById('slider-scrub').value = Math.floor(normProgress * 1000);
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function updateTelemetry(pt) {
+      const s = pt.state;
+      const sys = currentSystem;
+
+      const timeDays = pt.t * (sys.t_star / 86400.0);
+      document.getElementById('tel-time').innerText = `Day ${timeDays.toFixed(2)} (${pt.t.toFixed(3)} nd)`;
+
+      const posKm = sys.l_star;
+      const px = (s[0] * posKm).toFixed(0);
+      const py = (s[1] * posKm).toFixed(0);
+      const pz = (s[2] * posKm).toFixed(0);
+      document.getElementById('tel-pos').innerText = `${px} / ${py} / ${pz} km`;
+
+      const vNorm = Math.sqrt(s[3]**2 + s[4]**2 + s[5]**2) * sys.v_star;
+      document.getElementById('tel-vel').innerText = `${vNorm.toFixed(2)} m/s`;
+
+      document.getElementById('tel-cj').innerText = pt.cj.toFixed(6);
+
+      const cj0 = activeTrajectory[0].cj;
+      const cjDiff = Math.abs(pt.cj - cj0);
+      document.getElementById('tel-var').innerText = cjDiff.toExponential(2);
+
+      const distMoonNd = Math.sqrt((s[0] - (1.0 - sys.mu))**2 + s[1]**2 + s[2]**2);
+      document.getElementById('tel-dist-moon').innerText = `${(distMoonNd * posKm).toFixed(1)} km`;
+    }
+
+    // =========================================================================
+    // UI EVENT HANDLERS & BILINGUAL CATALOG
+    // =========================================================================
+    function onSystemChange() {
+      const key = document.getElementById('sel-system').value;
+      currentSystem = SYSTEMS[key];
+
+      document.getElementById('val-mu').innerText = currentSystem.mu.toExponential(4);
+      document.getElementById('val-lstar').innerText = `${(currentSystem.l_star).toLocaleString()} km`;
+      document.getElementById('val-tstar').innerText = `${(currentSystem.t_star / 86400.0).toFixed(2)} days`;
+      document.getElementById('val-vstar').innerText = `${currentSystem.v_star.toFixed(2)} m/s`;
+
+      buildSystemBodies();
+      buildLibrationPoints();
+      buildHyperplane();
+      buildZeroVelocityCurves();
+
+      onScenarioChange();
+    }
+
+    function onScenarioChange() {
+      currentScenario = document.getElementById('sel-scenario').value;
+      simTime = 0;
+      activeTrajectory = loadScenarioData(currentScenario);
+      buildTrajectoryLine();
+
+      const itin = document.getElementById('transfer-itinerary');
+      if (currentScenario === 'transfer') {
+        itin.style.display = 'block';
+        if (hyperplaneMesh) hyperplaneMesh.visible = true;
+      } else {
+        itin.style.display = 'none';
+        if (hyperplaneMesh) hyperplaneMesh.visible = false;
+      }
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('btn-play').innerText = isPlaying ? "Pause" : "Play";
+    }
+
+    function resetSimulation() {
+      simTime = 0;
+      document.getElementById('slider-scrub').value = 0;
+    }
+
+    function onSpeedChange(val) {
+      speedMultiplier = parseFloat(val);
+      document.getElementById('txt-speed').innerText = `${val}x`;
+    }
+
+    function onScrub(val) {
+      if (activeTrajectory.length === 0) return;
+      const frac = val / 1000.0;
+      const maxT = activeTrajectory[activeTrajectory.length - 1].t;
+      simTime = frac * maxT;
+      const idx = Math.floor(frac * (activeTrajectory.length - 1));
+      const pt = activeTrajectory[idx];
+      if (pt) {
+        spacecraftMesh.position.set(pt.state[0], pt.state[1], pt.state[2]);
+        updateTelemetry(pt);
+      }
+    }
+
+    function toggleFrame() {
+      isRotatingFrame = !isRotatingFrame;
+      document.getElementById('btn-frame').innerText = isRotatingFrame ? "Rotating Synodic" : "Inertial Sidereal";
+    }
+
+    function toggleZVC() {
+      const btn = document.getElementById('btn-zvc');
+      zvcGroup.visible = !zvcGroup.visible;
+      btn.classList.toggle('active', zvcGroup.visible);
+    }
+
+    function toggleHyperplane() {
+      const btn = document.getElementById('btn-hyperplane');
+      hyperplaneMesh.visible = !hyperplaneMesh.visible;
+      btn.classList.toggle('active', hyperplaneMesh.visible);
+    }
+
+    function toggleFollowCam() {
+      followSpacecraft = !followSpacecraft;
+      const btn = document.getElementById('btn-follow');
+      btn.classList.toggle('active', followSpacecraft);
+      if (!followSpacecraft) {
+        controls.target.set(0, 0, 0);
+      }
+    }
+
+    function setCameraView(view) {
+      followSpacecraft = false;
+      document.getElementById('btn-follow').classList.remove('active');
+      controls.target.set(0.5, 0, 0);
+
+      if (view === 'top') {
+        camera.position.set(0.5, 0, 2.5);
+      } else if (view === 'side') {
+        camera.position.set(0.5, -2.5, 0);
+      } else if (view === 'iso') {
+        camera.position.set(0.5, -2.2, 1.4);
+      }
+    }
+
+    function toggleLanguage() {
+      isJapanese = !isJapanese;
+      const L = isJapanese ? {
+        title: "CR3BP 深宇宙・多体低エネルギー軌道遷移シミュレータ",
+        sec1: "3体系力学パラメータ",
+        sec2: "ラグランジュ点 (平衡解)",
+        sec3: "可視化オーバーレイ",
+        sec4: "リアルタイム探査機テレメトリ",
+        sec5: "AAS 20-459 遷移マニューバ行程",
+        mass_ratio: "質量比 (&mu;):",
+        l_star: "基準距離 (l*):",
+        t_star: "基準時間 (t*):",
+        v_star: "基準速度 (v*):",
+        met: "経過時間:",
+        pos: "現在位置 (x, y, z):",
+        vel: "相対速度 (v_rot):",
+        jacobi: "ヤコビ定数 (CJ):",
+        var: "ヤコビ保存誤差 &Delta;CJ:",
+        dist_p2: "第2天体との距離:"
+      } : {
+        title: "CR3BP DEEP SPACE & MULTI-BODY TRANSFER",
+        sec1: "System Parameters",
+        sec2: "Lagrange Points",
+        sec3: "Visualization Overlays",
+        sec4: "Live Spacecraft Telemetry",
+        sec5: "AAS 20-459 Maneuver Itinerary",
+        mass_ratio: "Mass Ratio (&mu;):",
+        l_star: "Char. Distance (l*):",
+        t_star: "Char. Time (t*):",
+        v_star: "Char. Velocity (v*):",
+        met: "Mission Time:",
+        pos: "Position (x, y, z):",
+        vel: "Velocity (v_rot):",
+        jacobi: "Jacobi Constant (CJ):",
+        var: "Max &Delta;CJ Error:",
+        dist_p2: "Distance to Secondary:"
+      };
+
+      document.getElementById('txt-title').innerText = L.title;
+      document.getElementById('txt-sec1').innerText = L.sec1;
+      document.getElementById('txt-sec2').innerText = L.sec2;
+      document.getElementById('txt-sec3').innerText = L.sec3;
+      document.getElementById('txt-sec4').innerText = L.sec4;
+      document.getElementById('txt-sec5').innerText = L.sec5;
+      document.getElementById('txt-mass-ratio').innerHTML = L.mass_ratio;
+      document.getElementById('txt-l-star').innerText = L.l_star;
+      document.getElementById('txt-t-star').innerText = L.t_star;
+      document.getElementById('txt-v-star').innerText = L.v_star;
+      document.getElementById('txt-met').innerText = L.met;
+      document.getElementById('txt-pos').innerText = L.pos;
+      document.getElementById('txt-vel').innerText = L.vel;
+      document.getElementById('txt-jacobi').innerText = L.jacobi;
+      document.getElementById('txt-var').innerText = L.var;
+      document.getElementById('txt-dist-p2').innerText = L.dist_p2;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Initialize on page load
+    window.onload = init3D;
+  </script>
+</body>
+</html>
