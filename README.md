@@ -86,7 +86,13 @@ Detailed engineering and mathematical specifications are provided in the `docs/`
    * In-place $LU$ factorization and Projected ADMM for exact $L_2$ thrust saturation ($\|\mathbf{u}\|_2 \le T_{\max}$) with zero external C dependencies.
    * Dynamic line-search trust regions ($\rho$-ratio step adaptation) and virtual control absorption ($\|\boldsymbol{\nu}\|_1 \to 0$).
    * Verified reproduction of Mao et al. (2016) drag benchmark and Short et al. (2020) AAS 20-459 low-energy transfer.
-5. [**Architectural Decision Records (ADRs)**](docs/adr/):
+5. [**Earth-Centric Optimal Orbit Search & Trajectory Optimization Guide**](docs/earth_centric_optimal_orbit_search_literature_and_architecture.md):
+   * Comprehensive astrodynamics literature survey and mathematical formulations for Earth-centric orbit space (LEO, MEO, GEO, GTO).
+   * Modified Equinoctial Elements (MEE) and Gauss Variational Equations (GVE).
+   * Edelbaum's analytical low-thrust $\Delta v$ velocity equation and Petropoulos' Q-law Lyapunov feedback control.
+   * Successive Convex Programming (SCP / SOCP) and $J_2$ secular nodal precession drift for active debris removal (ADR) and constellation phasing.
+   * Integration with the SBM codebase (`autoorbit`, `cr3bp::frames`, `scvx`) and 3-phase implementation roadmap.
+6. [**Architectural Decision Records (ADRs)**](docs/adr/):
    * [ADR-001: NASA EVOLVE 4.0 Breakup Model Alignment](docs/adr/ADR-001-nasa-evolve4-breakup-model-alignment.md).
    * [ADR-002: Native Client-Server Architecture & Pure-Rust SCvx Trajectory Engine](docs/adr/ADR-002-deep-space-scvx-native-client-server-architecture.md).
 

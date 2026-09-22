@@ -208,11 +208,24 @@ fn main() -> Result<(), String> {
 
 ---
 
+## 5. Earth-Centric Optimal Orbit Planning & Astrodynamics
+
+For trajectory optimization in Earth's primary gravity well (LEO, MEO, GEO, GTO, and multi-revolution transfers), see the complete specification and literature survey:
+* [**Earth-Centric Optimal Orbit Search & Trajectory Optimization Guide**](../../docs/earth_centric_optimal_orbit_search_literature_and_architecture.md):
+  * **Modified Equinoctial Elements (MEE)** and Gauss Variational Equations (GVE).
+  * **Edelbaum's Analytical Sizing** & **Petropoulos' Q-Law** Lyapunov feedback control for multi-thousand revolution transfers.
+  * **Successive Convex Programming (SCP / SOCP)** for fuel- and time-optimal Earth transfers.
+  * **$J_2$ Secular Precession Drift** for propellant-free active debris removal (Cerf 2015).
+  * **Two-Phase Hybrid Transfer Pipeline** (LEO impulsive TLI kick + deep-space SCvx low-thrust capture).
+
+---
+
 ## Testing & Verification
 
 ```bash
-# Run all 56 tests across workspace
+# Run all unit and integration tests across workspace
 cargo test --workspace
+
 
 # Enforce zero warnings and zero print calls
 cargo clippy --workspace --all-targets -- -D warnings -D clippy::print_stdout -D clippy::print_stderr

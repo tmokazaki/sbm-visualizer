@@ -151,3 +151,15 @@ $$\mathbf{u}_k^{i+1} = \Pi_{\mathcal{U}}\!\left(\mathbf{z}_k^i - \frac{1}{\rho}\
    - Formats position ($\text{km}$) and velocity ($\text{km/s}$) ephemeris records relative to `EME2000` / `EARTH-MOON BARYCENTER` with UTC timestamps.
 2. **RFC 4180 CSV Burn Schedule**:
    - Operational columns: `time_days, x_km, y_km, z_km, vx_km_s, vy_km_s, vz_km_s, thrust_mn, cumulative_dv_m_s`.
+
+---
+
+## 7. Relationship to Earth-Centric Trajectory Optimization
+
+For trajectory optimization within Earth's primary gravity well (LEO, MEO, GEO, GTO) and hybrid Earth-to-deep-space transfers, see:
+* [**Earth-Centric Optimal Orbit Search & Trajectory Optimization Guide**](earth_centric_optimal_orbit_search_literature_and_architecture.md):
+  - Two-body Keplerian dominance vs. CR3BP multi-body dynamics.
+  - Multi-revolution low-thrust orbit raising via Petropoulos Q-law Lyapunov feedback control.
+  - Successive Convex Programming (SCP / SOCP) and $J_2$ secular precession plane matching.
+  - Two-phase hybrid mission architecture: Phase 1 (Chemical TLI kick) $\to$ Phase 2 (Cislunar SCvx capture).
+
