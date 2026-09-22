@@ -1,8 +1,8 @@
 //! Stochastic sampling distributions according to NASA EVOLVE 4.0 specifications.
 
 use std::f64::consts::PI;
-use crate::rng::RngSource;
-use crate::types::{BreakupType, ObjectType};
+use super::rng::RngSource;
+use super::types::{BreakupType, ObjectType};
 
 /// Samples a two-component Gaussian mixture distribution:
 /// $$p(x) = \alpha \cdot \mathcal{N}(\mu_1, \sigma_1^2) + (1 - \alpha) \cdot \mathcal{N}(\mu_2, \sigma_2^2)$$
@@ -183,7 +183,7 @@ pub fn sample_direction_cone<R: RngSource + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rng::SimpleRng;
+    use crate::breakup::rng::SimpleRng;
 
     #[test]
     fn test_sample_am_ratio_regimes() {

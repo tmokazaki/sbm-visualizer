@@ -1,13 +1,13 @@
 //! Core NASA EVOLVE 4.0 breakup simulation engine and builder.
 
-use crate::error::BreakupError;
-use crate::math::{
+use super::error::BreakupError;
+use super::math::{
     collision_destroyed_mass, cross_sectional_area, cumulative_fragment_count,
     is_catastrophic_collision, specific_impact_energy,
 };
-use crate::rng::{RngSource, SimpleRng};
-use crate::sampling::{sample_am_ratio, sample_delta_v, sample_direction_isotropic};
-use crate::types::{BreakupResult, BreakupType, Fragment, ObjectType};
+use super::rng::{RngSource, SimpleRng};
+use super::sampling::{sample_am_ratio, sample_delta_v, sample_direction_isotropic};
+use super::types::{BreakupResult, BreakupType, Fragment, ObjectType};
 
 /// Builder for constructing a configured [`BreakupEngine`].
 #[derive(Debug, Clone)]
