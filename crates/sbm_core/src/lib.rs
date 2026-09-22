@@ -70,7 +70,9 @@ pub mod error;
 pub mod math;
 pub mod prelude;
 pub mod rng;
+pub mod rpo;
 pub mod sampling;
+
 pub mod scvx;
 pub mod types;
 
