@@ -1,18 +1,6 @@
-//! Convenient re-exports for library consumers.
+//! Convenient re-exports for library consumers across all astrodynamics domains.
 
-pub use crate::engine::{BreakupEngine, BreakupEngineBuilder, SimpleBreakupEngine};
-pub use crate::error::BreakupError;
-pub use crate::math::{
-    ballistic_coefficient, collision_destroyed_mass, cross_sectional_area, cumulative_fragment_count,
-    is_catastrophic_collision, specific_impact_energy, CATASTROPHIC_THRESHOLD_KJ_PER_KG,
-    DEFAULT_DRAG_COEFFICIENT,
-};
-pub use crate::rng::{RngSource, SimpleRng};
-pub use crate::sampling::{
-    sample_am_ratio, sample_delta_v, sample_direction_cone, sample_direction_isotropic,
-    sample_gaussian_mixture,
-};
-pub use crate::types::{BreakupResult, BreakupType, Fragment, ObjectType};
+pub use crate::breakup::*;
 pub use crate::autoorbit::{
     apply_maneuver_correction, cartesian_to_keplerian, compute_gve_element_deltas,
     keplerian_to_cartesian, AutoOrbitError, AutoOrbitPredictor, KeplerianElements, ManeuverImpulse,
@@ -25,4 +13,13 @@ pub use crate::cr3bp::{
     Cr3bpSystem, DormandPrinceIntegrator, EventCondition, EventDirection, FrameTransformer,
     IntegratorOptions, LagrangePoint, LibrationPointInfo, MultiBodyTransferPlan,
     PeriodicOrbitBenchmark, PropagationResult, StopReason, TrajectoryPoint,
+};
+pub use crate::rpo::{
+    plan_glideslope_rbar, plan_glideslope_vbar, plan_natural_motion_circumnavigation,
+    plan_two_impulse_transfer, GlideslopeApproachPlan, NmcInspectionPlan, RelativeState, RpoError,
+    RpoManeuverDto, TargetOrbit, TwoImpulseTransferPlan,
+};
+pub use crate::scvx::{
+    Cr3bpBurnSegment, Cr3bpTransferMissionConfig, Cr3bpTransferNode, Cr3bpTransferOptimizer,
+    Cr3bpTransferPlan, ScvxOptions, ScvxSolution, TrajectoryNode,
 };

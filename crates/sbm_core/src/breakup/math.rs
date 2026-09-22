@@ -1,6 +1,6 @@
 //! Analytical equations and mathematical relationships for NASA EVOLVE 4.0 breakup physics.
 
-use crate::types::BreakupType;
+use super::types::BreakupType;
 
 /// Catastrophic disruption specific energy threshold in kJ/kg ($40\text{ J/g} = 40.0\text{ kJ/kg}$).
 pub const CATASTROPHIC_THRESHOLD_KJ_PER_KG: f64 = 40.0;

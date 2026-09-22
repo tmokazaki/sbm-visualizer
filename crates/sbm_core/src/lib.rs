@@ -64,29 +64,19 @@
 #![deny(clippy::print_stdout, clippy::print_stderr)]
 
 pub mod autoorbit;
+pub mod breakup;
 pub mod cr3bp;
-pub mod engine;
-pub mod error;
-pub mod math;
 pub mod prelude;
-pub mod rng;
 pub mod rpo;
-pub mod sampling;
-
 pub mod scvx;
-pub mod types;
 
-// Re-export common types at crate root for ergonomic usage
-pub use engine::{BreakupEngine, BreakupEngineBuilder, SimpleBreakupEngine};
-pub use error::BreakupError;
-pub use math::{
+// Backward-compatible module and type re-exports at crate root
+pub use breakup::{engine, error, math, rng, sampling, types};
+pub use breakup::{
     ballistic_coefficient, collision_destroyed_mass, cross_sectional_area, cumulative_fragment_count,
-    is_catastrophic_collision, specific_impact_energy, CATASTROPHIC_THRESHOLD_KJ_PER_KG,
+    is_catastrophic_collision, sample_am_ratio, sample_delta_v, sample_direction_cone,
+    sample_direction_isotropic, sample_gaussian_mixture, specific_impact_energy, BreakupEngine,
+    BreakupEngineBuilder, BreakupError, BreakupResult, BreakupType, Fragment, ObjectType,
+    RngSource, SimpleBreakupEngine, SimpleRng, CATASTROPHIC_THRESHOLD_KJ_PER_KG,
     DEFAULT_DRAG_COEFFICIENT,
 };
-pub use rng::{RngSource, SimpleRng};
-pub use sampling::{
-    sample_am_ratio, sample_delta_v, sample_direction_cone, sample_direction_isotropic,
-    sample_gaussian_mixture,
-};
-pub use types::{BreakupResult, BreakupType, Fragment, ObjectType};
