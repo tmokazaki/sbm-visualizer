@@ -80,6 +80,15 @@ Detailed engineering and mathematical specifications are provided in the `docs/`
    * Canonical and SOTA reference papers across 7 operational domains (HPOP, Sensor/RCS, Conjunction Assessment, Frame Standards, UQ, Component Breakup, Parallel Compute).
    * Governing equations for Gim-Alfriend $J_2$ STM, NASA SEM radar cross-section conversion, Hall fast 2D $P_c$ collision probability, and CCSDS CDM/OEM standards.
    * 6-phase engineering transition roadmap.
+4. [**Deep Space Optimal Trajectory Planning & SCvx Specification**](docs/deep_space_scvx_flight_dynamics_specification.md):
+   * Multi-body non-convex optimal control formulation in the Circular Restricted Three-Body Problem (CR3BP).
+   * Variational dynamics linearization ($\mathbf{A}_k, \mathbf{B}_k, \mathbf{r}_k$), Coriolis coupling ($\boldsymbol{\Omega}$), and potential Hessian ($\mathbf{U}_{(x, y, z)}$).
+   * In-place $LU$ factorization and Projected ADMM for exact $L_2$ thrust saturation ($\|\mathbf{u}\|_2 \le T_{\max}$) with zero external C dependencies.
+   * Dynamic line-search trust regions ($\rho$-ratio step adaptation) and virtual control absorption ($\|\boldsymbol{\nu}\|_1 \to 0$).
+   * Verified reproduction of Mao et al. (2016) drag benchmark and Short et al. (2020) AAS 20-459 low-energy transfer.
+5. [**Architectural Decision Records (ADRs)**](docs/adr/):
+   * [ADR-001: NASA EVOLVE 4.0 Breakup Model Alignment](docs/adr/ADR-001-nasa-evolve4-breakup-model-alignment.md).
+   * [ADR-002: Native Client-Server Architecture & Pure-Rust SCvx Trajectory Engine](docs/adr/ADR-002-deep-space-scvx-native-client-server-architecture.md).
 
 ---
 
@@ -165,7 +174,7 @@ The repository provides a modular, multi-crate Rust architecture:
 cargo run -p sbm_server
 
 # Run the Rust CLI engine:
-cargo run -p sbm_simple_engine --release
+cargo run --bin sbm_simple_engine --release
 
 # Run the CR3BP Deep Space & Multi-Body Transfer Demo:
 cargo run --example cr3bp_deep_space_demo
@@ -173,8 +182,8 @@ cargo run --example cr3bp_deep_space_demo
 # Run the full test suite (56 tests across all crates):
 cargo test --workspace
 
-# Run clippy with zero warnings:
-cargo clippy --workspace --all-targets -- -D warnings
+# Run clippy with zero warnings & zero print macros:
+cargo clippy --workspace --all-targets -- -D warnings -D clippy::print_stdout -D clippy::print_stderr
 
 # Run Python paper reproduction test suite:
 python3 -m unittest tests/test_autoorbit_reproduction.py
