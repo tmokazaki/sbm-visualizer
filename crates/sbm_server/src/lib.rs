@@ -469,33 +469,49 @@ pub struct OptimizeTransferResponse {
     pub trajectory_nodes: Vec<Cr3bpTransferNodeDto>,
 }
 
+fn resolve_orbit_state(
+    custom_state: Option<[f64; 6]>,
+    preset_name: Option<&str>,
+    fallback_preset: &str,
+    system: &Cr3bpSystem,
+) -> Cr3bpState {
+    if let Some(arr) = custom_state {
+        Cr3bpState::from_array(arr)
+    } else {
+        match preset_name.unwrap_or(fallback_preset).to_lowercase().as_str() {
+            "earth_moon_l1_halo" => Cr3bpState::new(0.8234, 0.0, 0.045, 0.0, 0.13, 0.0),
+            "earth_moon_l1_lyapunov" => Cr3bpState::new(0.8369, 0.0, 0.0, 0.0, 0.12, 0.0),
+            "low_lunar_orbit" => Cr3bpState::new(1.0 - system.mu + 0.0048, 0.0, 0.0, 0.0, 1.63, 0.0),
+            "lunar_gateway_nrho" => Cr3bpState::new(1.025, 0.0, 0.18, 0.0, -0.22, 0.0),
+            "earth_moon_l2_halo" => Cr3bpState::new(1.155, 0.0, 0.05, 0.0, -0.15, 0.0),
+            "earth_moon_l2_lyapunov" => Cr3bpState::new(1.12, 0.0, 0.0, 0.0, -0.18, 0.0),
+            "earth_moon_l4" => Cr3bpState::new(0.5 - system.mu, 0.8660254037844386, 0.0, 0.0, 0.0, 0.0),
+            "earth_moon_l5" => Cr3bpState::new(0.5 - system.mu, -0.8660254037844386, 0.0, 0.0, 0.0, 0.0),
+            "sun_earth_l2_halo" => Cr3bpState::new(1.0083, 0.0, 0.0035, 0.0, -0.015, 0.0),
+            _ => Cr3bpState::new(0.8369, 0.0, 0.0, 0.0, 0.12, 0.0),
+        }
+    }
+}
+
 pub async fn optimize_transfer_handler(
     Json(req): Json<OptimizeTransferRequest>,
 ) -> Result<Json<OptimizeTransferResponse>, (StatusCode, String)> {
     let sys_name = req.system.as_deref().unwrap_or("Earth-Moon");
     let system = resolve_system(sys_name);
 
-    // Resolve Origin State
-    let origin_state = if let Some(arr) = req.origin_state {
-        Cr3bpState::from_array(arr)
-    } else {
-        match req.origin_preset.as_deref().unwrap_or("earth_moon_l1_lyapunov") {
-            "earth_moon_l1_halo" => Cr3bpState::new(0.8234, 0.0, 0.045, 0.0, 0.13, 0.0),
-            "low_lunar_orbit" => Cr3bpState::new(0.982, 0.0, 0.0, 0.0, 1.45, 0.0),
-            _ => Cr3bpState::new(0.8369, 0.0, 0.0, 0.0, 0.12, 0.0),
-        }
-    };
+    let origin_state = resolve_orbit_state(
+        req.origin_state,
+        req.origin_preset.as_deref(),
+        "earth_moon_l1_lyapunov",
+        &system,
+    );
 
-    // Resolve Destination State
-    let target_state = if let Some(arr) = req.destination_state {
-        Cr3bpState::from_array(arr)
-    } else {
-        match req.destination_preset.as_deref().unwrap_or("earth_moon_l2_halo") {
-            "lunar_gateway_nrho" => Cr3bpState::new(1.025, 0.0, 0.18, 0.0, -0.22, 0.0),
-            "earth_moon_l2_lyapunov" => Cr3bpState::new(1.12, 0.0, 0.0, 0.0, -0.18, 0.0),
-            _ => Cr3bpState::new(1.155, 0.0, 0.05, 0.0, -0.15, 0.0),
-        }
-    };
+    let target_state = resolve_orbit_state(
+        req.destination_state,
+        req.destination_preset.as_deref(),
+        "earth_moon_l2_halo",
+        &system,
+    );
 
     let config = Cr3bpTransferMissionConfig {
         wet_mass_kg: req.spacecraft_wet_mass_kg.unwrap_or(450.0),

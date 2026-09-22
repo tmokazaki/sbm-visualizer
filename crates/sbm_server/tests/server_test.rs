@@ -143,3 +143,38 @@ async fn test_optimize_transfer_and_export_oem() {
     assert!(oem_str.contains("OBJECT_NAME          = TEST_SCVX_ORBITER"));
     assert!(csv_str.contains("time_days,x_km,y_km,z_km,vx_km_s,vy_km_s,vz_km_s,thrust_mn,cumulative_dv_m_s"));
 }
+
+#[tokio::test]
+async fn test_custom_mission_arbitrary_coordinates() {
+    let app = create_app(PathBuf::from("."));
+
+    let custom_payload = serde_json::json!({
+        "system": "Earth-Moon",
+        "origin_state": [0.8369, 0.0, 0.01, 0.0, 0.12, 0.0],
+        "destination_state": [1.155, 0.0, 0.05, 0.0, -0.15, 0.0],
+        "spacecraft_wet_mass_kg": 750.0,
+        "max_thrust_n": 0.5,
+        "isp_s": 2200.0,
+        "flight_days": 16.0,
+        "n_nodes": 20
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/transfer/optimize")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_vec(&custom_payload).unwrap()))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["success"], true);
+    assert_eq!(json["converged"], true);
+    assert_eq!(json["trajectory_nodes"].as_array().unwrap().len(), 20);
+    assert!(json["total_fuel_consumed_kg"].as_f64().unwrap() > 0.0);
+}
+

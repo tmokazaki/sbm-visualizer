@@ -513,8 +513,49 @@
                 <option value="earth_moon_l1_to_l2">Lunar Gateway & Science Hub: L1 Halo → L2 NRHO</option>
                 <option value="earth_moon_l1_lyapunov_l2_halo">AAS 20-459 Benchmark: L1 Lyapunov → L2 Southern Halo</option>
                 <option value="low_lunar_to_l2">Lunar Ascent: Low Lunar Orbit → L2 Waypoint</option>
+                <option value="custom">🛠️ Custom User-Defined Mission</option>
               </select>
             </div>
+
+            <!-- Custom Route Configuration (Appears when Custom Mission is selected) -->
+            <div id="wiz-custom-panel" style="display: none; background: rgba(10, 14, 24, 0.85); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+              <div style="font-size: 11px; font-weight: 600; color: var(--accent-gold); margin-bottom: 8px;">🛠️ Custom Route Configuration</div>
+              <div class="field-group" style="margin-bottom: 8px;">
+                <label>Origin Departure Location / Orbit:</label>
+                <select id="wiz-custom-origin" onchange="onCustomOriginChange()">
+                  <option value="earth_moon_l1_halo">Earth-Moon L1 Southern Halo (x=0.8234, z=0.045)</option>
+                  <option value="earth_moon_l1_lyapunov">Earth-Moon L1 Planar Lyapunov (x=0.8369, y=0.0)</option>
+                  <option value="low_lunar_orbit">Low Lunar Orbit (100 km circular altitude)</option>
+                  <option value="earth_moon_l2_halo">Earth-Moon L2 Southern Halo (x=1.155, z=0.05)</option>
+                  <option value="earth_moon_l4">Earth-Moon L4 Triangular Libration Point</option>
+                  <option value="earth_moon_l5">Earth-Moon L5 Triangular Libration Point</option>
+                  <option value="sun_earth_l2_halo">Sun-Earth L2 Space Telescope Orbit</option>
+                  <option value="coords">Custom State Coordinates [x, y, z, vx, vy, vz]</option>
+                </select>
+              </div>
+              <div id="wiz-origin-coords-group" style="display: none; margin-bottom: 8px;">
+                <label style="font-size: 10px; color: var(--text-muted);">Origin Position (x,y,z km) & Velocity (vx,vy,vz km/s):</label>
+                <input type="text" id="wiz-origin-coords" placeholder="e.g. 321708, 0, 15000, 0, 0.12, 0" style="font-size: 11px; padding: 5px 8px;">
+              </div>
+
+              <div class="field-group" style="margin-bottom: 8px;">
+                <label>Target Destination Location / Orbit:</label>
+                <select id="wiz-custom-dest" onchange="onCustomDestChange()">
+                  <option value="lunar_gateway_nrho">Artemis Lunar Gateway NRHO (x=1.025, z=0.18)</option>
+                  <option value="earth_moon_l2_halo">Earth-Moon L2 Southern Halo (x=1.155, z=0.05)</option>
+                  <option value="earth_moon_l2_lyapunov">Earth-Moon L2 Planar Lyapunov (x=1.12, y=0.0)</option>
+                  <option value="earth_moon_l1_halo">Earth-Moon L1 Southern Halo (x=0.8234, z=0.045)</option>
+                  <option value="low_lunar_orbit">Low Lunar Orbit (100 km circular altitude)</option>
+                  <option value="earth_moon_l4">Earth-Moon L4 Triangular Libration Point</option>
+                  <option value="coords">Custom State Coordinates [x, y, z, vx, vy, vz]</option>
+                </select>
+              </div>
+              <div id="wiz-dest-coords-group" style="display: none;">
+                <label style="font-size: 10px; color: var(--text-muted);">Destination Position (x,y,z km) & Velocity (vx,vy,vz km/s):</label>
+                <input type="text" id="wiz-dest-coords" placeholder="e.g. 444244, 0, 19220, 0, -0.15, 0" style="font-size: 11px; padding: 5px 8px;">
+              </div>
+            </div>
+
             <div class="field-group">
               <label>Three-Body System:</label>
               <select id="wiz-system">
@@ -524,7 +565,7 @@
             </div>
             <div class="field-group">
               <label>Flight Duration Window (Days):</label>
-              <input type="number" id="wiz-days" min="7" max="60" value="14" step="1">
+              <input type="number" id="wiz-days" min="7" max="90" value="14" step="1">
             </div>
           </div>
 
@@ -533,7 +574,7 @@
             <h4>🛰️ 2. Spacecraft & Thruster Configuration</h4>
             <div class="field-group">
               <label>Spacecraft Wet Mass (kg):</label>
-              <input type="number" id="wiz-mass" min="50" max="5000" value="450" step="10">
+              <input type="number" id="wiz-mass" min="10" max="50000" value="450" step="10">
             </div>
             <div class="field-group">
               <label>Thruster Technology:</label>
@@ -541,6 +582,7 @@
                 <option value="ion_nextc">NEXT-C Gridded Ion Engine (T = 350 mN, Isp = 2,800 s)</option>
                 <option value="hall_bht">BHT-600 Hall Effect Thruster (T = 500 mN, Isp = 2,200 s)</option>
                 <option value="chem_biprop">High-Thrust Chemical Bipropellant (T = 400 N, Isp = 320 s)</option>
+                <option value="custom_thruster">Custom Thruster Specifications</option>
               </select>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -1458,19 +1500,38 @@
       } else if (sel === 'chem_biprop') {
         thrustInput.value = '400.0';
         ispInput.value = '320';
+      } else if (sel === 'custom_thruster') {
+        thrustInput.focus();
       }
     }
 
     function onWizardPresetChange() {
       const preset = document.getElementById('wiz-preset').value;
       const daysInput = document.getElementById('wiz-days');
-      if (preset === 'earth_moon_l1_to_l2') {
-        daysInput.value = '14';
-      } else if (preset === 'earth_moon_l1_lyapunov_l2_halo') {
-        daysInput.value = '21';
-      } else if (preset === 'low_lunar_to_l2') {
-        daysInput.value = '10';
+      const customPanel = document.getElementById('wiz-custom-panel');
+
+      if (preset === 'custom') {
+        customPanel.style.display = 'block';
+      } else {
+        customPanel.style.display = 'none';
+        if (preset === 'earth_moon_l1_to_l2') {
+          daysInput.value = '14';
+        } else if (preset === 'earth_moon_l1_lyapunov_l2_halo') {
+          daysInput.value = '21';
+        } else if (preset === 'low_lunar_to_l2') {
+          daysInput.value = '10';
+        }
       }
+    }
+
+    function onCustomOriginChange() {
+      const sel = document.getElementById('wiz-custom-origin').value;
+      document.getElementById('wiz-origin-coords-group').style.display = (sel === 'coords') ? 'block' : 'none';
+    }
+
+    function onCustomDestChange() {
+      const sel = document.getElementById('wiz-custom-dest').value;
+      document.getElementById('wiz-dest-coords-group').style.display = (sel === 'coords') ? 'block' : 'none';
     }
 
     async function runMissionOptimization() {
@@ -1488,6 +1549,8 @@
 
       let originPreset = 'earth_moon_l1_lyapunov';
       let destPreset = 'earth_moon_l2_halo';
+      let originState = null;
+      let destState = null;
 
       if (preset === 'earth_moon_l1_to_l2') {
         originPreset = 'earth_moon_l1_halo';
@@ -1495,6 +1558,31 @@
       } else if (preset === 'low_lunar_to_l2') {
         originPreset = 'low_lunar_orbit';
         destPreset = 'lunar_gateway_nrho';
+      } else if (preset === 'custom') {
+        const customOrigin = document.getElementById('wiz-custom-origin').value;
+        const customDest = document.getElementById('wiz-custom-dest').value;
+
+        if (customOrigin === 'coords') {
+          const raw = document.getElementById('wiz-origin-coords').value.split(',').map(s => parseFloat(s.trim()));
+          if (raw.length === 6 && raw.every(v => !isNaN(v))) {
+            const lStar = currentSystem.l_star / 1000.0;
+            const vStar = currentSystem.v_star / 1000.0;
+            originState = [raw[0] / lStar, raw[1] / lStar, raw[2] / lStar, raw[3] / vStar, raw[4] / vStar, raw[5] / vStar];
+          }
+        } else {
+          originPreset = customOrigin;
+        }
+
+        if (customDest === 'coords') {
+          const raw = document.getElementById('wiz-dest-coords').value.split(',').map(s => parseFloat(s.trim()));
+          if (raw.length === 6 && raw.every(v => !isNaN(v))) {
+            const lStar = currentSystem.l_star / 1000.0;
+            const vStar = currentSystem.v_star / 1000.0;
+            destState = [raw[0] / lStar, raw[1] / lStar, raw[2] / lStar, raw[3] / vStar, raw[4] / vStar, raw[5] / vStar];
+          }
+        } else {
+          destPreset = customDest;
+        }
       }
 
       try {
@@ -1504,7 +1592,9 @@
           body: JSON.stringify({
             system,
             origin_preset: originPreset,
+            origin_state: originState,
             destination_preset: destPreset,
+            destination_state: destState,
             spacecraft_wet_mass_kg: wetMass,
             max_thrust_n: maxThrust,
             isp_s: isp,
