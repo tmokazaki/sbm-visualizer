@@ -44,6 +44,8 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
         .route("/", get(serve_visualizer))
         .route("/cr3bp_deep_space_visualizer.html", get(serve_visualizer))
         .route("/index.html", get(serve_sbm_index))
+        .route("/rpo", get(serve_rpo_visualizer))
+        .route("/rpo_visualizer.html", get(serve_rpo_visualizer))
         // API routes
         .route("/api/v1/health", get(health_check))
         .route("/api/v1/system/:name", get(get_system_info))
@@ -61,8 +63,26 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
 // HTML UI Handlers
 // ---------------------------------------------------------------------------
 
+fn resolve_html_path(root: &std::path::Path, filename: &str) -> PathBuf {
+    let direct = root.join(filename);
+    if direct.exists() {
+        return direct;
+    }
+    // Check two levels up (if executed inside crates/sbm_server)
+    let up2 = root.join("../../").join(filename);
+    if up2.exists() {
+        return up2;
+    }
+    // Check one level up
+    let up1 = root.join("../").join(filename);
+    if up1.exists() {
+        return up1;
+    }
+    direct
+}
+
 pub async fn serve_visualizer(State(state): State<AppState>) -> Response {
-    let file_path = state.workspace_root.join("cr3bp_deep_space_visualizer.html");
+    let file_path = resolve_html_path(&state.workspace_root, "cr3bp_deep_space_visualizer.html");
     match tokio::fs::read_to_string(&file_path).await {
         Ok(html_content) => Html(html_content).into_response(),
         Err(err) => {
@@ -77,7 +97,7 @@ pub async fn serve_visualizer(State(state): State<AppState>) -> Response {
 }
 
 pub async fn serve_sbm_index(State(state): State<AppState>) -> Response {
-    let file_path = state.workspace_root.join("index.html");
+    let file_path = resolve_html_path(&state.workspace_root, "index.html");
     match tokio::fs::read_to_string(&file_path).await {
         Ok(html_content) => Html(html_content).into_response(),
         Err(err) => (
@@ -85,6 +105,21 @@ pub async fn serve_sbm_index(State(state): State<AppState>) -> Response {
             format!("Index HTML not found: {:?}", err),
         )
             .into_response(),
+    }
+}
+
+pub async fn serve_rpo_visualizer(State(state): State<AppState>) -> Response {
+    let file_path = resolve_html_path(&state.workspace_root, "rpo_visualizer.html");
+    match tokio::fs::read_to_string(&file_path).await {
+        Ok(html_content) => Html(html_content).into_response(),
+        Err(err) => {
+            error!("Failed to read rpo_visualizer.html: {:?}", err);
+            (
+                StatusCode::NOT_FOUND,
+                format!("RPO Visualizer HTML not found at: {:?}", file_path),
+            )
+                .into_response()
+        }
     }
 }
 

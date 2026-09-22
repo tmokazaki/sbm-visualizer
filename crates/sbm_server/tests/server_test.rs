@@ -220,4 +220,22 @@ async fn test_earth_centric_tli_staging_transfer() {
     assert!((total_dv - (tli_dv + electric_dv)).abs() < 1e-6);
 }
 
+#[tokio::test]
+async fn test_rpo_visualizer_route() {
+    let workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let app = create_app(workspace_root);
+
+    let req = Request::builder()
+        .uri("/rpo")
+        .body(Body::empty())
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let html_str = String::from_utf8_lossy(&body);
+    assert!(html_str.contains("Autonomous RPO & Clohessy-Wiltshire Visualizer"));
+}
+
 

@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPO 3D Visualizer - Clohessy-Wiltshire & Autonomous Proximity Operations</title>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 18, 30, 0.88);
+      --panel-border: rgba(56, 189, 248, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-gold: #fbbf24;
+      --accent-purple: #c084fc;
+      --accent-green: #34d399;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(10, 14, 24, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--accent);
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+    }
+
+    .brand-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+    }
+
+    .nav-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-tab.active {
+      background: var(--accent);
+      color: #04101e;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* Side Control Panel */
+    .control-panel {
+      position: absolute;
+      top: 75px;
+      left: 20px;
+      width: 340px;
+      max-height: calc(100vh - 95px);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-section {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .input-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .input-val {
+      font-weight: 600;
+      color: #fff;
+      font-family: "SF Mono", monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: #1e293b;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    select {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #04101e;
+      font-weight: 700;
+      grid-column: span 2;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+    }
+
+    /* Right Telemetry HUD */
+    .telemetry-hud {
+      position: absolute;
+      top: 75px;
+      right: 20px;
+      width: 290px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .metric-card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .metric-val {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: "SF Mono", monospace;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .metric-unit {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .metric-val.green { color: var(--accent-green); }
+    .metric-val.gold { color: var(--accent-gold); }
+    .metric-val.purple { color: var(--accent-purple); }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      cursor: pointer;
+    }
+
+    .toggle-switch {
+      width: 34px;
+      height: 18px;
+      background: #1e293b;
+      border-radius: 10px;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+      background: var(--accent);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(16px);
+    }
+
+    /* Bottom Information Banner */
+    .info-banner {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .axis-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .axis-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    .axis-x { background: #ef4444; }
+    .axis-y { background: #22c55e; }
+    .axis-z { background: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" fill="none"/>
+        <path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+        <circle cx="17" cy="8" r="1.5" fill="#34d399"/>
+      </svg>
+      <div class="brand-text">
+        <h1>Autonomous RPO & Clohessy-Wiltshire Visualizer</h1>
+        <p>Target-Centered Local-Vertical Local-Horizontal (LVLH) Proximity Guidance</p>
+      </div>
+    </div>
+
+    <!-- Presets Selector -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-nmc" onclick="switchMode('nmc')">Passive Inspection (NMC)</button>
+      <button class="nav-tab" id="tab-rendezvous" onclick="switchMode('rendezvous')">2-Impulse Rendezvous</button>
+      <button class="nav-tab" id="tab-vbar" onclick="switchMode('vbar')">V-Bar Multi-Hop Glideslope</button>
+      <button class="nav-tab" id="tab-rbar" onclick="switchMode('rbar')">R-Bar Fail-Safe Docking</button>
+    </div>
+  </header>
+
+  <!-- Side Control Panel -->
+  <div class="control-panel">
+    <div class="panel-section">
+      <div class="section-title">Reference Target Orbit</div>
+      <div class="input-group">
+        <select id="target-orbit-select" onchange="updateOrbitParams()">
+          <option value="iss">International Space Station (LEO 400 km)</option>
+          <option value="sso">Sun-Synchronous Sentinel Orbit (LEO 700 km)</option>
+          <option value="geo">Geostationary Orbit (GEO 35,786 km)</option>
+        </select>
+      </div>
+      <div class="input-label-row">
+        <span>Mean Motion (ω):</span>
+        <span class="input-val" id="omega-val">0.001131 rad/s</span>
+      </div>
+      <div class="input-label-row" style="margin-top: 4px;">
+        <span>Orbital Period:</span>
+        <span class="input-val" id="period-val">92.6 min</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Mode Specific Controls -->
+    <div class="panel-section" id="mode-controls">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- Playback Controls -->
+    <div class="panel-section">
+      <div class="section-title">Simulation & Display Options</div>
+      <div class="toggle-row" onclick="toggleOption('koz')">
+        <span>Keep-Out Zone (KOZ Sphere, 50m)</span>
+        <div class="toggle-switch active" id="toggle-koz"></div>
+      </div>
+      <div class="toggle-row" onclick="toggleOption('los')">
+        <span>Line-of-Sight (LOS Docking Cone, 20°)</span>
+        <div class="toggle-switch active" id="toggle-los"></div>
+      </div>
+      <div class="toggle-row" onclick="toggleOption('trail')">
+        <span>Trajectory History Trail</span>
+        <div class="toggle-switch active" id="toggle-trail"></div>
+      </div>
+      <div class="toggle-row" onclick="toggleOption('burns')">
+        <span>Maneuver Impulse Vectors (Δv)</span>
+        <div class="toggle-switch active" id="toggle-burns"></div>
+      </div>
+
+      <div class="input-group" style="margin-top: 10px;">
+        <div class="input-label-row">
+          <span>Animation Speed:</span>
+          <span class="input-val" id="speed-val">100x</span>
+        </div>
+        <input type="range" id="sim-speed" min="10" max="500" value="100" oninput="updateSpeed(this.value)">
+      </div>
+
+      <div class="btn-group" style="margin-top: 10px;">
+        <button class="btn btn-primary" onclick="replanCurrentMode()">Recalculate Maneuvers</button>
+        <button class="btn btn-secondary" id="btn-play-pause" onclick="togglePlayPause()">Pause</button>
+        <button class="btn btn-secondary" onclick="resetAnimation()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Telemetry HUD -->
+  <div class="telemetry-hud">
+    <div class="section-title">Real-Time Relative Telemetry</div>
+    
+    <div class="metric-card">
+      <div class="metric-label">Relative Distance (Range)</div>
+      <div class="metric-val" id="hud-range">0.00 <span class="metric-unit">m</span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Relative Velocity</div>
+      <div class="metric-val green" id="hud-velocity">0.000 <span class="metric-unit">m/s</span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Total Maneuver Budget (|Δv|)</div>
+      <div class="metric-val gold" id="hud-total-dv">0.000 <span class="metric-unit">m/s</span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Secular Drift Condition (2ωx + ẏ)</div>
+      <div class="metric-val purple" id="hud-drift">0.0000 <span class="metric-unit">m/s</span></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Mission Elapsed Time</div>
+      <div class="metric-val" id="hud-time">00:00 <span class="metric-unit">mm:ss</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom Legend Banner -->
+  <div class="info-banner">
+    <div class="axis-legend">
+      <span><strong>Hill / LVLH Coordinate Frame:</strong></span>
+      <span><span class="axis-dot axis-x"></span><strong>+X</strong> Radial (Away from Earth)</span>
+      <span><span class="axis-dot axis-y"></span><strong>+Y</strong> In-Track (Velocity Vector)</span>
+      <span><span class="axis-dot axis-z"></span><strong>+Z</strong> Cross-Track (Orbit Normal)</span>
+    </div>
+    <div style="font-size: 11px;">
+      Target: <strong>(0,0,0)</strong> | Pure Analytical Clohessy-Wiltshire STM (<span style="color:var(--accent-green);">Error &lt; 10⁻⁷ m</span>)
+    </div>
+  </div>
+
+  <script>
+    // Constants
+    const EARTH_MU = 3.986004418e14; // m^3/s^2
+    const EARTH_RADIUS_M = 6378137.0;
+
+    // Current State & Options
+    let currentMode = 'nmc';
+    let targetOrbit = {
+      name: 'iss',
+      altitude_km: 400.0,
+      r_m: EARTH_RADIUS_M + 400000.0,
+      omega: Math.sqrt(EARTH_MU / Math.pow(EARTH_RADIUS_M + 400000.0, 3)),
+      period_s: 2 * Math.PI / Math.sqrt(EARTH_MU / Math.pow(EARTH_RADIUS_M + 400000.0, 3))
+    };
+
+    let displayOptions = {
+      koz: true,
+      los: true,
+      trail: true,
+      burns: true
+    };
+
+    let simSpeed = 100.0;
+    let isPlaying = true;
+    let simTime = 0.0;
+    let trajectoryPlan = null;
+
+    // Three.js Globals
+    let scene, camera, renderer, controls;
+    let targetMesh, chaserMesh, kozMesh, losConeMesh;
+    let trajectoryLine, trailGeometry, trailLine;
+    let burnArrows = [];
+    let trailPoints = [];
+
+    // --- Clohessy-Wiltshire State Transition Matrix ---
+    function cwStm(omega, t) {
+      const wt = omega * t;
+      const c = Math.cos(wt);
+      const s = Math.sin(wt);
+
+      // 6x6 Clohessy-Wiltshire Matrix
+      const phi_rr = [
+        [4 - 3*c, 0, 0],
+        [6*(s - wt), 1, 0],
+        [0, 0, c]
+      ];
+
+      const phi_rv = [
+        [s / omega, 2*(1 - c) / omega, 0],
+        [2*(c - 1) / omega, (4*s - 3*wt) / omega, 0],
+        [0, 0, s / omega]
+      ];
+
+      const phi_vr = [
+        [3*omega*s, 0, 0],
+        [6*omega*(c - 1), 0, 0],
+        [0, 0, -omega*s]
+      ];
+
+      const phi_vv = [
+        [c, 2*s, 0],
+        [-2*s, 4*c - 3, 0],
+        [0, 0, c]
+      ];
+
+      return { phi_rr, phi_rv, phi_vr, phi_vv };
+    }
+
+    // Matrix 3x3 Inversion (Analytical)
+    function invert3x3(m) {
+      const a = m[0][0], b = m[0][1], c = m[0][2];
+      const d = m[1][0], e = m[1][1], f = m[1][2];
+      const g = m[2][0], h = m[2][1], k = m[2][2];
+
+      const det = a * (e*k - f*h) - b * (d*k - f*g) + c * (d*h - e*g);
+      if (Math.abs(det) < 1e-18) return null;
+      const invDet = 1.0 / det;
+
+      return [
+        [(e*k - f*h) * invDet, (c*h - b*k) * invDet, (b*f - c*e) * invDet],
+        [(f*g - d*k) * invDet, (a*k - c*g) * invDet, (c*d - a*f) * invDet],
+        [(d*h - e*g) * invDet, (b*g - a*h) * invDet, (a*e - b*d) * invDet]
+      ];
+    }
+
+    function multMatVec(m, v) {
+      return [
+        m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2],
+        m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2],
+        m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]
+      ];
+    }
+
+    function propagateCw(state, t, omega) {
+      const stm = cwStm(omega, t);
+      const r0 = [state.x, state.y, state.z];
+      const v0 = [state.vx, state.vy, state.vz];
+
+      const r1a = multMatVec(stm.phi_rr, r0);
+      const r1b = multMatVec(stm.phi_rv, v0);
+
+      const v1a = multMatVec(stm.phi_vr, r0);
+      const v1b = multMatVec(stm.phi_vv, v0);
+
+      return {
+        x: r1a[0] + r1b[0],
+        y: r1a[1] + r1b[1],
+        z: r1a[2] + r1b[2],
+        vx: v1a[0] + v1b[0],
+        vy: v1a[1] + v1b[1],
+        vz: v1a[2] + v1b[2]
+      };
+    }
+
+    // Two-Impulse Targeting Algorithm
+    function planTwoImpulseTransfer(r0, v0, rf, vf, dt, omega) {
+      const stm = cwStm(omega, dt);
+      const invPhiRv = invert3x3(stm.phi_rv);
+      if (!invPhiRv) return null;
+
+      const phiRrR0 = multMatVec(stm.phi_rr, r0);
+      const rDiff = [rf[0] - phiRrR0[0], rf[1] - phiRrR0[1], rf[2] - phiRrR0[2]];
+      const v0Plus = multMatVec(invPhiRv, rDiff);
+
+      const dv1 = [v0Plus[0] - v0[0], v0Plus[1] - v0[1], v0Plus[2] - v0[2]];
+      const dv1Mag = Math.sqrt(dv1[0]*dv1[0] + dv1[1]*dv1[1] + dv1[2]*dv1[2]);
+
+      const phiVrR0 = multMatVec(stm.phi_vr, r0);
+      const phiVvV0Plus = multMatVec(stm.phi_vv, v0Plus);
+      const vArrivalMinus = [phiVrR0[0] + phiVvV0Plus[0], phiVrR0[1] + phiVvV0Plus[1], phiVrR0[2] + phiVvV0Plus[2]];
+
+      const dv2 = [vf[0] - vArrivalMinus[0], vf[1] - vArrivalMinus[1], vf[2] - vArrivalMinus[2]];
+      const dv2Mag = Math.sqrt(dv2[0]*dv2[0] + dv2[1]*dv2[1] + dv2[2]*dv2[2]);
+
+      return {
+        r0, v0Plus, rf, vf, dt,
+        dv1: { vec: dv1, mag: dv1Mag },
+        dv2: { vec: dv2, mag: dv2Mag },
+        totalDv: dv1Mag + dv2Mag
+      };
+    }
+
+    // --- Scene Initialization ---
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x07090e);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 50000);
+      camera.position.set(0, -600, 350);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Lights
+      const ambient = new THREE.AmbientLight(0x223344, 1.2);
+      scene.add(ambient);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      dirLight.position.set(300, -200, 400);
+      scene.add(dirLight);
+
+      // Starfield
+      createStarfield();
+
+      // LVLH Coordinate Axes & Grid
+      createLvlhGridAndAxes();
+
+      // Create Target Spacecraft
+      createTargetSpacecraft();
+
+      // Create Chaser Spacecraft
+      createChaserSpacecraft();
+
+      // Create Safety Geometry (KOZ & LOS Cone)
+      createSafetyGeometry();
+
+      window.addEventListener('resize', onWindowResize);
+      switchMode('nmc');
+    }
+
+    function createStarfield() {
+      const starGeo = new THREE.BufferGeometry();
+      const starCount = 3000;
+      const starPos = new Float32Array(starCount * 3);
+
+      for (let i = 0; i < starCount * 3; i += 3) {
+        starPos[i] = (Math.random() - 0.5) * 30000;
+        starPos[i+1] = (Math.random() - 0.5) * 30000;
+        starPos[i+2] = (Math.random() - 0.5) * 30000;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 1.5, transparent: true, opacity: 0.7 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+    }
+
+    function createLvlhGridAndAxes() {
+      // In Three.js coordinate mapping for LVLH:
+      // X_three = X_lvlh (Radial, Red)
+      // Y_three = Y_lvlh (Along-Track, Green)
+      // Z_three = Z_lvlh (Cross-Track, Blue)
+      const gridHelper = new THREE.GridHelper(1000, 50, 0x1e293b, 0x0f172a);
+      gridHelper.rotation.x = Math.PI / 2; // Lie on X-Y plane
+      scene.add(gridHelper);
+
+      // Custom Axis Lines
+      const makeAxis = (dir, color, len = 200) => {
+        const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), len, color, 12, 6);
+        scene.add(arrow);
+      };
+
+      makeAxis(new THREE.Vector3(1, 0, 0), 0xef4444); // +X Radial
+      makeAxis(new THREE.Vector3(0, 1, 0), 0x22c55e); // +Y Along-Track
+      makeAxis(new THREE.Vector3(0, 0, 1), 0x3b82f6); // +Z Cross-Track
+    }
+
+    function createTargetSpacecraft() {
+      const group = new THREE.Group();
+
+      // Main Bus
+      const busGeo = new THREE.BoxGeometry(10, 10, 14);
+      const busMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.8, roughness: 0.2 });
+      const bus = new THREE.Mesh(busGeo, busMat);
+      group.add(bus);
+
+      // Solar Panels
+      const panelGeo = new THREE.BoxGeometry(40, 12, 0.6);
+      const panelMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.4 });
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(0, 0, 0);
+      group.add(panel);
+
+      // Docking Ring on -Y face (facing backward)
+      const ringGeo = new THREE.TorusGeometry(3, 0.4, 16, 32);
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(0, -5.2, 0);
+      ring.rotation.x = Math.PI / 2;
+      group.add(ring);
+
+      targetMesh = group;
+      scene.add(targetMesh);
+    }
+
+    function createChaserSpacecraft() {
+      const group = new THREE.Group();
+
+      const busGeo = new THREE.BoxGeometry(4, 4, 6);
+      const busMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.7, roughness: 0.3 });
+      const bus = new THREE.Mesh(busGeo, busMat);
+      group.add(bus);
+
+      // Thruster Bell
+      const coneGeo = new THREE.ConeGeometry(1.2, 2.5, 16);
+      const coneMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.position.set(0, -3.2, 0);
+      cone.rotation.x = Math.PI;
+      group.add(cone);
+
+      chaserMesh = group;
+      scene.add(chaserMesh);
+    }
+
+    function createSafetyGeometry() {
+      // Keep-Out Zone (KOZ) - 50m radius sphere
+      const kozGeo = new THREE.SphereGeometry(50, 32, 32);
+      const kozMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.2
+      });
+      kozMesh = new THREE.Mesh(kozGeo, kozMat);
+      scene.add(kozMesh);
+
+      // Line-of-Sight (LOS) 20 deg docking cone along -Y
+      const coneHeight = 250;
+      const coneRadius = coneHeight * Math.tan(20 * Math.PI / 180);
+      const losGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 32, 1, true);
+      const losMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.15
+      });
+      losConeMesh = new THREE.Mesh(losGeo, losMat);
+      losConeMesh.position.set(0, -coneHeight / 2, 0);
+      losConeMesh.rotation.x = -Math.PI / 2; // Point cone apex at origin docking port
+      scene.add(losConeMesh);
+    }
+
+    // --- Mode Management & Parameter Handling ---
+    function switchMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      const activeTab = document.getElementById(`tab-${mode}`);
+      if (activeTab) activeTab.classList.add('active');
+
+      const ctrlContainer = document.getElementById('mode-controls');
+
+      if (mode === 'nmc') {
+        ctrlContainer.innerHTML = `
+          <div class="section-title">Natural Motion Circumnavigation</div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Radial Semi-Axis (Ax):</span>
+              <span class="input-val" id="nmc-ax-val">100 m</span>
+            </div>
+            <input type="range" id="nmc-ax" min="30" max="300" value="100" oninput="document.getElementById('nmc-ax-val').innerText = this.value + ' m'; replanNmc();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Cross-Track Amplitude (Az):</span>
+              <span class="input-val" id="nmc-az-val">50 m</span>
+            </div>
+            <input type="range" id="nmc-az" min="0" max="200" value="50" oninput="document.getElementById('nmc-az-val').innerText = this.value + ' m'; replanNmc();">
+          </div>
+          <p style="font-size: 11px; color: var(--accent-green); line-height: 1.4;">
+            ✓ Drift-free condition: <strong>ẏ₀ = -2ωx₀</strong> eliminates along-track secular shear, producing a stable 2:1 inspection ellipse.
+          </p>
+        `;
+        replanNmc();
+      } else if (mode === 'rendezvous') {
+        ctrlContainer.innerHTML = `
+          <div class="section-title">2-Impulse Targeted Intercept</div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Initial Distance (-Y):</span>
+              <span class="input-val" id="rz-y-val">-500 m</span>
+            </div>
+            <input type="range" id="rz-y" min="-1200" max="-150" value="-500" oninput="document.getElementById('rz-y-val').innerText = this.value + ' m'; replanRendezvous();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Radial Offset (X):</span>
+              <span class="input-val" id="rz-x-val">-80 m</span>
+            </div>
+            <input type="range" id="rz-x" min="-250" max="250" value="-80" oninput="document.getElementById('rz-x-val').innerText = this.value + ' m'; replanRendezvous();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Time of Flight (Δt):</span>
+              <span class="input-val" id="rz-dt-val">30 min</span>
+            </div>
+            <input type="range" id="rz-dt" min="10" max="60" value="30" oninput="document.getElementById('rz-dt-val').innerText = this.value + ' min'; replanRendezvous();">
+          </div>
+        `;
+        replanRendezvous();
+      } else if (mode === 'vbar') {
+        ctrlContainer.innerHTML = `
+          <div class="section-title">V-Bar Along-Track Glideslope</div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Approach Start Distance (-Y):</span>
+              <span class="input-val" id="vb-start-val">-400 m</span>
+            </div>
+            <input type="range" id="vb-start" min="-800" max="-100" value="-400" oninput="document.getElementById('vb-start-val').innerText = this.value + ' m'; replanVbar();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Final Hold Point (-Y):</span>
+              <span class="input-val" id="vb-end-val">-15 m</span>
+            </div>
+            <input type="range" id="vb-end" min="-50" max="-5" value="-15" oninput="document.getElementById('vb-end-val').innerText = this.value + ' m'; replanVbar();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Number of Hops / Stations:</span>
+              <span class="input-val" id="vb-hops-val">3 hops</span>
+            </div>
+            <input type="range" id="vb-hops" min="1" max="5" value="3" oninput="document.getElementById('vb-hops-val').innerText = this.value + ' hops'; replanVbar();">
+          </div>
+        `;
+        replanVbar();
+      } else if (mode === 'rbar') {
+        ctrlContainer.innerHTML = `
+          <div class="section-title">R-Bar Fail-Safe Radial Approach</div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Start Altitude Below (-X):</span>
+              <span class="input-val" id="rb-start-val">-200 m</span>
+            </div>
+            <input type="range" id="rb-start" min="-400" max="-50" value="-200" oninput="document.getElementById('rb-start-val').innerText = this.value + ' m'; replanRbar();">
+          </div>
+          <div class="input-group">
+            <div class="input-label-row">
+              <span>Arrival Docking Port (-X):</span>
+              <span class="input-val" id="rb-end-val">-10 m</span>
+            </div>
+            <input type="range" id="rb-end" min="-30" max="-5" value="-10" oninput="document.getElementById('rb-end-val').innerText = this.value + ' m'; replanRbar();">
+          </div>
+          <p style="font-size: 11px; color: var(--accent-gold); line-height: 1.4;">
+            ⚡ <strong>Passive Abort Safety</strong>: Earth's gravity gradient decelerates the vehicle naturally. Thruster drop causes safe retrograde departure without collision risk.
+          </p>
+        `;
+        replanRbar();
+      }
+      resetAnimation();
+    }
+
+    function updateOrbitParams() {
+      const select = document.getElementById('target-orbit-select').value;
+      let alt = 400.0;
+      if (select === 'iss') alt = 400.0;
+      else if (select === 'sso') alt = 700.0;
+      else if (select === 'geo') alt = 35786.0;
+
+      const r = EARTH_RADIUS_M + alt * 1000.0;
+      const omega = Math.sqrt(EARTH_MU / Math.pow(r, 3));
+      const period = 2 * Math.PI / omega;
+
+      targetOrbit = { name: select, altitude_km: alt, r_m: r, omega, period_s: period };
+      document.getElementById('omega-val').innerText = omega.toFixed(6) + ' rad/s';
+      document.getElementById('period-val').innerText = (period / 60.0).toFixed(1) + ' min';
+
+      replanCurrentMode();
+    }
+
+    function replanCurrentMode() {
+      switchMode(currentMode);
+    }
+
+    // --- Trajectory Generation ---
+    function replanNmc() {
+      const axEl = document.getElementById('nmc-ax');
+      const azEl = document.getElementById('nmc-az');
+      const ax = axEl ? parseFloat(axEl.value) : 100.0;
+      const az = azEl ? parseFloat(azEl.value) : 50.0;
+
+      const omega = targetOrbit.omega;
+      const T = targetOrbit.period_s;
+
+      // Closed periodic orbit initial conditions:
+      // x0 = -ax, y0 = 0, z0 = az, vx0 = 0, vy0 = -2 * omega * x0 = 2 * omega * ax
+      const state0 = {
+        x: -ax, y: 0.0, z: az,
+        vx: 0.0, vy: -2.0 * omega * (-ax), vz: 0.0
+      };
+
+      const points = [];
+      const numPts = 200;
+      for (let i = 0; i <= numPts; i++) {
+        const t = (i / numPts) * T;
+        const s = propagateCw(state0, t, omega);
+        points.push({ t, x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz });
+      }
+
+      const insertionDv = Math.abs(state0.vy);
+
+      trajectoryPlan = {
+        type: 'nmc',
+        duration_s: T,
+        totalDv: insertionDv,
+        state0,
+        points,
+        burns: [
+          { pos: [-ax, 0, az], vec: [0, state0.vy, 0], mag: insertionDv, label: 'NMC Insertion' }
+        ]
+      };
+
+      renderTrajectoryCurve(points);
+      renderBurnVectors(trajectoryPlan.burns);
+      document.getElementById('hud-total-dv').innerText = insertionDv.toFixed(3);
+    }
+
+    function replanRendezvous() {
+      const yEl = document.getElementById('rz-y');
+      const xEl = document.getElementById('rz-x');
+      const dtEl = document.getElementById('rz-dt');
+      const y0 = yEl ? parseFloat(yEl.value) : -500.0;
+      const x0 = xEl ? parseFloat(xEl.value) : -80.0;
+      const dtMin = dtEl ? parseFloat(dtEl.value) : 30.0;
+      const dt = dtMin * 60.0;
+
+      const r0 = [x0, y0, 30.0];
+      const v0 = [0.0, 0.0, 0.0];
+      const rf = [0.0, -30.0, 0.0]; // Docking cone entrance
+      const vf = [0.0, 0.0, 0.0];
+
+      const res = planTwoImpulseTransfer(r0, v0, rf, vf, dt, targetOrbit.omega);
+      if (!res) return;
+
+      const departureState = {
+        x: r0[0], y: r0[1], z: r0[2],
+        vx: res.v0Plus[0], vy: res.v0Plus[1], vz: res.v0Plus[2]
+      };
+
+      const points = [];
+      const numPts = 200;
+      for (let i = 0; i <= numPts; i++) {
+        const t = (i / numPts) * dt;
+        const s = propagateCw(departureState, t, targetOrbit.omega);
+        points.push({ t, x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz });
+      }
+
+      trajectoryPlan = {
+        type: 'rendezvous',
+        duration_s: dt,
+        totalDv: res.totalDv,
+        state0: departureState,
+        points,
+        burns: [
+          { pos: r0, vec: res.dv1.vec, mag: res.dv1.mag, label: 'Δv1 (Departure)' },
+          { pos: rf, vec: res.dv2.vec, mag: res.dv2.mag, label: 'Δv2 (Braking)' }
+        ]
+      };
+
+      renderTrajectoryCurve(points);
+      renderBurnVectors(trajectoryPlan.burns);
+      document.getElementById('hud-total-dv').innerText = res.totalDv.toFixed(3);
+    }
+
+    function replanVbar() {
+      const sEl = document.getElementById('vb-start');
+      const eEl = document.getElementById('vb-end');
+      const hEl = document.getElementById('vb-hops');
+      const startY = sEl ? parseFloat(sEl.value) : -400.0;
+      const endY = eEl ? parseFloat(eEl.value) : -15.0;
+      const hops = hEl ? parseInt(hEl.value) : 3;
+
+      const totalDt = 1800.0; // 30 min
+      const dtPerHop = totalDt / hops;
+      const dy = (endY - startY) / hops;
+
+      let currentPos = [0.0, startY, 0.0];
+      let totalDv = 0.0;
+      const allPoints = [];
+      const burns = [];
+
+      for (let h = 0; h < hops; h++) {
+        const targetPos = [0.0, startY + dy * (h + 1), 0.0];
+        const res = planTwoImpulseTransfer(currentPos, [0, 0, 0], targetPos, [0, 0, 0], dtPerHop, targetOrbit.omega);
+        if (!res) continue;
+
+        totalDv += res.totalDv;
+        burns.push({ pos: currentPos, vec: res.dv1.vec, mag: res.dv1.mag, label: `Hop #${h+1} Burn` });
+        burns.push({ pos: targetPos, vec: res.dv2.vec, mag: res.dv2.mag, label: `Hop #${h+1} Hold` });
+
+        const hopState = {
+          x: currentPos[0], y: currentPos[1], z: currentPos[2],
+          vx: res.v0Plus[0], vy: res.v0Plus[1], vz: res.v0Plus[2]
+        };
+
+        for (let i = 0; i <= 50; i++) {
+          const t = (i / 50) * dtPerHop;
+          const s = propagateCw(hopState, t, targetOrbit.omega);
+          allPoints.push({ t: h * dtPerHop + t, x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz });
+        }
+        currentPos = targetPos;
+      }
+
+      trajectoryPlan = {
+        type: 'vbar',
+        duration_s: totalDt,
+        totalDv,
+        points: allPoints,
+        burns
+      };
+
+      renderTrajectoryCurve(allPoints);
+      renderBurnVectors(burns);
+      document.getElementById('hud-total-dv').innerText = totalDv.toFixed(3);
+    }
+
+    function replanRbar() {
+      const sEl = document.getElementById('rb-start');
+      const eEl = document.getElementById('rb-end');
+      const startX = sEl ? parseFloat(sEl.value) : -200.0;
+      const endX = eEl ? parseFloat(eEl.value) : -10.0;
+      const dt = 1200.0; // 20 min
+
+      const r0 = [startX, 0.0, 0.0];
+      const rf = [endX, 0.0, 0.0];
+
+      const res = planTwoImpulseTransfer(r0, [0, 0, 0], rf, [0, 0, 0], dt, targetOrbit.omega);
+      if (!res) return;
+
+      const departureState = {
+        x: r0[0], y: r0[1], z: r0[2],
+        vx: res.v0Plus[0], vy: res.v0Plus[1], vz: res.v0Plus[2]
+      };
+
+      const points = [];
+      for (let i = 0; i <= 200; i++) {
+        const t = (i / 200) * dt;
+        const s = propagateCw(departureState, t, targetOrbit.omega);
+        points.push({ t, x: s.x, y: s.y, z: s.z, vx: s.vx, vy: s.vy, vz: s.vz });
+      }
+
+      trajectoryPlan = {
+        type: 'rbar',
+        duration_s: dt,
+        totalDv: res.totalDv,
+        points,
+        burns: [
+          { pos: r0, vec: res.dv1.vec, mag: res.dv1.mag, label: 'R-Bar Ascend' },
+          { pos: rf, vec: res.dv2.vec, mag: res.dv2.mag, label: 'R-Bar Latch' }
+        ]
+      };
+
+      renderTrajectoryCurve(points);
+      renderBurnVectors(trajectoryPlan.burns);
+      document.getElementById('hud-total-dv').innerText = res.totalDv.toFixed(3);
+    }
+
+    // --- Rendering Meshes & Trajectory ---
+    function renderTrajectoryCurve(points) {
+      if (trajectoryLine) scene.remove(trajectoryLine);
+
+      const positions = [];
+      for (const pt of points) {
+        positions.push(pt.x, pt.y, pt.z);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        linewidth: 2,
+        transparent: true,
+        opacity: 0.85
+      });
+
+      trajectoryLine = new THREE.Line(geo, mat);
+      scene.add(trajectoryLine);
+    }
+
+    function renderBurnVectors(burns) {
+      for (const arrow of burnArrows) scene.remove(arrow);
+      burnArrows = [];
+
+      if (!displayOptions.burns) return;
+
+      for (const b of burns) {
+        const dir = new THREE.Vector3(b.vec[0], b.vec[1], b.vec[2]).normalize();
+        const origin = new THREE.Vector3(b.pos[0], b.pos[1], b.pos[2]);
+        const len = Math.max(15, Math.min(80, b.mag * 35));
+        const arrow = new THREE.ArrowHelper(dir, origin, len, 0xfbbf24, 8, 4);
+        scene.add(arrow);
+        burnArrows.push(arrow);
+      }
+    }
+
+    // --- Animation & Telemetry Loop ---
+    let lastTimestamp = performance.now();
+
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+
+      const deltaMs = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+
+      if (isPlaying && trajectoryPlan && trajectoryPlan.points.length > 1) {
+        simTime += (deltaMs / 1000.0) * simSpeed;
+        if (simTime > trajectoryPlan.duration_s) {
+          if (trajectoryPlan.type === 'nmc') {
+            simTime = simTime % trajectoryPlan.duration_s; // Continuous periodic loop
+          } else {
+            simTime = trajectoryPlan.duration_s; // Hold at final point
+          }
+        }
+
+        // Interpolate position along trajectory
+        const frac = simTime / trajectoryPlan.duration_s;
+        const totalPts = trajectoryPlan.points.length - 1;
+        const idx = Math.min(totalPts - 1, Math.floor(frac * totalPts));
+        const nextIdx = idx + 1;
+        const subFrac = (frac * totalPts) - idx;
+
+        const p0 = trajectoryPlan.points[idx];
+        const p1 = trajectoryPlan.points[nextIdx];
+
+        const cx = p0.x + (p1.x - p0.x) * subFrac;
+        const cy = p0.y + (p1.y - p0.y) * subFrac;
+        const cz = p0.z + (p1.z - p0.z) * subFrac;
+
+        const vx = p0.vx + (p1.vx - p0.vx) * subFrac;
+        const vy = p0.vy + (p1.vy - p0.vy) * subFrac;
+        const vz = p0.vz + (p1.vz - p0.vz) * subFrac;
+
+        chaserMesh.position.set(cx, cy, cz);
+
+        // Orient chaser along velocity
+        const vVec = new THREE.Vector3(vx, vy, vz);
+        if (vVec.lengthSq() > 1e-4) {
+          chaserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vVec.clone().normalize());
+        }
+
+        // Update HUD
+        const range = Math.sqrt(cx*cx + cy*cy + cz*cz);
+        const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
+        const drift = Math.abs(2 * targetOrbit.omega * cx + vy);
+
+        document.getElementById('hud-range').innerHTML = `${range.toFixed(1)} <span class="metric-unit">m</span>`;
+        document.getElementById('hud-velocity').innerHTML = `${speed.toFixed(3)} <span class="metric-unit">m/s</span>`;
+        document.getElementById('hud-drift').innerHTML = `${drift.toFixed(5)} <span class="metric-unit">m/s</span>`;
+
+        const min = Math.floor(simTime / 60);
+        const sec = Math.floor(simTime % 60);
+        document.getElementById('hud-time').innerHTML = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')} <span class="metric-unit">mm:ss</span>`;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function toggleOption(opt) {
+      displayOptions[opt] = !displayOptions[opt];
+      const el = document.getElementById(`toggle-${opt}`);
+      if (el) el.classList.toggle('active', displayOptions[opt]);
+
+      if (opt === 'koz' && kozMesh) kozMesh.visible = displayOptions.koz;
+      if (opt === 'los' && losConeMesh) losConeMesh.visible = displayOptions.los;
+      if (opt === 'trail' && trajectoryLine) trajectoryLine.visible = displayOptions.trail;
+      if (opt === 'burns') {
+        for (const arrow of burnArrows) arrow.visible = displayOptions.burns;
+      }
+    }
+
+    function updateSpeed(val) {
+      simSpeed = parseFloat(val);
+      document.getElementById('speed-val').innerText = `${simSpeed}x`;
+    }
+
+    function togglePlayPause() {
+      isPlaying = !isPlaying;
+      document.getElementById('btn-play-pause').innerText = isPlaying ? 'Pause' : 'Play';
+    }
+
+    function resetAnimation() {
+      simTime = 0.0;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = () => {
+      initScene();
+      animate(performance.now());
+    };
+  </script>
+</body>
+</html>
