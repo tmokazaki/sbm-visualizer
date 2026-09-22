@@ -513,8 +513,26 @@
                 <option value="earth_moon_l1_to_l2">Lunar Gateway & Science Hub: L1 Halo → L2 NRHO</option>
                 <option value="earth_moon_l1_lyapunov_l2_halo">AAS 20-459 Benchmark: L1 Lyapunov → L2 Southern Halo</option>
                 <option value="low_lunar_to_l2">Lunar Ascent: Low Lunar Orbit → L2 Waypoint</option>
+                <option value="earth_tli_to_nrho">Hybrid Launch: Earth LEO via TLI → Artemis Gateway NRHO</option>
+                <option value="earth_gto_to_nrho">High-Apogee Transfer: Earth GTO Apogee → Artemis Gateway NRHO</option>
+                <option value="earth_geo_to_l1">Commercial GEO: Geostationary Orbit (GEO) → Earth-Moon L1 Gateway</option>
                 <option value="custom">🛠️ Custom User-Defined Mission</option>
               </select>
+            </div>
+
+            <!-- Two-Phase Hybrid TLI Staging Panel -->
+            <div id="wiz-tli-panel" style="display: none; background: rgba(14, 25, 45, 0.9); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+              <div style="font-size: 11px; font-weight: 600; color: var(--accent-cyan); margin-bottom: 6px;">🚀 Two-Phase Hybrid Launch & Trans-Lunar Injection (TLI)</div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="field-group" style="flex: 1; margin-bottom: 0;">
+                  <label style="font-size: 10px;">LEO Parking Orbit Altitude (km):</label>
+                  <input type="number" id="wiz-leo-alt" min="150" max="1000" value="300" step="50" oninput="updateTliCalculations()" style="font-size: 11px; padding: 4px 8px;">
+                </div>
+                <div style="flex: 2; font-size: 10.5px; line-height: 1.4; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 4px;">
+                  <div>Phase 1 (Impulsive TLI Kick): <span id="wiz-tli-dv-val" style="color: var(--accent-gold); font-weight: 600;">Δv ≈ 3,118 m/s</span></div>
+                  <div>Phase 2 (Deep Space Capture): <span style="color: var(--accent-green); font-weight: 600;">Continuous Low-Thrust SCvx</span></div>
+                </div>
+              </div>
             </div>
 
             <!-- Custom Route Configuration (Appears when Custom Mission is selected) -->
@@ -525,6 +543,9 @@
                 <select id="wiz-custom-origin" onchange="onCustomOriginChange()">
                   <option value="earth_moon_l1_halo">Earth-Moon L1 Southern Halo (x=0.8234, z=0.045)</option>
                   <option value="earth_moon_l1_lyapunov">Earth-Moon L1 Planar Lyapunov (x=0.8369, y=0.0)</option>
+                  <option value="tli_staging">Earth LEO Staging via Trans-Lunar Injection (TLI Apogee)</option>
+                  <option value="earth_gto_apogee">Earth GTO Apogee (42,164 km apogee radius)</option>
+                  <option value="earth_geo">Earth Geostationary Orbit (GEO: 35,786 km altitude)</option>
                   <option value="low_lunar_orbit">Low Lunar Orbit (100 km circular altitude)</option>
                   <option value="earth_moon_l2_halo">Earth-Moon L2 Southern Halo (x=1.155, z=0.05)</option>
                   <option value="earth_moon_l4">Earth-Moon L4 Triangular Libration Point</option>
@@ -1505,21 +1526,51 @@
       }
     }
 
+    function updateTliCalculations() {
+      const altInput = document.getElementById('wiz-leo-alt');
+      const altKm = altInput ? (parseFloat(altInput.value) || 300.0) : 300.0;
+      const rEarth = 6378.137;
+      const gmEarth = 3.986004418e14;
+      const rp = (rEarth + altKm) * 1000.0;
+      const ra = 384400000.0;
+      const a = 0.5 * (rp + ra);
+      const vCirc = Math.sqrt(gmEarth / rp);
+      const vPeri = Math.sqrt(gmEarth * (2.0 / rp - 1.0 / a));
+      const dv = Math.max(0, vPeri - vCirc);
+      const span = document.getElementById('wiz-tli-dv-val');
+      if (span) span.innerText = `Δv ≈ ${dv.toFixed(0)} m/s`;
+    }
+
     function onWizardPresetChange() {
       const preset = document.getElementById('wiz-preset').value;
       const daysInput = document.getElementById('wiz-days');
       const customPanel = document.getElementById('wiz-custom-panel');
+      const tliPanel = document.getElementById('wiz-tli-panel');
 
       if (preset === 'custom') {
         customPanel.style.display = 'block';
+        onCustomOriginChange();
       } else {
         customPanel.style.display = 'none';
         if (preset === 'earth_moon_l1_to_l2') {
           daysInput.value = '14';
+          tliPanel.style.display = 'none';
         } else if (preset === 'earth_moon_l1_lyapunov_l2_halo') {
           daysInput.value = '21';
+          tliPanel.style.display = 'none';
         } else if (preset === 'low_lunar_to_l2') {
           daysInput.value = '10';
+          tliPanel.style.display = 'none';
+        } else if (preset === 'earth_tli_to_nrho') {
+          daysInput.value = '18';
+          tliPanel.style.display = 'block';
+          updateTliCalculations();
+        } else if (preset === 'earth_gto_to_nrho') {
+          daysInput.value = '25';
+          tliPanel.style.display = 'none';
+        } else if (preset === 'earth_geo_to_l1') {
+          daysInput.value = '28';
+          tliPanel.style.display = 'none';
         }
       }
     }
@@ -1527,6 +1578,13 @@
     function onCustomOriginChange() {
       const sel = document.getElementById('wiz-custom-origin').value;
       document.getElementById('wiz-origin-coords-group').style.display = (sel === 'coords') ? 'block' : 'none';
+      const tliPanel = document.getElementById('wiz-tli-panel');
+      if (sel === 'tli_staging') {
+        tliPanel.style.display = 'block';
+        updateTliCalculations();
+      } else if (document.getElementById('wiz-preset').value === 'custom') {
+        tliPanel.style.display = 'none';
+      }
     }
 
     function onCustomDestChange() {
@@ -1551,6 +1609,7 @@
       let destPreset = 'earth_moon_l2_halo';
       let originState = null;
       let destState = null;
+      let leoAltKm = null;
 
       if (preset === 'earth_moon_l1_to_l2') {
         originPreset = 'earth_moon_l1_halo';
@@ -1558,6 +1617,16 @@
       } else if (preset === 'low_lunar_to_l2') {
         originPreset = 'low_lunar_orbit';
         destPreset = 'lunar_gateway_nrho';
+      } else if (preset === 'earth_tli_to_nrho') {
+        originPreset = 'trans_lunar_injection';
+        destPreset = 'lunar_gateway_nrho';
+        leoAltKm = parseFloat(document.getElementById('wiz-leo-alt').value) || 300.0;
+      } else if (preset === 'earth_gto_to_nrho') {
+        originPreset = 'earth_gto_apogee';
+        destPreset = 'lunar_gateway_nrho';
+      } else if (preset === 'earth_geo_to_l1') {
+        originPreset = 'earth_geo';
+        destPreset = 'earth_moon_l1_halo';
       } else if (preset === 'custom') {
         const customOrigin = document.getElementById('wiz-custom-origin').value;
         const customDest = document.getElementById('wiz-custom-dest').value;
@@ -1571,6 +1640,9 @@
           }
         } else {
           originPreset = customOrigin;
+          if (customOrigin === 'tli_staging') {
+            leoAltKm = parseFloat(document.getElementById('wiz-leo-alt').value) || 300.0;
+          }
         }
 
         if (customDest === 'coords') {
@@ -1595,6 +1667,7 @@
             origin_state: originState,
             destination_preset: destPreset,
             destination_state: destState,
+            leo_altitude_km: leoAltKm,
             spacecraft_wet_mass_kg: wetMass,
             max_thrust_n: maxThrust,
             isp_s: isp,
@@ -1611,13 +1684,17 @@
         const data = await resp.json();
         lastOptimizedPlan = data;
 
+        const dvSuffix = data.tli_impulsive_delta_v_m_s
+          ? ` (Total: ${data.total_mission_delta_v_m_s.toFixed(0)})`
+          : '';
+
         // Construct 3 distinct candidates for operational evaluation
         candidatesList = [
           {
             name: "Candidate A (Recommended: Min-Fuel SCvx)",
-            badge: "Lowest Propellant",
+            badge: data.tli_impulsive_delta_v_m_s ? "Hybrid TLI + Low Propellant" : "Lowest Propellant",
             days: data.total_flight_days.toFixed(1),
-            dv: data.total_delta_v_m_s.toFixed(1),
+            dv: data.total_delta_v_m_s.toFixed(1) + dvSuffix,
             fuel: data.total_fuel_consumed_kg.toFixed(2),
             final_mass: data.final_mass_kg.toFixed(1),
             payload_fraction: ((data.final_mass_kg / wetMass) * 100).toFixed(1),
@@ -1627,7 +1704,7 @@
             name: "Candidate B (Balanced Transit: -15% Time)",
             badge: "Time-Critical",
             days: (data.total_flight_days * 0.85).toFixed(1),
-            dv: (data.total_delta_v_m_s * 1.12).toFixed(1),
+            dv: (data.total_delta_v_m_s * 1.12).toFixed(1) + dvSuffix,
             fuel: (data.total_fuel_consumed_kg * 1.15).toFixed(2),
             final_mass: (wetMass - data.total_fuel_consumed_kg * 1.15).toFixed(1),
             payload_fraction: (((wetMass - data.total_fuel_consumed_kg * 1.15) / wetMass) * 100).toFixed(1),
@@ -1637,7 +1714,7 @@
             name: "Candidate C (High Thrust Quick-Insertion)",
             badge: "Rapid Response",
             days: (data.total_flight_days * 0.65).toFixed(1),
-            dv: (data.total_delta_v_m_s * 1.35).toFixed(1),
+            dv: (data.total_delta_v_m_s * 1.35).toFixed(1) + dvSuffix,
             fuel: (data.total_fuel_consumed_kg * 1.42).toFixed(2),
             final_mass: (wetMass - data.total_fuel_consumed_kg * 1.42).toFixed(1),
             payload_fraction: (((wetMass - data.total_fuel_consumed_kg * 1.42) / wetMass) * 100).toFixed(1),
@@ -1688,6 +1765,21 @@
     function renderBurnScheduleTable(burns) {
       const tbody = document.getElementById('wiz-burn-tbody');
       tbody.innerHTML = '';
+
+      if (lastOptimizedPlan && lastOptimizedPlan.tli_impulsive_delta_v_m_s) {
+        const trTli = document.createElement('tr');
+        trTli.style.background = 'rgba(56, 189, 248, 0.15)';
+        trTli.innerHTML = `
+          <td style="color: var(--accent-cyan); font-weight: 600;">Phase 1: TLI Kick</td>
+          <td>Day 0.00</td>
+          <td>Day 0.01</td>
+          <td>0.2 h</td>
+          <td style="color: var(--accent-gold);">Upper Stage Boost</td>
+          <td style="color: var(--accent-cyan); font-weight: 600;">${lastOptimizedPlan.tli_impulsive_delta_v_m_s.toFixed(1)} m/s</td>
+          <td style="color: var(--text-muted);">Upper Stage Propellant</td>
+        `;
+        tbody.appendChild(trTli);
+      }
 
       burns.slice(0, 15).forEach(b => {
         const tr = document.createElement('tr');

@@ -204,7 +204,7 @@ impl Cr3bpTransferOptimizer {
         let mut total_iterations = 0;
 
         // Outer SCvx iteration loop
-        for iter in 0..12 {
+        for iter in 0..20 {
             total_iterations = iter + 1;
 
             // Form KKT matrix for subproblem

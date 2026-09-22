@@ -12,10 +12,12 @@ use axum::{
     Router,
 };
 use sbm_core::cr3bp::{
-    compute_earth_moon_l1_to_l2_transfer, compute_lagrange_points, correct_3d_halo,
-    correct_planar_lyapunov, generate_manifold_arc, CorrectedOrbit, Cr3bpState, Cr3bpSystem,
-    DormandPrinceIntegrator, IntegratorOptions, ManifoldBranch, ManifoldOptions, ManifoldType,
+    calculate_tli_impulsive_dv, compute_earth_moon_l1_to_l2_transfer, compute_lagrange_points,
+    correct_3d_halo, correct_planar_lyapunov, generate_manifold_arc, CorrectedOrbit, Cr3bpState,
+    Cr3bpSystem, DormandPrinceIntegrator, IntegratorOptions, ManifoldBranch, ManifoldOptions,
+    ManifoldType,
 };
+
 use sbm_core::scvx::{Cr3bpTransferMissionConfig, Cr3bpTransferOptimizer};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -426,6 +428,7 @@ pub struct OptimizeTransferRequest {
     pub origin_state: Option<[f64; 6]>,
     pub destination_preset: Option<String>,
     pub destination_state: Option<[f64; 6]>,
+    pub leo_altitude_km: Option<f64>,
     pub spacecraft_wet_mass_kg: Option<f64>,
     pub max_thrust_n: Option<f64>,
     pub isp_s: Option<f64>,
@@ -462,6 +465,8 @@ pub struct OptimizeTransferResponse {
     pub iterations: usize,
     pub total_flight_days: f64,
     pub total_delta_v_m_s: f64,
+    pub tli_impulsive_delta_v_m_s: Option<f64>,
+    pub total_mission_delta_v_m_s: f64,
     pub total_fuel_consumed_kg: f64,
     pub final_mass_kg: f64,
     pub max_thrust_used_mn: f64,
@@ -479,6 +484,9 @@ fn resolve_orbit_state(
         Cr3bpState::from_array(arr)
     } else {
         match preset_name.unwrap_or(fallback_preset).to_lowercase().as_str() {
+            "earth_geo" | "geostationary_orbit" => Cr3bpState::earth_geostationary(system),
+            "earth_gto_apogee" => Cr3bpState::earth_gto_apogee(system),
+            "trans_lunar_injection" | "tli_staging" => Cr3bpState::trans_lunar_injection_apogee(system),
             "earth_moon_l1_halo" => Cr3bpState::new(0.8234, 0.0, 0.045, 0.0, 0.13, 0.0),
             "earth_moon_l1_lyapunov" => Cr3bpState::new(0.8369, 0.0, 0.0, 0.0, 0.12, 0.0),
             "low_lunar_orbit" => Cr3bpState::new(1.0 - system.mu + 0.0048, 0.0, 0.0, 0.0, 1.63, 0.0),
@@ -521,9 +529,22 @@ pub async fn optimize_transfer_handler(
         n_nodes: req.n_nodes.unwrap_or(30),
     };
 
-    let optimizer = Cr3bpTransferOptimizer::new(system, origin_state, target_state, config);
+    let optimizer = Cr3bpTransferOptimizer::new(system.clone(), origin_state, target_state, config);
     let plan = optimizer.optimize()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    let tli_dv = req.leo_altitude_km.map(|alt| {
+        calculate_tli_impulsive_dv(&system, alt, None)
+    }).or_else(|| {
+        let p = req.origin_preset.as_deref().unwrap_or("").to_lowercase();
+        if p == "trans_lunar_injection" || p == "tli_staging" {
+            Some(calculate_tli_impulsive_dv(&system, 300.0, None))
+        } else {
+            None
+        }
+    });
+
+    let total_mission_delta_v_m_s = plan.total_delta_v_m_s + tli_dv.unwrap_or(0.0);
 
     let nodes = plan.nodes.into_iter().map(|n| Cr3bpTransferNodeDto {
         time_days: n.time_days,
@@ -551,6 +572,8 @@ pub async fn optimize_transfer_handler(
         iterations: plan.iterations,
         total_flight_days: plan.total_flight_days,
         total_delta_v_m_s: plan.total_delta_v_m_s,
+        tli_impulsive_delta_v_m_s: tli_dv,
+        total_mission_delta_v_m_s,
         total_fuel_consumed_kg: plan.total_fuel_consumed_kg,
         final_mass_kg: plan.final_mass_kg,
         max_thrust_used_mn: plan.max_thrust_used_mn,

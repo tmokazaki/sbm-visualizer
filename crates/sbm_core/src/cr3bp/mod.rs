@@ -39,4 +39,5 @@ pub use integrator::{
     StopReason, TrajectoryPoint,
 };
 pub use transfer::{compute_earth_moon_l1_to_l2_transfer, MultiBodyTransferPlan};
-pub use types::{Cr3bpError, Cr3bpState, Cr3bpState9D, Cr3bpSystem, LagrangePoint};
+pub use types::{calculate_tli_impulsive_dv, Cr3bpError, Cr3bpState, Cr3bpState9D, Cr3bpSystem, LagrangePoint};
+

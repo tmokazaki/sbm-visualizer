@@ -10,10 +10,14 @@ use sbm_core::cr3bp::dynamics::{
     pseudo_potential, pseudo_potential_gradient, pseudo_potential_hessian, variational_matrix,
 };
 use sbm_core::cr3bp::families::{compute_lagrange_points, PeriodicOrbitBenchmark};
-use sbm_core::cr3bp::frames::{mat6_mul_mat6, FrameTransformer};
 use sbm_core::cr3bp::integrator::{DormandPrinceIntegrator, IntegratorOptions, StopReason};
 use sbm_core::cr3bp::transfer::compute_earth_moon_l1_to_l2_transfer;
-use sbm_core::cr3bp::types::{Cr3bpState, Cr3bpSystem, LagrangePoint};
+use sbm_core::cr3bp::frames::{mat6_mul_mat6, FrameTransformer};
+use sbm_core::cr3bp::types::{calculate_tli_impulsive_dv, Cr3bpState, Cr3bpSystem, LagrangePoint};
+use sbm_core::scvx::{Cr3bpTransferMissionConfig, Cr3bpTransferOptimizer};
+
+
+
 
 #[test]
 fn test_system_parameters_paper_earth_moon() {
@@ -384,3 +388,61 @@ fn test_zero_velocity_surface_forbidden_regions() {
     assert!(is_region_accessible(&sys, 0.83, 0.0, 0.0, cj));
     assert!(allowed_velocity_squared(&sys, 0.83, 0.0, 0.0, cj).is_some());
 }
+
+#[test]
+fn test_earth_centric_presets_and_tli_calculation() {
+    let sys = Cr3bpSystem::earth_moon();
+
+    // 1. Validate Geostationary Orbit (GEO) in CR3BP rotating frame
+    let geo = Cr3bpState::earth_geostationary(&sys);
+    let dist_to_earth_km = (geo.x + sys.mu).abs() * (sys.l_star / 1000.0);
+    assert!((dist_to_earth_km - 42_164.137).abs() < 1.0, "GEO distance mismatch: {} km", dist_to_earth_km);
+    assert!(geo.vy > 2.0 && geo.vy < 3.5, "GEO rotating velocity mismatch: {}", geo.vy);
+
+    // 2. Validate GTO apogee
+    let gto = Cr3bpState::earth_gto_apogee(&sys);
+    let gto_dist_km = (gto.x + sys.mu).abs() * (sys.l_star / 1000.0);
+    assert!((gto_dist_km - 42_164.137).abs() < 1.0);
+    assert!(gto.vy < geo.vy, "GTO apogee speed must be less than circular GEO");
+
+    // 3. Validate Trans-Lunar Injection (TLI) impulsive Delta-v from 300 km LEO
+    let dv_tli = calculate_tli_impulsive_dv(&sys, 300.0, None);
+    assert!(
+        (dv_tli - 3118.0).abs() < 20.0,
+        "TLI Delta-v from 300 km LEO should be ~3,118 m/s, got {:.2} m/s",
+        dv_tli
+    );
+
+    // 4. Validate TLI staging state
+    let tli_stage = Cr3bpState::trans_lunar_injection_apogee(&sys);
+    let tli_dist_km = (tli_stage.x + sys.mu).abs() * (sys.l_star / 1000.0);
+    assert!((tli_dist_km - 320_000.0).abs() < 100.0);
+}
+
+#[test]
+fn test_earth_centric_to_deep_space_transfer_optimization() {
+    let system = Cr3bpSystem::earth_moon();
+
+    // Departure: TLI staging orbit / high cislunar apogee
+    let origin = Cr3bpState::trans_lunar_injection_apogee(&system);
+    // Destination: Artemis Lunar Gateway NRHO (x ~ 1.025, z ~ 0.18)
+    let target = Cr3bpState::new(1.025, 0.0, 0.18, 0.0, -0.22, 0.0);
+
+    let config = Cr3bpTransferMissionConfig {
+        wet_mass_kg: 500.0,
+        max_thrust_n: 0.45,
+        isp_s: 2600.0,
+        flight_days: 16.0,
+        n_nodes: 30,
+    };
+
+    let optimizer = Cr3bpTransferOptimizer::new(system, origin, target, config);
+    let plan = optimizer.optimize().expect("Transfer optimization must succeed");
+
+    assert!(plan.converged, "SCvx transfer optimizer must converge");
+    assert!(plan.total_delta_v_m_s > 0.0);
+    assert!(plan.total_fuel_consumed_kg > 0.0);
+    assert_eq!(plan.nodes.len(), 30);
+}
+
+

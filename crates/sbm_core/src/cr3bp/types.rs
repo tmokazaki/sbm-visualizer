@@ -81,6 +81,69 @@ impl Cr3bpState {
     pub fn v_squared(&self) -> f64 {
         self.vx * self.vx + self.vy * self.vy + self.vz * self.vz
     }
+
+    /// Geostationary Earth Orbit (GEO) in rotating barycentric coordinates.
+    ///
+    /// Altitude $h = 35,786\text{ km}$, radius $r_{GEO} \approx 42,164\text{ km}$.
+    /// Located at sub-lunar point ($+x$ axis toward Moon) with prograde orbital velocity.
+    pub fn earth_geostationary(system: &Cr3bpSystem) -> Self {
+        let r_geo_m = 42_164_137.0;
+        let r_nd = r_geo_m / system.l_star;
+        let v_c_ms = (system.gm1 / r_geo_m).sqrt();
+        let v_c_nd = v_c_ms / system.v_star;
+        let vy_rot = v_c_nd - r_nd;
+        let x_bary = -system.mu + r_nd;
+        Self::new(x_bary, 0.0, 0.0, 0.0, vy_rot, 0.0)
+    }
+
+    /// Geostationary Transfer Orbit (GTO) at apogee in rotating barycentric coordinates.
+    ///
+    /// Perigee altitude $250\text{ km}$, apogee altitude $35,786\text{ km}$.
+    pub fn earth_gto_apogee(system: &Cr3bpSystem) -> Self {
+        let r_p_m = 6_628_137.0;
+        let r_a_m = 42_164_137.0;
+        let a_m = 0.5 * (r_p_m + r_a_m);
+        let v_a_ms = (system.gm1 * (2.0 / r_a_m - 1.0 / a_m)).sqrt();
+        let r_nd = r_a_m / system.l_star;
+        let v_a_nd = v_a_ms / system.v_star;
+        let vy_rot = v_a_nd - r_nd;
+        let x_bary = -system.mu + r_nd;
+        Self::new(x_bary, 0.0, 0.0, 0.0, vy_rot, 0.0)
+    }
+
+    /// Trans-Lunar Injection (TLI) high-apogee staging state in rotating barycentric coordinates.
+    ///
+    /// Represents a spacecraft on a high-eccentricity cislunar transfer ellipse arriving
+    /// near the weak stability boundary / cislunar entry point ($r \approx 320,000\text{ km}$).
+    pub fn trans_lunar_injection_apogee(system: &Cr3bpSystem) -> Self {
+        let r_m = 320_000_000.0;
+        let r_p_m = 6_678_137.0; // 300 km LEO perigee
+        let r_a_m = system.l_star;
+        let a_m = 0.5 * (r_p_m + r_a_m);
+        let v_ms = (system.gm1 * (2.0 / r_m - 1.0 / a_m)).sqrt();
+        let r_nd = r_m / system.l_star;
+        let v_nd = v_ms / system.v_star;
+        let vy_rot = v_nd - r_nd;
+        let x_bary = -system.mu + r_nd;
+        Self::new(x_bary, 0.0, 0.0, 0.0, vy_rot, 0.0)
+    }
+}
+
+/// Calculates the impulsive Trans-Lunar Injection (TLI) $\Delta v$ (in m/s) from a circular LEO orbit.
+///
+/// Given circular LEO altitude $h_{LEO}$ (km) and optional target apogee distance $r_a$ (km, default primary-secondary distance):
+///
+/// $$\Delta v_{TLI} = \sqrt{\mu_E \left(\frac{2}{r_p} - \frac{1}{a}\right)} - \sqrt{\frac{\mu_E}{r_p}}$$
+pub fn calculate_tli_impulsive_dv(system: &Cr3bpSystem, leo_altitude_km: f64, target_apogee_km: Option<f64>) -> f64 {
+    let r_earth_km = 6378.137;
+    let rp_m = (r_earth_km + leo_altitude_km) * 1000.0;
+    let ra_m = target_apogee_km.unwrap_or(system.l_star / 1000.0) * 1000.0;
+    let a_m = 0.5 * (rp_m + ra_m);
+
+    let v_circ_leo = (system.gm1 / rp_m).sqrt();
+    let v_peri_tli = (system.gm1 * (2.0 / rp_m - 1.0 / a_m)).sqrt();
+
+    (v_peri_tli - v_circ_leo).max(0.0)
 }
 
 impl core::ops::Add for Cr3bpState {

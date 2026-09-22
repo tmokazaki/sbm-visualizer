@@ -178,3 +178,46 @@ async fn test_custom_mission_arbitrary_coordinates() {
     assert!(json["total_fuel_consumed_kg"].as_f64().unwrap() > 0.0);
 }
 
+#[tokio::test]
+async fn test_earth_centric_tli_staging_transfer() {
+    let app = create_app(PathBuf::from("."));
+
+    let payload = serde_json::json!({
+        "system": "Earth-Moon",
+        "origin_preset": "tli_staging",
+        "destination_preset": "lunar_gateway_nrho",
+        "leo_altitude_km": 400.0,
+        "spacecraft_wet_mass_kg": 500.0,
+        "max_thrust_n": 0.45,
+        "isp_s": 2600.0,
+        "flight_days": 16.0,
+        "n_nodes": 25
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/transfer/optimize")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["success"], true);
+    assert_eq!(json["converged"], true);
+
+    // Impulsive TLI Delta-v from 400 km LEO should be around 3100-3130 m/s
+    let tli_dv = json["tli_impulsive_delta_v_m_s"].as_f64().unwrap();
+    assert!((tli_dv - 3120.0).abs() < 50.0);
+
+    // Total mission Delta-v includes TLI + SCvx electric burn
+    let total_dv = json["total_mission_delta_v_m_s"].as_f64().unwrap();
+    let electric_dv = json["total_delta_v_m_s"].as_f64().unwrap();
+    assert!((total_dv - (tli_dv + electric_dv)).abs() < 1e-6);
+}
+
+
