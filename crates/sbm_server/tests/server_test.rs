@@ -238,4 +238,38 @@ async fn test_rpo_visualizer_route() {
     assert!(html_str.contains("Autonomous RPO & Clohessy-Wiltshire Visualizer"));
 }
 
+#[tokio::test]
+async fn test_rpo_plan_endpoint() {
+    let workspace_root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let app = create_app(workspace_root);
+
+    let payload = serde_json::json!({
+        "target_orbit": "iss",
+        "mode": "two_impulse",
+        "initial_state": [-150.0, -800.0, 20.0, 0.0, 0.0, 0.0],
+        "target_position": [0.0, -30.0, 0.0],
+        "target_velocity": [0.0, 0.0, 0.0],
+        "duration_s": 1800.0
+    });
+
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/rpo/plan")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(json["success"], true);
+    assert_eq!(json["mode"], "Two-Impulse Targeted Rendezvous");
+    assert!(json["total_delta_v_mps"].as_f64().unwrap() > 0.0);
+    assert_eq!(json["burns"].as_array().unwrap().len(), 2);
+    assert_eq!(json["trajectory_points"].as_array().unwrap().len(), 60);
+}
+
 
