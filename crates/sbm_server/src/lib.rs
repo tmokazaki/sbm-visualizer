@@ -2,6 +2,8 @@
 //!
 //! Provides high-performance local endpoints and serves the 3D Interactive Cockpit UI.
 
+#![deny(clippy::print_stdout, clippy::print_stderr)]
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,

@@ -1,13 +1,24 @@
 //! CLI application for the NASA EVOLVE 4.0 Standard Breakup Model.
 
+#![deny(clippy::print_stdout, clippy::print_stderr)]
+
+use sbm_core::prelude::*;
 use std::fs::File;
 use std::io::Write;
-use sbm_core::prelude::*;
+use tracing::info;
 
 fn main() -> Result<(), BreakupError> {
-    println!("============================================================");
-    println!(" NASA Standard Breakup Model - Simple Engine CLI");
-    println!("============================================================");
+    // Initialize tracing subscriber for structured, leveled logging
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    info!("============================================================");
+    info!(" NASA Standard Breakup Model - Simple Engine CLI");
+    info!("============================================================");
 
     let target_m = 1000.0;    // kg
     let proj_m = 100.0;       // kg
@@ -25,44 +36,49 @@ fn main() -> Result<(), BreakupError> {
 
     let result = engine.simulate(42);
 
-    println!("Target Mass:       {:.0} kg ({:?})", target_m, engine.target_type);
-    println!("Projectile Mass:   {:.0} kg ({:?})", proj_m, engine.projectile_type);
-    println!("Impact Velocity:   {:.1} km/s", impact_v / 1000.0);
-    println!("Specific Energy:   {:.1} kJ/kg", result.specific_energy_kj_per_kg);
-    println!(
-        "Collision Outcome: {}",
-        if result.is_catastrophic {
-            "CATASTROPHIC (Total breakup)"
-        } else {
-            "PARTIAL (Crater/Remnant)"
-        }
+    info!(target_mass_kg = target_m, target_type = ?engine.target_type, "Configured target");
+    info!(projectile_mass_kg = proj_m, projectile_type = ?engine.projectile_type, "Configured projectile");
+    info!(impact_velocity_km_s = impact_v / 1000.0, specific_energy_kj_per_kg = result.specific_energy_kj_per_kg, "Collision parameters");
+    info!(
+        outcome = if result.is_catastrophic { "CATASTROPHIC (Total breakup)" } else { "PARTIAL (Crater/Remnant)" },
+        destroyed_mass_kg = result.destroyed_mass_kg,
+        remnant_mass_kg = result.remnant_mass_kg,
+        "Breakup regime evaluated"
     );
-    println!("Destroyed Mass:    {:.1} kg", result.destroyed_mass_kg);
-    if !result.is_catastrophic {
-        println!("Surviving Remnant: {:.1} kg", result.remnant_mass_kg);
-    }
-    println!(
-        "Physical Yield:    {:.0} frags (>=1 cm), {:.0} frags (>=10 cm SSN)",
-        result.physical_yield_1cm, result.ssn_trackable_yield_10cm
+    info!(
+        yield_1cm = result.physical_yield_1cm,
+        yield_10cm_ssn = result.ssn_trackable_yield_10cm,
+        sampled_fragments = result.fragments.len(),
+        "Debris cloud population generated"
     );
-    println!("Sampled Fragments: {} (Simulated points)", result.fragments.len());
-    println!("------------------------------------------------------------");
 
-    // Print top 3 heaviest fragments
-    println!("TOP 3 HEAVIEST FRAGMENTS (Core chunks, stay near center):");
+    // Log top 3 heaviest fragments
+    info!("--- TOP 3 HEAVIEST FRAGMENTS (Core chunks) ---");
     for f in result.top_heaviest(3) {
-        println!(
-            "  #{} -> Size: {:.2} m, Area: {:.4} m^2, A/M: {:.4} m^2/kg, Mass: {:.1} kg, Speed: {:.0} m/s, Band: {}",
-            f.id, f.size_m, f.cross_section_m2, f.am_ratio, f.mass_kg, f.speed_mps, f.contour_band
+        info!(
+            id = f.id,
+            size_m = f.size_m,
+            area_m2 = f.cross_section_m2,
+            am_ratio = f.am_ratio,
+            mass_kg = f.mass_kg,
+            speed_mps = f.speed_mps,
+            band = f.contour_band,
+            "Heavy fragment"
         );
     }
 
-    // Print top 3 fastest fragments
-    println!("\nTOP 3 FASTEST FRAGMENTS (Light shards, outer expanding bubble):");
+    // Log top 3 fastest fragments
+    info!("--- TOP 3 FASTEST FRAGMENTS (Light shards) ---");
     for f in result.top_fastest(3) {
-        println!(
-            "  #{} -> Size: {:.1} cm, Area: {:.6} m^2, A/M: {:.4} m^2/kg, Mass: {:.3} kg, Speed: {:.0} m/s, Band: {}",
-            f.id, f.size_m * 100.0, f.cross_section_m2, f.am_ratio, f.mass_kg, f.speed_mps, f.contour_band
+        info!(
+            id = f.id,
+            size_cm = f.size_m * 100.0,
+            area_m2 = f.cross_section_m2,
+            am_ratio = f.am_ratio,
+            mass_kg = f.mass_kg,
+            speed_mps = f.speed_mps,
+            band = f.contour_band,
+            "Fast fragment"
         );
     }
 
@@ -72,8 +88,12 @@ fn main() -> Result<(), BreakupError> {
         .write_all(result.to_fragments_json().as_bytes())
         .expect("Failed to write JSON output");
 
-    println!("\n[OK] Exported {} fragments to fragments_output.json", result.fragments.len());
-    println!("============================================================");
+    info!(
+        output_file = "fragments_output.json",
+        fragments_count = result.fragments.len(),
+        "Successfully exported fragments"
+    );
+    info!("============================================================");
 
     Ok(())
 }

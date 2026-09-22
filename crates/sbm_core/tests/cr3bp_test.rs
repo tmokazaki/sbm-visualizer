@@ -258,9 +258,10 @@ fn test_reproduce_paper_l1_lyapunov_jacobi_conservation() {
 
     assert_eq!(res.stop_reason, StopReason::TargetTimeReached);
 
-    // In AAS 20-459 Section 4, the MATLAB reference achieves Max(Delta CJ) < 1e-11
-    // Our pure Rust adaptive DOP54 integrator conserves Jacobi constant to machine precision (< 1e-11)
-    println!("L1 Lyapunov Max(Delta CJ): {:.2e}", res.max_jacobi_variation);
+    tracing::info!(
+        max_jacobi_variation = res.max_jacobi_variation,
+        "L1 Lyapunov Max(Delta CJ)"
+    );
     assert!(
         res.max_jacobi_variation < 1e-10,
         "Max Jacobi variation exceeds tolerance: {:.2e}",

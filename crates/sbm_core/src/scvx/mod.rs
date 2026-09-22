@@ -51,25 +51,23 @@ mod tests {
 
         let solution = problem.solve(Some(opts));
 
-        println!(
-            "SCvx total iterations: {}, accepted: {}, final_cost: {}, final_nu: {}",
-            solution.total_iterations,
-            solution.accepted_successions,
-            solution.final_cost,
-            solution.final_virtual_control_residual
+        tracing::info!(
+            total_iterations = solution.total_iterations,
+            accepted = solution.accepted_successions,
+            final_cost = solution.final_cost,
+            final_nu = solution.final_virtual_control_residual,
+            "SCvx benchmark solve completed"
         );
         for rep in &solution.iteration_history {
-            println!(
-                "  Iter {}: J={:.3}, dJ={:.3}, dL={:.3}, r={:.3}, trust={:.3}, nu={:.4}, inc={:.4}, acc={}",
-                rep.iteration,
-                rep.cost_actual,
-                rep.delta_cost_actual,
-                rep.delta_cost_predicted,
-                rep.ratio_r,
-                rep.trust_region_radius,
-                rep.virtual_control_norm,
-                rep.state_increment_norm,
-                rep.step_accepted
+            tracing::info!(
+                iteration = rep.iteration,
+                cost = rep.cost_actual,
+                ratio_r = rep.ratio_r,
+                trust = rep.trust_region_radius,
+                nu = rep.virtual_control_norm,
+                inc = rep.state_increment_norm,
+                accepted = rep.step_accepted,
+                "SCvx iteration summary"
             );
         }
 

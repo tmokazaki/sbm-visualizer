@@ -359,7 +359,12 @@ impl Cr3bpTransferOptimizer {
 
             trust_region = (trust_region * 1.2_f64).min(0.20_f64);
 
-            println!("CR3BP SCvx Iter {}: state_inc_max={:.5e}, trust={:.3}", iter + 1, state_inc_max, trust_region);
+            tracing::info!(
+                iteration = iter + 1,
+                state_inc_max,
+                trust_region,
+                "CR3BP SCvx iteration progress"
+            );
 
             if state_inc_max < 0.015 {
                 converged = true;

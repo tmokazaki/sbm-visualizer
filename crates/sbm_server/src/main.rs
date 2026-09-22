@@ -2,6 +2,8 @@
 //!
 //! Binary entry point for launching the local Axum server.
 
+#![deny(clippy::print_stdout, clippy::print_stderr)]
+
 use sbm_server::create_app;
 use std::{net::SocketAddr, path::PathBuf};
 use tracing::info;

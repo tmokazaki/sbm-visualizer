@@ -557,11 +557,17 @@ name = "sbm_cli"
 version = "0.2.0"
 dependencies = [
  "sbm_core",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
 name = "sbm_core"
 version = "0.2.0"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "sbm_server"

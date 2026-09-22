@@ -920,9 +920,12 @@ mod tests {
         let corrected = correct_3d_halo(&system, z0, x0_perturbed, vy0_perturbed, 15, 1e-8)
             .expect("3D Halo correction should converge");
 
-        println!(
-            "3D Halo converged: x0={}, vy0={}, period_days={}, residual={:e}",
-            corrected.initial_state.x, corrected.initial_state.vy, corrected.period_days, corrected.residual
+        tracing::info!(
+            x0 = corrected.initial_state.x,
+            vy0 = corrected.initial_state.vy,
+            period_days = corrected.period_days,
+            residual = corrected.residual,
+            "3D Halo converged"
         );
 
         assert!(corrected.residual < 1e-8, "Residual should be < 1e-8");

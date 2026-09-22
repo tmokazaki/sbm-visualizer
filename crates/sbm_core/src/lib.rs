@@ -38,21 +38,30 @@
 //!     // 2. Run deterministic simulation with seed
 //!     let result = engine.simulate(42);
 //!
-//!     // 3. Inspect physical outcomes
-//!     println!("Catastrophic: {}", result.is_catastrophic);
-//!     println!("Destroyed Mass: {:.1} kg", result.destroyed_mass_kg);
-//!     println!("Physical Yield (>=1cm): {:.0}", result.physical_yield_1cm);
-//!     println!("SSN Trackable (>=10cm): {:.0}", result.ssn_trackable_yield_10cm);
+//!     // 3. Inspect physical outcomes via structured logging
+//!     tracing::info!(
+//!         catastrophic = result.is_catastrophic,
+//!         destroyed_mass_kg = result.destroyed_mass_kg,
+//!         yield_1cm = result.physical_yield_1cm,
+//!         "Breakup simulation completed"
+//!     );
 //!
 //!     // 4. Access individual fragments
 //!     for fragment in result.top_heaviest(3) {
-//!         println!("Heavy Fragment #{} -> Mass: {:.2} kg, Size: {:.2} m, Speed: {:.1} m/s",
-//!             fragment.id, fragment.mass_kg, fragment.size_m, fragment.speed_mps);
+//!         tracing::info!(
+//!             id = fragment.id,
+//!             mass_kg = fragment.mass_kg,
+//!             size_m = fragment.size_m,
+//!             speed_mps = fragment.speed_mps,
+//!             "Top fragment"
+//!         );
 //!     }
 //!
 //!     Ok(())
 //! }
 //! ```
+
+#![deny(clippy::print_stdout, clippy::print_stderr)]
 
 pub mod autoorbit;
 pub mod cr3bp;
