@@ -12,3 +12,5 @@ path = "src/main.rs"
 
 [dependencies]
 sbm_core = { path = "../crates/sbm_core" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

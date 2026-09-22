@@ -1,0 +1,21 @@
+[package]
+name = "sbm_server"
+version = "0.1.0"
+edition = "2021"
+description = "Local-first native astrodynamics daemon and mission planning API server"
+license = "MIT OR Apache-2.0"
+authors = ["Antigravity Engineering Team"]
+
+[dependencies]
+sbm_core = { path = "../sbm_core" }
+tokio = { version = "1.38", features = ["full"] }
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"

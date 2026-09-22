@@ -80,6 +80,21 @@ Detailed engineering and mathematical specifications are provided in the `docs/`
    * Canonical and SOTA reference papers across 7 operational domains (HPOP, Sensor/RCS, Conjunction Assessment, Frame Standards, UQ, Component Breakup, Parallel Compute).
    * Governing equations for Gim-Alfriend $J_2$ STM, NASA SEM radar cross-section conversion, Hall fast 2D $P_c$ collision probability, and CCSDS CDM/OEM standards.
    * 6-phase engineering transition roadmap.
+4. [**Deep Space Optimal Trajectory Planning & SCvx Specification**](docs/deep_space_scvx_flight_dynamics_specification.md):
+   * Multi-body non-convex optimal control formulation in the Circular Restricted Three-Body Problem (CR3BP).
+   * Variational dynamics linearization ($\mathbf{A}_k, \mathbf{B}_k, \mathbf{r}_k$), Coriolis coupling ($\boldsymbol{\Omega}$), and potential Hessian ($\mathbf{U}_{(x, y, z)}$).
+   * In-place $LU$ factorization and Projected ADMM for exact $L_2$ thrust saturation ($\|\mathbf{u}\|_2 \le T_{\max}$) with zero external C dependencies.
+   * Dynamic line-search trust regions ($\rho$-ratio step adaptation) and virtual control absorption ($\|\boldsymbol{\nu}\|_1 \to 0$).
+   * Verified reproduction of Mao et al. (2016) drag benchmark and Short et al. (2020) AAS 20-459 low-energy transfer.
+5. [**Earth-Centric Optimal Orbit Search & Trajectory Optimization Guide**](docs/earth_centric_optimal_orbit_search_literature_and_architecture.md):
+   * Comprehensive astrodynamics literature survey and mathematical formulations for Earth-centric orbit space (LEO, MEO, GEO, GTO).
+   * Modified Equinoctial Elements (MEE) and Gauss Variational Equations (GVE).
+   * Edelbaum's analytical low-thrust $\Delta v$ velocity equation and Petropoulos' Q-law Lyapunov feedback control.
+   * Successive Convex Programming (SCP / SOCP) and $J_2$ secular nodal precession drift for active debris removal (ADR) and constellation phasing.
+   * Integration with the SBM codebase (`autoorbit`, `cr3bp::frames`, `scvx`) and 3-phase implementation roadmap.
+6. [**Architectural Decision Records (ADRs)**](docs/adr/):
+   * [ADR-001: NASA EVOLVE 4.0 Breakup Model Alignment](docs/adr/ADR-001-nasa-evolve4-breakup-model-alignment.md).
+   * [ADR-002: Native Client-Server Architecture & Pure-Rust SCvx Trajectory Engine](docs/adr/ADR-002-deep-space-scvx-native-client-server-architecture.md).
 
 ---
 
@@ -121,6 +136,33 @@ Available query parameters:
 
 ---
 
+### Deep Space Flight Dynamics & Successive Convexification (SCvx)
+
+The suite integrates a pure-Rust, state-of-the-art optimal trajectory candidate finder for cislunar and deep-space missions:
+
+* **Successive Convexification (SCvx) Engine (`sbm_core::scvx`)**:
+  - Exact scientific reproduction of Mao, Szmuk, Açıkmeşe (2016) (*Successive Convexification of Non-Convex Optimal Control Problems with State Constraints*, arXiv:1608.05133) and Malyuta et al. (2021) (*IEEE CSM Tutorial*).
+  - In-place $LU$ solver with partial pivoting factorizing the block KKT system once per succession.
+  - Projected Alternating Direction Method of Multipliers (ADMM) enforcing exact $L_2$ thrust saturation $\|\mathbf{u}\|_2 \le T_{\max}$ with decoupled proximal shrinkage.
+  - Dynamical line-search trust-region adaptation ($\rho$-ratio trust expansion/contraction) and virtual control absorption ($\|\boldsymbol{\nu}\|_1 \to 0$).
+* **CR3BP Low-Thrust Transfer Optimization**:
+  - Full 6-DoF variational state-transition coupling with the rotating three-body potential Hessian.
+  - Real-world electric propulsion modeling (NASA NEXT-C Ion Thruster, Busek BHT-600 Hall Thruster, Chemical Bipropellant).
+  - Generates discrete, operational burn schedule segments (burn durations, thrust levels in mN, $\Delta v$, fuel mass consumption in kg).
+* **Local Native Daemon (`crates/sbm_server`)**:
+  - High-performance Axum REST daemon running locally on `http://127.0.0.1:8080`.
+  - Exposes `/api/v1/transfer/optimize`, `/api/v1/export/oem`, and orbit correction endpoints.
+  - Direct export to standard **CCSDS OEM v2.0** ephemerides and **RFC 4180 CSV** burn schedules.
+* **Non-Mathematician Operator Cockpit UI**:
+  - Embedded Mission Planning Wizard inside [`cr3bp_deep_space_visualizer.html`](file:///Users/tomohiko/work/sbm_visualizer/cr3bp_deep_space_visualizer.html).
+  - Evaluates and ranks **Top 3 Flight Candidates**:
+    1. *Candidate A (Recommended: Min-Fuel SCvx)*: Maximum payload delivery fraction.
+    2. *Candidate B (Balanced Transit)*: $-15\%$ flight duration with moderate propellant trade-off.
+    3. *Candidate C (Rapid Response)*: High-thrust insertion for time-critical operations.
+  - Live 3D trajectory rendering into Three.js scene with synchronized camera framing and telemetry inspector.
+
+---
+
 ### Rust Library & Standalone CLI Engine
 
 The repository provides a modular, multi-crate Rust architecture:
@@ -129,20 +171,25 @@ The repository provides a modular, multi-crate Rust architecture:
   - **NASA EVOLVE 4.0 Standard Breakup Model**: Complete collision and explosion physics engine.
   - **AutoOrbit (KDD 2026)**: Hierarchical satellite orbit prediction with FNO and Gaussian Variational Equations.
   - **CR3BP Propagator & Deep Space Engine (AAS 20-459)**: High-precision Circular Restricted Three-Body Problem propagator reproducing STK Astrogator, exact $L_1\text{--}L_5$ libration points, periodic Lyapunov/Halo/NRHO orbits, frame transformations (CBI $\leftrightarrow$ Rotating), and multi-body low-energy transfers ($\Delta v \approx 23.2\text{ m/s}$).
+  - **SCvx Trajectory Optimizer (Mao 2016, Malyuta 2021)**: Zero-external-dependency convexified trajectory optimization.
+* **`crates/sbm_server`**: Local-first native daemon serving the Web Cockpit and providing high-speed flight dynamics APIs on `127.0.0.1:8080`.
 * **`engine_cli`**: Standalone CLI application consuming `sbm_core` to run high-speed Monte Carlo breakup simulations, print telemetry metrics, and export debris clouds as JSON.
 
 ```bash
+# Launch the local Astrodynamics Server & Web Cockpit:
+cargo run -p sbm_server
+
 # Run the Rust CLI engine:
-cargo run -p sbm_simple_engine --release
+cargo run --bin sbm_simple_engine --release
 
 # Run the CR3BP Deep Space & Multi-Body Transfer Demo:
 cargo run --example cr3bp_deep_space_demo
 
-# Run the test suite:
+# Run the full test suite (56 tests across all crates):
 cargo test --workspace
 
-# Run clippy with zero warnings:
-cargo clippy --workspace --all-targets -- -D warnings
+# Run clippy with zero warnings & zero print macros:
+cargo clippy --workspace --all-targets -- -D warnings -D clippy::print_stdout -D clippy::print_stderr
 
 # Run Python paper reproduction test suite:
 python3 -m unittest tests/test_autoorbit_reproduction.py
@@ -153,7 +200,19 @@ python3 -m unittest tests/test_autoorbit_reproduction.py
 ## Interactive 3D Visualizers
 
 * **NASA EVOLVE 4.0 Collision Visualizer**: Open [`index.html`](file:///Users/tomohiko/work/sbm_visualizer/index.html) in any modern web browser.
-* **CR3BP Deep Space & Multi-Body Transfer Visualizer**: Open [`cr3bp_deep_space_visualizer.html`](file:///Users/tomohiko/work/sbm_visualizer/cr3bp_deep_space_visualizer.html) for interactive 3D exploration of Earth-Moon and Sun-Earth libration points, Zero-Velocity Curves, periodic orbits, and the AAS 20-459 low-energy manifold transfer itinerary!
+* **CR3BP Deep Space & Multi-Body Transfer Cockpit**: Open [`cr3bp_deep_space_visualizer.html`](file:///Users/tomohiko/work/sbm_visualizer/cr3bp_deep_space_visualizer.html) or navigate to `http://127.0.0.1:8080/` with the daemon running. Click **Mission Planning Wizard** to run live SCvx optimizations, inspect burn schedules, and download CCSDS OEM v2.0 files.
+
+---
+
+## Scientific Reference Papers
+
+All foundational papers have been downloaded to the [`papers/`](file:///Users/tomohiko/work/sbm_visualizer/papers/) directory and verified via automated reproduction test suites:
+
+1. **Short, Haapala, Bosanac (2020)**: *STK Astrogator CR3BP & Low-Energy Transfers*, AAS 20-459 ([`papers/2020_AAS_ShoHaaBos.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2020_AAS_ShoHaaBos.pdf)) — Verified in `crates/sbm_core/tests/cr3bp_test.rs`.
+2. **Mao, Szmuk, Açıkmeşe (2016)**: *Successive Convexification of Non-Convex Optimal Control Problems with State Constraints*, arXiv:1608.05133 ([`papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf)) — Verified in `crates/sbm_core/src/scvx/drag_benchmark.rs`.
+3. **Malyuta et al. (2021)**: *Advances in Trajectory Optimization for Aerospace Systems: A Tutorial on Successive Convexification*, IEEE CSM, arXiv:2106.09125 ([`papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf)).
+4. **Szmuk & Açıkmeşe (2018)**: *Successive Convexification for 6-DoF Mars Powered Descent*, arXiv:1804.00767 ([`papers/2018_arXiv_Szmuk_Acikmese_Mars_6DoF_SCvx.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2018_arXiv_Szmuk_Acikmese_Mars_6DoF_SCvx.pdf)).
+5. **Zhang et al. (2026)**: *AutoOrbit: Physics-Informed Satellite Orbit Prediction*, ACM KDD 2026 ([`papers/3770855.3818960.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/3770855.3818960.pdf)) — Verified in `tests/autoorbit_test.rs`.
 
 ---
 

@@ -26,7 +26,9 @@ pub use dynamics::{
     state_and_stm_derivatives, variational_matrix,
 };
 pub use families::{
-    compute_lagrange_points, solve_euler_quintic, LibrationPointInfo, PeriodicOrbitBenchmark,
+    compute_lagrange_points, compute_monodromy_stability, correct_3d_halo, correct_planar_lyapunov,
+    generate_manifold_arc, solve_euler_quintic, CorrectedOrbit, LibrationPointInfo, ManifoldArc,
+    ManifoldBranch, ManifoldOptions, ManifoldType, PeriodicOrbitBenchmark,
 };
 pub use frames::{
     dcm_inertial_to_rotating, dcm_rotating_to_inertial, mat3_mul_mat3, mat3_mul_vec3,
@@ -37,4 +39,5 @@ pub use integrator::{
     StopReason, TrajectoryPoint,
 };
 pub use transfer::{compute_earth_moon_l1_to_l2_transfer, MultiBodyTransferPlan};
-pub use types::{Cr3bpError, Cr3bpState, Cr3bpState9D, Cr3bpSystem, LagrangePoint};
+pub use types::{calculate_tli_impulsive_dv, Cr3bpError, Cr3bpState, Cr3bpState9D, Cr3bpSystem, LagrangePoint};
+

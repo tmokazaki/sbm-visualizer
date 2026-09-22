@@ -10,4 +10,7 @@ keywords = ["astrodynamics", "orbital-debris", "breakup-model", "space", "nasa"]
 categories = ["science", "simulation"]
 
 [dependencies]
-# Zero external dependencies for maximum portability, headless testability, and embedded/WASM readiness
+tracing = { version = "0.1", default-features = false }
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
