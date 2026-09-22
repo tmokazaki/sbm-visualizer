@@ -62,6 +62,7 @@ pub mod math;
 pub mod prelude;
 pub mod rng;
 pub mod sampling;
+pub mod scvx;
 pub mod types;
 
 // Re-export common types at crate root for ergonomic usage

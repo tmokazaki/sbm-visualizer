@@ -314,6 +314,8 @@ pub enum Cr3bpError {
     BodyCollision { body: String, distance_m: f64 },
     /// Solver failed to locate libration point root.
     LibrationPointConvergenceFailed { point: LagrangePoint, iterations: usize },
+    /// Differential correction failed to converge to periodic orbit.
+    DifferentialCorrectionFailed { iterations: usize, residual: f64 },
     /// Invalid configuration.
     InvalidConfig(String),
 }
@@ -328,7 +330,10 @@ impl fmt::Display for Cr3bpError {
                 write!(f, "Spacecraft collided with body '{}' at distance {:.1} m", body, distance_m)
             }
             Self::LibrationPointConvergenceFailed { point, iterations } => {
-                write!(f, "Failed to converge on Lagrange point {} after {} iterations", point, iterations)
+                write!(f, "Failed to converge for {:?} after {} iterations", point, iterations)
+            }
+            Self::DifferentialCorrectionFailed { iterations, residual } => {
+                write!(f, "Differential correction failed after {} iterations (residual: {:e})", iterations, residual)
             }
             Self::InvalidConfig(msg) => write!(f, "Invalid CR3BP configuration: {}", msg),
         }

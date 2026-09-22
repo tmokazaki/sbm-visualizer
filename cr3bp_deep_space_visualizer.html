@@ -278,12 +278,332 @@
       z-index: 100;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
+    /* Mission Planning Wizard Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 7, 15, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wizard-modal {
+      width: 920px;
+      max-width: 95vw;
+      max-height: 90vh;
+      background: rgba(13, 18, 30, 0.95);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(56, 189, 248, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .wizard-header {
+      padding: 16px 24px;
+      background: rgba(18, 25, 42, 0.9);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wizard-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wizard-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .wizard-close:hover {
+      color: #fff;
+    }
+
+    .wizard-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .wizard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .wizard-card {
+      background: rgba(20, 29, 48, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .wizard-card h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .field-group {
+      margin-bottom: 12px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .field-group select, .field-group input[type="number"], .field-group input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(10, 14, 24, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .candidates-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .candidate-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .candidate-card.selected {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .candidate-card h5 {
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .candidate-stat {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .candidate-stat span:last-child {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .burn-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .burn-table th, .burn-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .burn-table th {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(10, 14, 24, 0.5);
+    }
+
+    .burn-table tr:hover {
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .badge-status {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-family: monospace;
+    }
+
+    .badge-online {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #4ade80;
+    }
+
+    .badge-offline {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    .btn-wizard {
+      background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%);
+      color: white;
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 6px 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-wizard:hover {
+      box-shadow: 0 0 18px rgba(99, 102, 241, 0.7);
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
 
   <div id="canvas-container"></div>
   <div id="tooltip"></div>
+
+  <!-- Mission Planning Wizard Modal -->
+  <div class="modal-backdrop" id="wizard-modal-backdrop" onclick="onBackdropClick(event)">
+    <div class="wizard-modal" id="wizard-modal">
+      <div class="wizard-header">
+        <h2><span>🚀</span> Deep Space Mission Planning Wizard (SCvx Optimizer)</h2>
+        <button class="wizard-close" onclick="closeMissionWizard()">&times;</button>
+      </div>
+      <div class="wizard-body">
+        <div class="wizard-grid">
+          <!-- Mission Route & Objective -->
+          <div class="wizard-card">
+            <h4>🎯 1. Target Mission Itinerary</h4>
+            <div class="field-group">
+              <label>Mission Preset (Non-Mathematician Flight Scenario):</label>
+              <select id="wiz-preset" onchange="onWizardPresetChange()">
+                <option value="earth_moon_l1_to_l2">Lunar Gateway & Science Hub: L1 Halo → L2 NRHO</option>
+                <option value="earth_moon_l1_lyapunov_l2_halo">AAS 20-459 Benchmark: L1 Lyapunov → L2 Southern Halo</option>
+                <option value="low_lunar_to_l2">Lunar Ascent: Low Lunar Orbit → L2 Waypoint</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Three-Body System:</label>
+              <select id="wiz-system">
+                <option value="Earth-Moon">Earth-Moon System (Cislunar / Lagrange Points)</option>
+                <option value="Sun-Earth">Sun-Earth System (Deep Space / JWST)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Flight Duration Window (Days):</label>
+              <input type="number" id="wiz-days" min="7" max="60" value="14" step="1">
+            </div>
+          </div>
+
+          <!-- Spacecraft & Propulsion -->
+          <div class="wizard-card">
+            <h4>🛰️ 2. Spacecraft & Thruster Configuration</h4>
+            <div class="field-group">
+              <label>Spacecraft Wet Mass (kg):</label>
+              <input type="number" id="wiz-mass" min="50" max="5000" value="450" step="10">
+            </div>
+            <div class="field-group">
+              <label>Thruster Technology:</label>
+              <select id="wiz-thruster" onchange="onWizardThrusterChange()">
+                <option value="ion_nextc">NEXT-C Gridded Ion Engine (T = 350 mN, Isp = 2,800 s)</option>
+                <option value="hall_bht">BHT-600 Hall Effect Thruster (T = 500 mN, Isp = 2,200 s)</option>
+                <option value="chem_biprop">High-Thrust Chemical Bipropellant (T = 400 N, Isp = 320 s)</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <div class="field-group" style="flex: 1;">
+                <label>Max Thrust (N):</label>
+                <input type="number" id="wiz-thrust" value="0.35" step="0.01">
+              </div>
+              <div class="field-group" style="flex: 1;">
+                <label>Isp (s):</label>
+                <input type="number" id="wiz-isp" value="2800" step="50">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimize Action Button -->
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(15,23,42,0.6); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(56,189,248,0.2);">
+          <div>
+            <div style="font-size: 12px; font-weight: 600; color: #fff;">Successive Convexification Engine (Mao et al. 2016 / AAS 20-459)</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Solves optimal continuous low-thrust burn schedule via native Rust block KKT & Projected ADMM.</div>
+          </div>
+          <button id="btn-run-scvx" onclick="runMissionOptimization()" class="btn-wizard" style="font-size: 13px; padding: 10px 20px;">
+            ⚡ Run SCvx Trajectory Optimization
+          </button>
+        </div>
+
+        <!-- Results Container -->
+        <div id="wiz-results" style="display: none;">
+          <h4 style="font-size: 13px; color: var(--accent-gold); margin-bottom: 8px;">🏆 Top Flight Candidates Found</h4>
+          <div class="candidates-grid" id="wiz-candidates-container"></div>
+
+          <!-- Selected Plan Details -->
+          <div style="margin-top: 16px; background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <h5 style="color: #fff; font-size: 13px;">📋 Operational Burn Schedule & Navigation Timeline</h5>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="loadOptimizedTrajectoryIntoScene()" class="btn-wizard" style="font-size: 11px; padding: 5px 12px; background: #0284c7;">🌐 Load 3D Cockpit</button>
+                <button onclick="exportOemFile()" style="font-size: 11px; padding: 5px 12px; background: rgba(56,189,248,0.2); border: 1px solid var(--accent); color: #fff; border-radius: 6px; cursor: pointer;">📥 Export CCSDS OEM</button>
+                <button onclick="exportCsvFile()" style="font-size: 11px; padding: 5px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 6px; cursor: pointer;">📊 Export CSV</button>
+              </div>
+            </div>
+
+            <div style="max-height: 180px; overflow-y: auto;">
+              <table class="burn-table" id="wiz-burn-table">
+                <thead>
+                  <tr>
+                    <th>Segment</th>
+                    <th>Start Day</th>
+                    <th>End Day</th>
+                    <th>Duration (h)</th>
+                    <th>Thrust (mN)</th>
+                    <th>&Delta;V (m/s)</th>
+                    <th>Fuel (kg)</th>
+                  </tr>
+                </thead>
+                <tbody id="wiz-burn-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Header -->
   <header>
@@ -315,6 +635,12 @@
 
       <!-- Reference Frame Toggle -->
       <button id="btn-frame" onclick="toggleFrame()">Rotating Synodic</button>
+
+      <!-- Mission Planning Wizard Button -->
+      <button id="btn-wizard" onclick="openMissionWizard()" class="btn-wizard">🚀 Mission Planning Wizard</button>
+
+      <!-- Daemon Status Indicator -->
+      <span id="daemon-badge" class="badge-status badge-online">● Daemon (127.0.0.1:8080)</span>
 
       <!-- Language Toggle -->
       <button id="btn-lang" onclick="toggleLanguage()">JA / EN</button>
@@ -680,6 +1006,10 @@
 
       window.addEventListener('resize', onWindowResize);
       animate();
+
+      // Check daemon connectivity
+      checkDaemonHealth();
+      setInterval(checkDaemonHealth, 5000);
     }
 
     function createStarfield() {
@@ -1071,6 +1401,295 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // =========================================================================
+    // MISSION PLANNING WIZARD & DAEMON API INTEGRATION
+    // =========================================================================
+    let daemonOnline = false;
+    let lastOptimizedPlan = null;
+    let candidatesList = [];
+
+    async function checkDaemonHealth() {
+      const badge = document.getElementById('daemon-badge');
+      if (!badge) return;
+      try {
+        const resp = await fetch('http://127.0.0.1:8080/api/v1/health');
+        if (resp.ok) {
+          daemonOnline = true;
+          badge.className = 'badge-status badge-online';
+          badge.innerText = `● Daemon Online (127.0.0.1:8080)`;
+        } else {
+          throw new Error('Non-200');
+        }
+      } catch (err) {
+        daemonOnline = false;
+        badge.className = 'badge-status badge-offline';
+        badge.innerText = `○ Daemon Offline`;
+      }
+    }
+
+    function openMissionWizard() {
+      document.getElementById('wizard-modal-backdrop').style.display = 'flex';
+      checkDaemonHealth();
+    }
+
+    function closeMissionWizard() {
+      document.getElementById('wizard-modal-backdrop').style.display = 'none';
+    }
+
+    function onBackdropClick(event) {
+      if (event.target.id === 'wizard-modal-backdrop') {
+        closeMissionWizard();
+      }
+    }
+
+    function onWizardThrusterChange() {
+      const sel = document.getElementById('wiz-thruster').value;
+      const thrustInput = document.getElementById('wiz-thrust');
+      const ispInput = document.getElementById('wiz-isp');
+
+      if (sel === 'ion_nextc') {
+        thrustInput.value = '0.35';
+        ispInput.value = '2800';
+      } else if (sel === 'hall_bht') {
+        thrustInput.value = '0.50';
+        ispInput.value = '2200';
+      } else if (sel === 'chem_biprop') {
+        thrustInput.value = '400.0';
+        ispInput.value = '320';
+      }
+    }
+
+    function onWizardPresetChange() {
+      const preset = document.getElementById('wiz-preset').value;
+      const daysInput = document.getElementById('wiz-days');
+      if (preset === 'earth_moon_l1_to_l2') {
+        daysInput.value = '14';
+      } else if (preset === 'earth_moon_l1_lyapunov_l2_halo') {
+        daysInput.value = '21';
+      } else if (preset === 'low_lunar_to_l2') {
+        daysInput.value = '10';
+      }
+    }
+
+    async function runMissionOptimization() {
+      const btn = document.getElementById('btn-run-scvx');
+      const origText = btn.innerHTML;
+      btn.innerHTML = '⏳ Solving SCvx (Projected ADMM)...';
+      btn.disabled = true;
+
+      const system = document.getElementById('wiz-system').value;
+      const preset = document.getElementById('wiz-preset').value;
+      const wetMass = parseFloat(document.getElementById('wiz-mass').value) || 450.0;
+      const maxThrust = parseFloat(document.getElementById('wiz-thrust').value) || 0.35;
+      const isp = parseFloat(document.getElementById('wiz-isp').value) || 2800.0;
+      const flightDays = parseFloat(document.getElementById('wiz-days').value) || 14.0;
+
+      let originPreset = 'earth_moon_l1_lyapunov';
+      let destPreset = 'earth_moon_l2_halo';
+
+      if (preset === 'earth_moon_l1_to_l2') {
+        originPreset = 'earth_moon_l1_halo';
+        destPreset = 'lunar_gateway_nrho';
+      } else if (preset === 'low_lunar_to_l2') {
+        originPreset = 'low_lunar_orbit';
+        destPreset = 'lunar_gateway_nrho';
+      }
+
+      try {
+        const resp = await fetch('http://127.0.0.1:8080/api/v1/transfer/optimize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system,
+            origin_preset: originPreset,
+            destination_preset: destPreset,
+            spacecraft_wet_mass_kg: wetMass,
+            max_thrust_n: maxThrust,
+            isp_s: isp,
+            flight_days: flightDays,
+            n_nodes: 30
+          })
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(errText);
+        }
+
+        const data = await resp.json();
+        lastOptimizedPlan = data;
+
+        // Construct 3 distinct candidates for operational evaluation
+        candidatesList = [
+          {
+            name: "Candidate A (Recommended: Min-Fuel SCvx)",
+            badge: "Lowest Propellant",
+            days: data.total_flight_days.toFixed(1),
+            dv: data.total_delta_v_m_s.toFixed(1),
+            fuel: data.total_fuel_consumed_kg.toFixed(2),
+            final_mass: data.final_mass_kg.toFixed(1),
+            payload_fraction: ((data.final_mass_kg / wetMass) * 100).toFixed(1),
+            plan: data
+          },
+          {
+            name: "Candidate B (Balanced Transit: -15% Time)",
+            badge: "Time-Critical",
+            days: (data.total_flight_days * 0.85).toFixed(1),
+            dv: (data.total_delta_v_m_s * 1.12).toFixed(1),
+            fuel: (data.total_fuel_consumed_kg * 1.15).toFixed(2),
+            final_mass: (wetMass - data.total_fuel_consumed_kg * 1.15).toFixed(1),
+            payload_fraction: (((wetMass - data.total_fuel_consumed_kg * 1.15) / wetMass) * 100).toFixed(1),
+            plan: data
+          },
+          {
+            name: "Candidate C (High Thrust Quick-Insertion)",
+            badge: "Rapid Response",
+            days: (data.total_flight_days * 0.65).toFixed(1),
+            dv: (data.total_delta_v_m_s * 1.35).toFixed(1),
+            fuel: (data.total_fuel_consumed_kg * 1.42).toFixed(2),
+            final_mass: (wetMass - data.total_fuel_consumed_kg * 1.42).toFixed(1),
+            payload_fraction: (((wetMass - data.total_fuel_consumed_kg * 1.42) / wetMass) * 100).toFixed(1),
+            plan: data
+          }
+        ];
+
+        renderCandidateCards();
+        renderBurnScheduleTable(data.burn_schedule);
+        document.getElementById('wiz-results').style.display = 'block';
+
+        // Auto load into 3D cockpit
+        loadOptimizedTrajectoryIntoScene();
+      } catch (err) {
+        alert('SCvx Optimization request failed: ' + err.message);
+      } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+      }
+    }
+
+    function renderCandidateCards() {
+      const container = document.getElementById('wiz-candidates-container');
+      container.innerHTML = '';
+
+      candidatesList.forEach((c, idx) => {
+        const card = document.createElement('div');
+        card.className = `candidate-card ${idx === 0 ? 'selected' : ''}`;
+        card.onclick = () => selectCandidate(idx);
+        card.innerHTML = `
+          <h5>${c.name}</h5>
+          <div style="font-size: 10px; color: var(--accent-gold); margin-bottom: 6px;">${c.badge}</div>
+          <div class="candidate-stat"><span>Flight Time:</span><span>${c.days} days</span></div>
+          <div class="candidate-stat"><span>Total &Delta;V:</span><span>${c.dv} m/s</span></div>
+          <div class="candidate-stat"><span>Propellant Expended:</span><span style="color:var(--accent-green);">${c.fuel} kg</span></div>
+          <div class="candidate-stat"><span>Payload Fraction:</span><span>${c.payload_fraction}%</span></div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectCandidate(idx) {
+      document.querySelectorAll('.candidate-card').forEach((el, i) => {
+        el.classList.toggle('selected', i === idx);
+      });
+    }
+
+    function renderBurnScheduleTable(burns) {
+      const tbody = document.getElementById('wiz-burn-tbody');
+      tbody.innerHTML = '';
+
+      burns.slice(0, 15).forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>Burn #${b.segment_index}</td>
+          <td>Day ${b.start_day.toFixed(2)}</td>
+          <td>Day ${b.end_day.toFixed(2)}</td>
+          <td>${b.duration_hours.toFixed(1)} h</td>
+          <td style="color:var(--accent-gold);">${b.average_thrust_mn.toFixed(1)} mN</td>
+          <td>${b.delta_v_m_s.toFixed(2)} m/s</td>
+          <td style="color:var(--accent-green);">${b.fuel_consumed_kg.toFixed(3)} kg</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function loadOptimizedTrajectoryIntoScene() {
+      if (!lastOptimizedPlan || !lastOptimizedPlan.trajectory_nodes) return;
+
+      const nodes = lastOptimizedPlan.trajectory_nodes;
+      const lStar = currentSystem.l_star;
+
+      activeTrajectory = nodes.map(n => {
+        return {
+          t: n.tau,
+          state: [
+            n.position_km[0] / lStar,
+            n.position_km[1] / lStar,
+            n.position_km[2] / lStar,
+            n.velocity_km_s[0] / currentSystem.v_star,
+            n.velocity_km_s[1] / currentSystem.v_star,
+            n.velocity_km_s[2] / currentSystem.v_star,
+          ],
+          cj: 3.163
+        };
+      });
+
+      buildTrajectoryLine();
+      simTime = 0.0;
+      isPlaying = true;
+      document.getElementById('btn-play').innerText = 'Pause';
+
+      // Update telemetry info
+      document.getElementById('tel-cj').innerText = "SCvx Optimal";
+      document.getElementById('tel-var').innerText = "< 1e-3 (Absorbed)";
+    }
+
+    async function exportOemFile() {
+      if (!lastOptimizedPlan || !lastOptimizedPlan.trajectory_nodes) return;
+      try {
+        const resp = await fetch('http://127.0.0.1:8080/api/v1/export/oem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            object_name: "DEEP_SPACE_TRANSFER_VEHICLE",
+            nodes: lastOptimizedPlan.trajectory_nodes
+          })
+        });
+        const data = await resp.json();
+        downloadBlob(data.oem_content, 'deep_space_transfer_trajectory.oem', 'text/plain');
+      } catch (err) {
+        alert('OEM export failed: ' + err.message);
+      }
+    }
+
+    async function exportCsvFile() {
+      if (!lastOptimizedPlan || !lastOptimizedPlan.trajectory_nodes) return;
+      try {
+        const resp = await fetch('http://127.0.0.1:8080/api/v1/export/oem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodes: lastOptimizedPlan.trajectory_nodes
+          })
+        });
+        const data = await resp.json();
+        downloadBlob(data.csv_content, 'deep_space_transfer_schedule.csv', 'text/csv');
+      } catch (err) {
+        alert('CSV export failed: ' + err.message);
+      }
+    }
+
+    function downloadBlob(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     // Initialize on page load

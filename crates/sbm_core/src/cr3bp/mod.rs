@@ -26,7 +26,9 @@ pub use dynamics::{
     state_and_stm_derivatives, variational_matrix,
 };
 pub use families::{
-    compute_lagrange_points, solve_euler_quintic, LibrationPointInfo, PeriodicOrbitBenchmark,
+    compute_lagrange_points, compute_monodromy_stability, correct_3d_halo, correct_planar_lyapunov,
+    generate_manifold_arc, solve_euler_quintic, CorrectedOrbit, LibrationPointInfo, ManifoldArc,
+    ManifoldBranch, ManifoldOptions, ManifoldType, PeriodicOrbitBenchmark,
 };
 pub use frames::{
     dcm_inertial_to_rotating, dcm_rotating_to_inertial, mat3_mul_mat3, mat3_mul_vec3,
