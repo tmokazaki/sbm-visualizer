@@ -332,3 +332,19 @@ pub enum GravitationalCentricFrame {
     /// Automatic: switches frame based on dominant gravitational attractor.
     Auto,
 }
+
+/// A massless test particle (orbital tracer / probe) moving in a centric reference frame.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CentricTestParticle {
+    /// Unique identifier
+    pub id: u64,
+    /// Name of centric anchor body (e.g. "Earth", "Moon", "Jupiter")
+    pub anchor_body_name: String,
+    /// Position relative to centric anchor body [m]
+    pub rel_position_m: [f64; 3],
+    /// Velocity relative to centric anchor body [m/s]
+    pub rel_velocity_m_s: [f64; 3],
+    /// Semi-major axis or characteristic orbital distance [m]
+    pub orbital_radius_m: f64,
+}
+

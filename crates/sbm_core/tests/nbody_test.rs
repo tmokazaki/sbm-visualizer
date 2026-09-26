@@ -776,5 +776,73 @@ fn test_centric_spatial_field_grid_high_resolution_granularity() {
     }
 }
 
+#[test]
+fn test_generate_centric_test_particles() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+
+    // 1. Earth-centric particles
+    let count = 30;
+    let particles = sbm_core::nbody::generate_centric_test_particles(&system, "Earth", count, 42).expect("Generate Earth particles");
+    assert_eq!(particles.len(), count);
+
+    for (idx, p) in particles.iter().enumerate() {
+        assert_eq!(p.anchor_body_name, "Earth");
+        assert_eq!(p.id, (idx + 1) as u64);
+
+        let r = (p.rel_position_m[0].powi(2) + p.rel_position_m[1].powi(2) + p.rel_position_m[2].powi(2)).sqrt();
+        assert!((14_000_000.0..=360_000_000.0).contains(&r), "Earth particle orbital radius must be within bounds: got {:.1} km", r / 1e3);
+
+        let v = (p.rel_velocity_m_s[0].powi(2) + p.rel_velocity_m_s[1].powi(2) + p.rel_velocity_m_s[2].powi(2)).sqrt();
+        assert!(v > 500.0 && v < 12_000.0, "Orbital speed must be physically sound: got {:.1} m/s", v);
+
+        // Dot product between r and v should be close to zero for near-circular orbit
+        let r_dot_v = (p.rel_position_m[0] * p.rel_velocity_m_s[0] + p.rel_position_m[1] * p.rel_velocity_m_s[1] + p.rel_position_m[2] * p.rel_velocity_m_s[2]) / (r * v);
+        assert!(r_dot_v.abs() < 0.25, "Near-circular orbit dot product |r·v|/(|r||v|) must be small: got {:.4}", r_dot_v);
+    }
+
+    // 2. Moon-centric particles
+    let moon_particles = sbm_core::nbody::generate_centric_test_particles(&system, "Moon", 20, 123).expect("Generate Moon particles");
+    assert_eq!(moon_particles.len(), 20);
+    for p in &moon_particles {
+        assert_eq!(p.anchor_body_name, "Moon");
+        let r = (p.rel_position_m[0].powi(2) + p.rel_position_m[1].powi(2) + p.rel_position_m[2].powi(2)).sqrt();
+        assert!((2_000_000.0..=36_000_000.0).contains(&r), "Moon particle radius bounds: got {:.1} km", r / 1e3);
+    }
+
+    // 3. Error case for invalid body
+    let err = sbm_core::nbody::generate_centric_test_particles(&system, "Pluto", 10, 1);
+    assert!(err.is_err(), "Non-existent body should return an error");
+}
+
+#[test]
+fn test_compute_centric_particle_acceleration() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    let earth = system.bodies.iter().find(|b| b.name == "Earth").expect("Earth");
+
+    // Test particle at 42,164 km (GEO radius) along X-axis from Earth
+    let r_geo = 42_164_000.0;
+    let rel_pos = [r_geo, 0.0, 0.0];
+
+    let acc = sbm_core::nbody::compute_centric_particle_acceleration(&system, "Earth", rel_pos)
+        .expect("Compute centric acceleration");
+
+    // Earth's direct central acceleration magnitude: g = G * M_earth / r^2
+    let expected_g = sbm_core::nbody::G_STANDARD * earth.mass_kg / (r_geo * r_geo);
+
+    // ax must be negative (pointing back towards Earth center at origin)
+    assert!(acc[0] < 0.0, "Acceleration X must point toward origin: got {:e}", acc[0]);
+    let diff_rel = ((-acc[0]) - expected_g).abs() / expected_g;
+    assert!(
+        diff_rel < 0.05,
+        "Centric acceleration at GEO must be dominated by Earth central pull: got {:e} vs expected {:e}",
+        -acc[0],
+        expected_g
+    );
+
+    // Verify error handling for invalid center body
+    let err = sbm_core::nbody::compute_centric_particle_acceleration(&system, "InvalidPlanet", rel_pos);
+    assert!(err.is_err(), "Invalid body name must return Err");
+}
+
 
 

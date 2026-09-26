@@ -970,6 +970,8 @@
       <div class="gmap-chip" data-space-preset="jupiter_basin"><span>📍</span> Jupiter Basin Edge (24M km)</div>
       <div class="gmap-chip" data-special="emb"><span>⚖️</span> EMB</div>
       <div class="gmap-chip" data-special="overview"><span>🔭</span> 10 AU View</div>
+      <div class="gmap-chip" id="chip-generate-orbits" style="border-color: #34d399; background: rgba(52, 211, 153, 0.2);"><span>✨</span> Centric Orbits (30)</div>
+      <div class="gmap-chip" id="chip-clear-orbits" style="border-color: #f87171; background: rgba(248, 113, 113, 0.15);"><span>🧹</span> Clear Orbits</div>
     </div>
   </div>
 
@@ -1168,6 +1170,15 @@
       <label class="layer-checkbox-item">
         <input type="checkbox" id="chk-layer-test-particles" checked> Free-Fall Geodesic Streams
       </label>
+      <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: #34d399;">
+        Centric Orbit Particles
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+        <button id="btn-gen-particles-swarm" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(56,189,248,0.2); border: 1px solid #38bdf8; color: #fff; border-radius: 4px; cursor: pointer;">✨ Swarm (30)</button>
+        <button id="btn-gen-particles-rings" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(251,191,36,0.2); border: 1px solid #fbbf24; color: #fff; border-radius: 4px; cursor: pointer;">🪐 Rings (30)</button>
+        <button id="btn-gen-particles-cislunar" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(52,211,153,0.2); border: 1px solid #34d399; color: #fff; border-radius: 4px; cursor: pointer;">🛰️ Cislunar (15)</button>
+        <button id="btn-clear-particles-menu" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(248,113,113,0.2); border: 1px solid #f87171; color: #fff; border-radius: 4px; cursor: pointer;">🧹 Clear All</button>
+      </div>
     </div>
   </div>
 
@@ -2772,6 +2783,32 @@
       }
     }
 
+    function getParticleScenePos(tp) {
+      if (tp.isCentricRel) {
+        const anchor = state.bodies.find(b => b.name === tp.anchorBodyName) || state.bodies[0];
+        const anchorScPos = (anchor.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchor.pos);
+        const cfg = getCentricFrameConfig(tp.anchorBodyName);
+        const span = cfg.spanScene || 3.6;
+        const halfSpan = cfg.halfSpanPhys_m || 1_200_000e3;
+
+        if (state.scaleMode === 'perceptual') {
+          return new THREE.Vector3(
+            anchorScPos.x + (tp.relPos[0] / halfSpan) * span,
+            anchorScPos.y + (tp.relPos[1] / halfSpan) * span,
+            anchorScPos.z + (tp.relPos[2] / halfSpan) * span
+          );
+        } else {
+          return new THREE.Vector3(
+            anchorScPos.x + tp.relPos[0] * state.sceneScale,
+            anchorScPos.y + tp.relPos[1] * state.sceneScale,
+            anchorScPos.z + tp.relPos[2] * state.sceneScale
+          );
+        }
+      } else {
+        return toSceneCoords(tp.pos);
+      }
+    }
+
     function releaseTestParticle(physPos, initialVel = [0, 0, 0]) {
       const p = {
         pos: [physPos[0], physPos[1], physPos[2]],
@@ -2779,10 +2816,11 @@
         trail: [toSceneCoords(physPos).clone()],
         maxTrail: 400,
         color: '#34d399',
-        id: Date.now() + Math.random()
+        id: Date.now() + Math.random(),
+        isCentricRel: false
       };
 
-      const sphereGeo = new THREE.SphereGeometry(0.25, 16, 16);
+      const sphereGeo = new THREE.SphereGeometry(0.18, 16, 16);
       const sphereMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
       const mesh = new THREE.Mesh(sphereGeo, sphereMat);
       mesh.position.copy(toSceneCoords(p.pos));
@@ -2805,6 +2843,228 @@
       }
     }
 
+    function generateCentricParticles(preset = 'swarm', count = 30) {
+      clearTestParticles();
+
+      const anchorName = state.activeCentricBody || 'Earth';
+      const anchor = state.bodies.find(b => b.name === anchorName) || state.bodies[0];
+      const mu = G_STANDARD * anchor.mass;
+
+      // Vivid neon color palette for multi-particle visual differentiation
+      const palette = [
+        '#38bdf8', // Cyan
+        '#34d399', // Emerald
+        '#fbbf24', // Amber
+        '#c084fc', // Purple
+        '#f87171', // Rose
+        '#2dd4bf', // Teal
+        '#f472b6', // Pink
+        '#60a5fa'  // Blue
+      ];
+
+      let rMin, rMax, baseEccMin = 0.0, baseEccMax = 0.25;
+      if (anchorName === 'Earth') {
+        if (preset === 'rings') {
+          rMin = 45_000_000.0; // 45,000 km (near GEO belt)
+          rMax = 110_000_000.0;
+          baseEccMin = 0.0;
+          baseEccMax = 0.03;
+        } else if (preset === 'cislunar') {
+          rMin = 45_000_000.0; // Periapsis: 45,000 km
+          rMax = 70_000_000.0;
+          baseEccMin = 0.72;
+          baseEccMax = 0.90;
+        } else {
+          // Swarm
+          rMin = 48_000_000.0;
+          rMax = 350_000_000.0; // Deep cislunar space (out to ~350,000 km)
+          baseEccMin = 0.02;
+          baseEccMax = 0.32;
+        }
+      } else if (anchorName === 'Moon') {
+        if (preset === 'rings') {
+          rMin = 3_000_000.0;
+          rMax = 10_000_000.0;
+          baseEccMin = 0.0;
+          baseEccMax = 0.04;
+        } else {
+          rMin = 3_500_000.0;
+          rMax = 35_000_000.0;
+          baseEccMin = 0.02;
+          baseEccMax = 0.26;
+        }
+      } else if (anchorName === 'Jupiter') {
+        if (preset === 'rings') {
+          rMin = 450_000_000.0;
+          rMax = 2_200_000_000.0;
+          baseEccMin = 0.0;
+          baseEccMax = 0.03;
+        } else {
+          rMin = 800_000_000.0;
+          rMax = 15_000_000_000.0;
+          baseEccMin = 0.02;
+          baseEccMax = 0.28;
+        }
+      } else {
+        // Sun / Heliocentric
+        rMin = 0.45 * AU_M;
+        rMax = 5.2 * AU_M;
+        baseEccMin = 0.01;
+        baseEccMax = 0.20;
+      }
+
+      // Linear Congruential Generator helper for deterministic distribution
+      let rngSeed = 42 + count * 17;
+      function rnd() {
+        rngSeed = (rngSeed * 1664525 + 1013904223) % 4294967296;
+        return rngSeed / 4294967296;
+      }
+
+      for (let i = 0; i < count; i++) {
+        const colorHex = palette[i % palette.length];
+        let rx, ry, rz, vx, vy, vz;
+
+        if (preset === 'cislunar' && anchorName === 'Earth') {
+          // Highly eccentric Earth-to-Moon cislunar transfer orbits
+          const r_peri = rMin + rnd() * (rMax - rMin);
+          const r_apo = 330_000_000.0 + rnd() * 65_000_000.0; // apogee near Moon orbit (384,400 km)
+          const a = (r_peri + r_apo) / 2.0;
+          const v_peri = Math.sqrt(2.0 * mu / r_peri - mu / a);
+
+          const theta = rnd() * 2.0 * Math.PI;
+          const inc = (rnd() - 0.5) * 0.12;
+
+          rx = r_peri * Math.cos(theta) * Math.cos(inc);
+          ry = r_peri * Math.sin(theta) * Math.cos(inc);
+          rz = r_peri * Math.sin(inc);
+
+          vx = -v_peri * Math.sin(theta) * Math.cos(inc);
+          vy = v_peri * Math.cos(theta) * Math.cos(inc);
+          vz = (rnd() - 0.5) * v_peri * 0.06;
+
+        } else {
+          // General Keplerian orbit
+          const frac = (i + rnd() * 0.5) / count;
+          const r = rMin + frac * (rMax - rMin);
+          const theta = rnd() * 2.0 * Math.PI;
+          const incAngle = (preset === 'rings') ? (rnd() - 0.5) * 0.04 : (rnd() - 0.5) * 0.32; // ±9 deg
+
+          rx = r * Math.cos(theta) * Math.cos(incAngle);
+          ry = r * Math.sin(theta) * Math.cos(incAngle);
+          rz = r * Math.sin(incAngle);
+
+          const v_circ = Math.sqrt(mu / r);
+          const ecc = baseEccMin + rnd() * (baseEccMax - baseEccMin);
+          const speed = v_circ * (1.0 + (rnd() - 0.5) * ecc);
+
+          vx = -speed * Math.sin(theta) * Math.cos(incAngle);
+          vy = speed * Math.cos(theta) * Math.cos(incAngle);
+          vz = (preset === 'rings') ? 0.0 : (rnd() - 0.5) * speed * 0.10;
+        }
+
+        // Visual representation
+        const sphereRadius = (anchorName === 'Moon') ? 0.016 : 0.024;
+        const sphereGeo = new THREE.SphereGeometry(sphereRadius, 12, 12);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
+        const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+
+        const maxTrail = 800;
+        const trailGeo = new THREE.BufferGeometry();
+        const trailMat = new THREE.LineBasicMaterial({
+          color: new THREE.Color(colorHex),
+          transparent: true,
+          opacity: 0.85,
+          depthWrite: false
+        });
+        const trailPositions = new Float32Array(maxTrail * 3);
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+        const trailLine = new THREE.Line(trailGeo, trailMat);
+        trailLine.frustumCulled = false;
+        trailLine.renderOrder = 10;
+
+        scene.add(mesh);
+        scene.add(trailLine);
+
+        // Pre-populate exact 360° closed-form Keplerian orbit ellipse (180 points)
+        const initialTrail = [];
+        const rInit = Math.hypot(rx, ry, rz);
+        // Specific angular momentum h = r x v
+        const hx = ry * vz - rz * vy;
+        const hy = rz * vx - rx * vz;
+        const hz = rx * vy - ry * vx;
+        const h = Math.hypot(hx, hy, hz) || 1e-6;
+
+        // Eccentricity vector e = (v x h) / mu - r / |r|
+        const vxh_x = vy * hz - vz * hy;
+        const vxh_y = vz * hx - vx * hz;
+        const vxh_z = vx * hy - vy * hx;
+
+        const ex = vxh_x / mu - rx / rInit;
+        const ey = vxh_y / mu - ry / rInit;
+        const ez = vxh_z / mu - rz / rInit;
+        const eccVal = Math.min(0.98, Math.hypot(ex, ey, ez));
+
+        // Periapsis unit vector P and orbital normal W
+        let Px, Py, Pz;
+        if (eccVal > 1e-4) {
+          Px = ex / eccVal; Py = ey / eccVal; Pz = ez / eccVal;
+        } else {
+          Px = rx / rInit; Py = ry / rInit; Pz = rz / rInit;
+        }
+        const Wx = hx / h, Wy = hy / h, Wz = hz / h;
+        // Transverse unit vector in orbital plane Q = W x P
+        const Qx = Wy * Pz - Wz * Py;
+        const Qy = Wz * Px - Wx * Pz;
+        const Qz = Wx * Py - Wy * Px;
+
+        // Semi-latus rectum p = h^2 / mu
+        const p_param = (h * h) / mu;
+        const ellipseSteps = 180;
+
+        for (let step = 0; step < ellipseSteps; step++) {
+          const nu = (step / ellipseSteps) * 2.0 * Math.PI;
+          const r_nu = p_param / (1.0 + eccVal * Math.cos(nu));
+          const cosNu = Math.cos(nu);
+          const sinNu = Math.sin(nu);
+
+          const px = r_nu * (cosNu * Px + sinNu * Qx);
+          const py = r_nu * (cosNu * Py + sinNu * Qy);
+          const pz = r_nu * (cosNu * Pz + sinNu * Qz);
+          initialTrail.push([px, py, pz]);
+        }
+        // Ensure seamless loop closure
+        if (initialTrail.length > 0) {
+          initialTrail.push([initialTrail[0][0], initialTrail[0][1], initialTrail[0][2]]);
+        }
+
+        const tp = {
+          id: `cp_${i}_${Date.now()}`,
+          isCentricRel: true,
+          anchorBodyName: anchor.name,
+          relPos: [rx, ry, rz],
+          relVel: [vx, vy, vz],
+          trailRel: initialTrail,
+          maxTrail: maxTrail,
+          color: colorHex,
+          mesh: mesh,
+          trailLine: trailLine,
+          trailGeo: trailGeo
+        };
+
+        const scPos = getParticleScenePos(tp);
+        mesh.position.copy(scPos);
+
+        state.testParticles.push(tp);
+      }
+
+      // Immediately synchronize particle visuals so orbits appear instantly
+      updateTestParticleVisuals();
+
+      if (state.spaceProbe) {
+        openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
+      }
+    }
+
     function stepTestParticles(dt) {
       if (state.testParticles.length === 0) return;
       const bodies = state.bodies;
@@ -2812,55 +3072,197 @@
 
       for (let i = 0; i < state.testParticles.length; i++) {
         const tp = state.testParticles[i];
-        let ax = 0, ay = 0, az = 0;
 
-        for (let j = 0; j < bodies.length; j++) {
-          const b = bodies[j];
-          const dx = b.pos[0] - tp.pos[0];
-          const dy = b.pos[1] - tp.pos[1];
-          const dz = b.pos[2] - tp.pos[2];
-          const r2 = dx * dx + dy * dy + dz * dz;
+        if (tp.isCentricRel) {
+          // 1. Centric Relative Non-Inertial Dynamics
+          const anchor = bodies.find(b => b.name === tp.anchorBodyName) || bodies[0];
+          const mu0 = G_STANDARD * anchor.mass;
+          const isHeliocentric = (anchor.name === 'Sun');
+
+          const rx = tp.relPos[0], ry = tp.relPos[1], rz = tp.relPos[2];
+          const r2 = rx * rx + ry * ry + rz * rz;
           const distSoftSq = r2 + eps2;
           const distSoft = Math.sqrt(distSoftSq);
+
+          let ax = 0, ay = 0, az = 0;
           if (distSoft > 1e-6) {
-            const factor = (G_STANDARD * b.mass) / (distSoftSq * distSoft);
-            ax += factor * dx;
-            ay += factor * dy;
-            az += factor * dz;
+            const factor0 = -mu0 / (distSoftSq * distSoft);
+            ax += factor0 * rx;
+            ay += factor0 * ry;
+            az += factor0 * rz;
           }
+
+          // Relevant Perturbers (e.g. Moon in Geocentric, Earth in Selenocentric)
+          for (let j = 0; j < bodies.length; j++) {
+            const b = bodies[j];
+            if (b.name === anchor.name) continue;
+            if (!isHeliocentric) {
+              if (b.name === 'Sun') continue; // Sun gravity excluded in planet-centric mode
+              if (!isBodyRelevantToCentricMode(b.name, anchor.name)) continue;
+            }
+
+            const mu_k = G_STANDARD * b.mass;
+            const rk_x = b.pos[0] - anchor.pos[0];
+            const rk_y = b.pos[1] - anchor.pos[1];
+            const rk_z = b.pos[2] - anchor.pos[2];
+            const rk2 = rk_x * rk_x + rk_y * rk_y + rk_z * rk_z;
+            const rk_soft_sq = rk2 + eps2;
+            const rk_soft = Math.sqrt(rk_soft_sq);
+
+            const delta_x = rk_x - rx;
+            const delta_y = rk_y - ry;
+            const delta_z = rk_z - rz;
+            const delta2 = delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
+            const delta_soft_sq = delta2 + eps2;
+            const delta_soft = Math.sqrt(delta_soft_sq);
+
+            // Direct pull
+            if (delta_soft > 1e-6) {
+              const f_dir = mu_k / (delta_soft_sq * delta_soft);
+              ax += f_dir * delta_x;
+              ay += f_dir * delta_y;
+              az += f_dir * delta_z;
+            }
+
+            // Indirect d'Alembert reflex pull of centric origin
+            if (rk_soft > 1e-6) {
+              const f_ind = -mu_k / (rk_soft_sq * rk_soft);
+              ax += f_ind * rk_x;
+              ay += f_ind * rk_y;
+              az += f_ind * rk_z;
+            }
+          }
+
+          // Symplectic Euler-Cromer integration
+          tp.relVel[0] += ax * dt;
+          tp.relVel[1] += ay * dt;
+          tp.relVel[2] += az * dt;
+
+          tp.relPos[0] += tp.relVel[0] * dt;
+          tp.relPos[1] += tp.relVel[1] * dt;
+          tp.relPos[2] += tp.relVel[2] * dt;
+
+        } else {
+          // 2. Absolute World Dynamics (Heliocentric drop probe)
+          let ax = 0, ay = 0, az = 0;
+          for (let j = 0; j < bodies.length; j++) {
+            const b = bodies[j];
+            const dx = b.pos[0] - tp.pos[0];
+            const dy = b.pos[1] - tp.pos[1];
+            const dz = b.pos[2] - tp.pos[2];
+            const r2 = dx * dx + dy * dy + dz * dz;
+            const distSoftSq = r2 + eps2;
+            const distSoft = Math.sqrt(distSoftSq);
+            if (distSoft > 1e-6) {
+              const factor = (G_STANDARD * b.mass) / (distSoftSq * distSoft);
+              ax += factor * dx;
+              ay += factor * dy;
+              az += factor * dz;
+            }
+          }
+
+          tp.vel[0] += ax * dt;
+          tp.vel[1] += ay * dt;
+          tp.vel[2] += az * dt;
+
+          tp.pos[0] += tp.vel[0] * dt;
+          tp.pos[1] += tp.vel[1] * dt;
+          tp.pos[2] += tp.vel[2] * dt;
         }
+      }
+    }
 
-        tp.vel[0] += ax * dt;
-        tp.vel[1] += ay * dt;
-        tp.vel[2] += az * dt;
+    function updateTestParticleVisuals() {
+      if (state.testParticles.length === 0) return;
+      const isVisible = (state.showTestParticles !== false);
+      const showTrails = (state.showTrails !== false) && isVisible;
 
-        tp.pos[0] += tp.vel[0] * dt;
-        tp.pos[1] += tp.vel[1] * dt;
-        tp.pos[2] += tp.vel[2] * dt;
+      for (let i = 0; i < state.testParticles.length; i++) {
+        const tp = state.testParticles[i];
+        if (tp.mesh) tp.mesh.visible = isVisible;
+        if (tp.trailLine) tp.trailLine.visible = showTrails;
 
-        const scPos = toSceneCoords(tp.pos);
-        if (tp.mesh) tp.mesh.position.copy(scPos);
+        if (!isVisible) continue;
 
-        tp.trail.push(scPos.clone());
-        if (tp.trail.length > tp.maxTrail) tp.trail.shift();
+        if (tp.isCentricRel) {
+          const anchor = state.bodies.find(b => b.name === tp.anchorBodyName) || state.bodies[0];
+          const anchorScPos = (anchor.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchor.pos);
+          const cfg = getCentricFrameConfig(tp.anchorBodyName);
+          const span = cfg.spanScene || 3.6;
+          const halfSpan = cfg.halfSpanPhys_m || 1_200_000e3;
 
-        if (tp.trailGeo) {
-          const posAttr = tp.trailGeo.attributes.position.array;
-          for (let k = 0; k < tp.trail.length; k++) {
-            posAttr[k * 3] = tp.trail[k].x;
-            posAttr[k * 3 + 1] = tp.trail[k].y;
-            posAttr[k * 3 + 2] = tp.trail[k].z;
+          let mx, my, mz;
+          if (state.scaleMode === 'perceptual') {
+            mx = anchorScPos.x + (tp.relPos[0] / halfSpan) * span;
+            my = anchorScPos.y + (tp.relPos[1] / halfSpan) * span;
+            mz = anchorScPos.z + (tp.relPos[2] / halfSpan) * span + 0.005;
+          } else {
+            mx = anchorScPos.x + tp.relPos[0] * state.sceneScale;
+            my = anchorScPos.y + tp.relPos[1] * state.sceneScale;
+            mz = anchorScPos.z + tp.relPos[2] * state.sceneScale + 0.005;
           }
-          tp.trailGeo.setDrawRange(0, tp.trail.length);
-          tp.trailGeo.attributes.position.needsUpdate = true;
+          if (tp.mesh) tp.mesh.position.set(mx, my, mz);
+
+          tp.trailRel.push([tp.relPos[0], tp.relPos[1], tp.relPos[2]]);
+          if (tp.trailRel.length > tp.maxTrail) tp.trailRel.shift();
+
+          if (showTrails && tp.trailGeo) {
+            const posAttr = tp.trailGeo.attributes.position.array;
+            const len = tp.trailRel.length;
+            for (let k = 0; k < len; k++) {
+              const rk = tp.trailRel[k];
+              let sx, sy, sz;
+              if (state.scaleMode === 'perceptual') {
+                sx = anchorScPos.x + (rk[0] / halfSpan) * span;
+                sy = anchorScPos.y + (rk[1] / halfSpan) * span;
+                sz = anchorScPos.z + (rk[2] / halfSpan) * span + 0.005;
+              } else {
+                sx = anchorScPos.x + rk[0] * state.sceneScale;
+                sy = anchorScPos.y + rk[1] * state.sceneScale;
+                sz = anchorScPos.z + rk[2] * state.sceneScale + 0.005;
+              }
+              posAttr[k * 3] = sx;
+              posAttr[k * 3 + 1] = sy;
+              posAttr[k * 3 + 2] = sz;
+            }
+            tp.trailGeo.setDrawRange(0, len);
+            tp.trailGeo.attributes.position.needsUpdate = true;
+          }
+
+        } else {
+          const scPos = toSceneCoords(tp.pos);
+          if (tp.mesh) tp.mesh.position.copy(scPos);
+
+          tp.trail.push(scPos.clone());
+          if (tp.trail.length > tp.maxTrail) tp.trail.shift();
+
+          if (showTrails && tp.trailGeo) {
+            const posAttr = tp.trailGeo.attributes.position.array;
+            const len = tp.trail.length;
+            for (let k = 0; k < len; k++) {
+              posAttr[k * 3] = tp.trail[k].x;
+              posAttr[k * 3 + 1] = tp.trail[k].y;
+              posAttr[k * 3 + 2] = tp.trail[k].z;
+            }
+            tp.trailGeo.setDrawRange(0, len);
+            tp.trailGeo.attributes.position.needsUpdate = true;
+          }
         }
       }
     }
 
     function clearTestParticles() {
       state.testParticles.forEach(tp => {
-        if (tp.mesh) scene.remove(tp.mesh);
-        if (tp.trailLine) scene.remove(tp.trailLine);
+        if (tp.mesh) {
+          scene.remove(tp.mesh);
+          if (tp.mesh.geometry) tp.mesh.geometry.dispose();
+          if (tp.mesh.material) tp.mesh.material.dispose();
+        }
+        if (tp.trailLine) {
+          scene.remove(tp.trailLine);
+          if (tp.trailGeo) tp.trailGeo.dispose();
+          if (tp.trailLine.material) tp.trailLine.material.dispose();
+        }
       });
       state.testParticles = [];
       if (state.spaceProbe) {
@@ -2923,6 +3325,7 @@
             color: cfg.color,
             transparent: true,
             opacity: cfg.opacity,
+            depthWrite: false,
             side: THREE.DoubleSide
           });
           const disc = new THREE.Mesh(discGeo, discMat);
@@ -3348,6 +3751,16 @@
         if (bName) {
           const relevant = isBodyRelevantToCentricMode(bName, centricBodyName);
           mesh.visible = relevant;
+          if (isPlanetCentric && bName === centricBodyName) {
+            if (bName === 'Earth') mesh.scale.setScalar(0.28);
+            else if (bName === 'Moon') mesh.scale.setScalar(0.35);
+            else if (bName === 'Jupiter') mesh.scale.setScalar(0.40);
+            else mesh.scale.setScalar(0.35);
+          } else if (isPlanetCentric && bName === 'Moon' && centricBodyName === 'Earth') {
+            mesh.scale.setScalar(0.45);
+          } else {
+            mesh.scale.setScalar(1.0);
+          }
         }
       });
 
@@ -4133,6 +4546,10 @@
             state.specialCameraFocus = null;
             state.cameraFollowIndex = -1;
             handleSpacePointPreset(chip.dataset.spacePreset);
+          } else if (chip.id === 'chip-generate-orbits') {
+            generateCentricParticles('swarm', 30);
+          } else if (chip.id === 'chip-clear-orbits') {
+            clearTestParticles();
           }
         });
       });
@@ -4680,6 +5097,7 @@
       if (state.spaceProbe) {
         updateSpaceProbeVisuals();
       }
+      updateTestParticleVisuals();
 
       // Dynamic Gravitational Centric View update & tracking
       checkAndUpdateCentricFrame();
@@ -4921,6 +5339,13 @@
         const magVal = document.getElementById('magnifier-val');
         if (magVal) magVal.innerText = `${state.perturbationMagnifier.toLocaleString()}x`;
       }
+      if (params.get('speed')) {
+        state.timeMultiplier = parseFloat(params.get('speed'));
+        const slider = document.getElementById('time-speed-slider');
+        if (slider) slider.value = state.timeMultiplier;
+        const speedVal = document.getElementById('time-speed-val');
+        if (speedVal) speedVal.innerText = `${state.timeMultiplier}x`;
+      }
       loadPreset(state.presetId);
 
       if (params.get('focus')) {
@@ -4969,6 +5394,16 @@
         const cBody = params.get('centric');
         state.gravitationalFrameMode = 'manual';
         setGravitationalCentricBody(cBody, true);
+      }
+
+      if (params.get('particles')) {
+        const pVal = params.get('particles');
+        let preset = 'swarm';
+        let count = 30;
+        if (pVal === 'cislunar') preset = 'cislunar';
+        else if (pVal === 'rings') preset = 'rings';
+        else if (!isNaN(parseInt(pVal))) count = parseInt(pVal);
+        generateCentricParticles(preset, count);
       }
 
       // Google Maps View Mode setup
@@ -5267,6 +5702,24 @@
             if (tp.trailLine) tp.trailLine.visible = state.showTestParticles;
           });
         });
+      }
+
+      // Centric Orbit Particle Buttons in Layers Menu
+      const btnSwarm = document.getElementById('btn-gen-particles-swarm');
+      if (btnSwarm) {
+        btnSwarm.addEventListener('click', () => generateCentricParticles('swarm', 30));
+      }
+      const btnRings = document.getElementById('btn-gen-particles-rings');
+      if (btnRings) {
+        btnRings.addEventListener('click', () => generateCentricParticles('rings', 30));
+      }
+      const btnCislunar = document.getElementById('btn-gen-particles-cislunar');
+      if (btnCislunar) {
+        btnCislunar.addEventListener('click', () => generateCentricParticles('cislunar', 15));
+      }
+      const btnClearMenu = document.getElementById('btn-clear-particles-menu');
+      if (btnClearMenu) {
+        btnClearMenu.addEventListener('click', clearTestParticles);
       }
 
       // Initialize search omnibox
