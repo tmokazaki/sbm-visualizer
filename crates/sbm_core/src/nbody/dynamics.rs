@@ -752,13 +752,36 @@ pub fn compute_spatial_field_grid(
     grid
 }
 
+/// Determines if a celestial body is relevant to the active gravitational centric frame.
+/// In planet-centric mode, unindependent external celestial bodies (such as distant planets or the Sun)
+/// are filtered out so that only the local gravitational subsystem is computed.
+pub fn is_body_relevant_to_centric(body_name: &str, centric_body_name: &str) -> bool {
+    if centric_body_name.eq_ignore_ascii_case("Sun") {
+        return true;
+    }
+    if centric_body_name.eq_ignore_ascii_case("Earth") {
+        return body_name.eq_ignore_ascii_case("Earth") || body_name.eq_ignore_ascii_case("Moon");
+    }
+    if centric_body_name.eq_ignore_ascii_case("Moon") {
+        return body_name.eq_ignore_ascii_case("Moon") || body_name.eq_ignore_ascii_case("Earth");
+    }
+    if centric_body_name.eq_ignore_ascii_case("Jupiter") {
+        return body_name.eq_ignore_ascii_case("Jupiter")
+            || body_name.eq_ignore_ascii_case("Io")
+            || body_name.eq_ignore_ascii_case("Europa")
+            || body_name.eq_ignore_ascii_case("Ganymede")
+            || body_name.eq_ignore_ascii_case("Callisto");
+    }
+    body_name.eq_ignore_ascii_case(centric_body_name)
+}
+
 /// Computes a high-resolution gravitational field grid centered dynamically on a specific celestial body.
 ///
 /// Pins the center of the sampling bounding box to the target body's position $[x_0, y_0, z_0]$
 /// and spans $[x_0 \pm \text{half\_span\_m}, y_0 \pm \text{half\_span\_m}]$.
 ///
-/// In planet-centric gravity modes (non-Heliocentric), the Sun's gravity is ignored to isolate
-/// the planet's local gravity well and satellite interactions from the overwhelming solar monopole pull.
+/// In planet-centric gravity modes (non-Heliocentric), the Sun's gravity is ignored and
+/// unindependent external bodies are removed to isolate the planet's local gravity well and satellite interactions.
 pub fn compute_centric_spatial_field_grid(
     system: &NBodySystem,
     center_body_name: &str,
@@ -791,7 +814,7 @@ pub fn compute_centric_spatial_field_grid(
             bodies: system
                 .bodies
                 .iter()
-                .filter(|b| !b.name.eq_ignore_ascii_case("Sun"))
+                .filter(|b| is_body_relevant_to_centric(&b.name, center_body_name))
                 .cloned()
                 .collect(),
             ..system.clone()

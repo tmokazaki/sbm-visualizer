@@ -2134,6 +2134,7 @@
               opacity: 0.35
             });
             const ringLine = new THREE.Line(ringGeo, ringMat);
+            ringLine.userData = { isSolarOrbitRing: true, bodyIndex: idx, bodyName: b.name };
             scene.add(ringLine);
             trailLines.push(ringLine);
           }
@@ -2226,6 +2227,7 @@
           opacity: 0.85
         });
         const trailLine = new THREE.Line(trailGeo, trailMat);
+        trailLine.userData = { isTrail: true, bodyIndex: idx, bodyName: b.name };
         scene.add(trailLine);
         trailLines.push(trailLine);
         trailGeometries.push(trailGeo);
@@ -2298,6 +2300,28 @@
     // SPATIAL GRAVITATIONAL FIELD PHYSICS & BASIN TELEMETRY
     // =========================================================
 
+    function isBodyRelevantToCentricMode(bodyName, centricBodyName) {
+      if (!centricBodyName || centricBodyName === 'Sun') {
+        return true; // Heliocentric mode includes all celestial bodies
+      }
+      if (centricBodyName === 'Earth') {
+        return bodyName === 'Earth' || bodyName === 'Moon';
+      }
+      if (centricBodyName === 'Moon') {
+        return bodyName === 'Moon' || bodyName === 'Earth';
+      }
+      if (centricBodyName === 'Jupiter') {
+        return bodyName === 'Jupiter' || bodyName === 'Io' || bodyName === 'Europa' || bodyName === 'Ganymede' || bodyName === 'Callisto';
+      }
+      if (centricBodyName === 'Venus') {
+        return bodyName === 'Venus';
+      }
+      if (centricBodyName === 'Mars') {
+        return bodyName === 'Mars';
+      }
+      return bodyName === centricBodyName;
+    }
+
     function computeSpatialFieldAt(physPos, ignoreSun = (state.activeCentricBody && state.activeCentricBody !== 'Sun')) {
       const bodies = state.bodies;
       let netAccel = [0, 0, 0];
@@ -2311,6 +2335,9 @@
       for (let j = 0; j < bodies.length; j++) {
         const b = bodies[j];
         if (ignoreSun && b.name === 'Sun') continue;
+        if (state.activeCentricBody && state.activeCentricBody !== 'Sun') {
+          if (!isBodyRelevantToCentricMode(b.name, state.activeCentricBody)) continue;
+        }
 
         const dx = b.pos[0] - physPos[0];
         const dy = b.pos[1] - physPos[1];
@@ -2390,6 +2417,9 @@
       for (let j = 0; j < bodies.length; j++) {
         const b = bodies[j];
         if (ignoreSun && b.name === 'Sun') continue;
+        if (state.activeCentricBody && state.activeCentricBody !== 'Sun') {
+          if (!isBodyRelevantToCentricMode(b.name, state.activeCentricBody)) continue;
+        }
 
         const rx = b.pos[0] - physPos[0];
         const ry = b.pos[1] - physPos[1];
@@ -2851,6 +2881,7 @@
         side: THREE.DoubleSide
       });
       const sunDisc = new THREE.Mesh(sunGeo, sunMat);
+      sunDisc.userData = { isSunDisc: true, bodyName: 'Sun' };
       sunDisc.position.set(0, 0, -0.05);
       gravitationalBasinsGroup.add(sunDisc);
 
@@ -2950,7 +2981,8 @@
           desc: 'Earth Dominance Basin (Solar gravity ignored · Cislunar Earth-Moon gravity well)',
           spanScene: 3.6,
           halfSpanPhys_m: 1_200_000e3, // 1.2M km covers Chebotarev (259k km), Moon orbit (384k km), Hill (1.5M km)
-          baseArrowLen: 0.22,
+          gridSteps: 32, // 32x32 = 1,024 vectors (fine micro-granularity: ~77,419 km step)
+          baseArrowLen: 0.13,
           arrowColor: 0x38bdf8,
           sensitivity: 50.0,
           contourRadiiScene: [0.25, 0.5, 0.9, 1.4, 1.9, 2.7]
@@ -2962,7 +2994,8 @@
           desc: 'Moon Dominance Basin (Solar gravity ignored · Lunar gravity well)',
           spanScene: 1.4,
           halfSpanPhys_m: 100_000e3,  // 100,000 km covers lunar surface, neutral boundary, and L1
-          baseArrowLen: 0.10,
+          gridSteps: 32, // 32x32 = 1,024 vectors (fine micro-granularity: ~6,451 km step)
+          baseArrowLen: 0.065,
           arrowColor: 0xffffff,
           sensitivity: 100.0,
           contourRadiiScene: [0.15, 0.3, 0.55, 0.8, 1.1]
@@ -2974,7 +3007,8 @@
           desc: 'Jovian Dominance Basin (Solar gravity ignored · Jovian system gravity well)',
           spanScene: 7.5,
           halfSpanPhys_m: 32_000_000e3, // 32M km
-          baseArrowLen: 0.38,
+          gridSteps: 30, // 30x30 = 900 vectors
+          baseArrowLen: 0.28,
           arrowColor: 0xfb923c,
           sensitivity: 20.0,
           contourRadiiScene: [0.8, 1.8, 3.2, 4.8, 6.2]
@@ -2986,7 +3020,8 @@
           desc: 'Venus Dominance Basin (Solar gravity ignored · Venusian gravity well)',
           spanScene: 2.8,
           halfSpanPhys_m: 600_000e3,
-          baseArrowLen: 0.18,
+          gridSteps: 28,
+          baseArrowLen: 0.12,
           arrowColor: 0xfef08a,
           sensitivity: 50.0,
           contourRadiiScene: [0.3, 0.7, 1.2, 1.8, 2.4]
@@ -2998,7 +3033,8 @@
           desc: 'Mars Dominance Basin (Solar gravity ignored · Martian gravity well)',
           spanScene: 2.5,
           halfSpanPhys_m: 500_000e3,
-          baseArrowLen: 0.16,
+          gridSteps: 28,
+          baseArrowLen: 0.12,
           arrowColor: 0xf87171,
           sensitivity: 50.0,
           contourRadiiScene: [0.25, 0.6, 1.1, 1.6, 2.2]
@@ -3011,6 +3047,7 @@
           desc: 'Interplanetary Solar System (Sun Dominant Gravitational Expanse)',
           spanScene: 32.0,
           halfSpanPhys_m: 5.5 * AU_M,
+          gridSteps: 22, // 22x22 = 484 vectors
           baseArrowLen: 0.80,
           arrowColor: 0xfbbf24,
           sensitivity: 500.0,
@@ -3071,7 +3108,16 @@
       // 5. Reinitialize Equipotential Contours for this centric frame
       initEquipotentialContours();
 
-      // 6. Camera jump if requested
+      // 6. Reinitialize high-resolution spatial vector grid for this centric frame
+      initSpatialVectorGrid(cfg.gridSteps);
+
+      // 7. Filter visibility of unindependent external objects
+      updateCentricVisibility();
+
+      // 8. Update force vectors & tethers for relevant bodies
+      updateForceVectorsAndTethers();
+
+      // 9. Camera jump if requested
       if (jumpCamera) {
         if (bodyName === 'Sun') {
           controls.target.set(0, 0, 0);
@@ -3183,25 +3229,29 @@
       }
     }
 
-    function initSpatialVectorGrid() {
+    function initSpatialVectorGrid(steps = null) {
       if (spatialVectorGridGroup) scene.remove(spatialVectorGridGroup);
       spatialVectorGridGroup = new THREE.Group();
 
-      const span = 32.0; // initial placeholder
-      const steps = 22; // 22 x 22 grid = 484 vector arrows
-      const dStep = (span * 2) / (steps - 1);
+      const cfg = getCentricFrameConfig(state.activeCentricBody);
+      const gridSteps = steps || cfg.gridSteps || 22;
+      const span = cfg.spanScene || 32.0;
+      const dStep = (span * 2) / (gridSteps - 1);
+      const baseLen = cfg.baseArrowLen || 0.8;
+      const headLen = baseLen * 0.32;
+      const headWidth = baseLen * 0.18;
 
-      for (let i = 0; i < steps; i++) {
+      for (let i = 0; i < gridSteps; i++) {
         const x = -span + i * dStep;
-        for (let j = 0; j < steps; j++) {
+        for (let j = 0; j < gridSteps; j++) {
           const y = -span + j * dStep;
           const arrow = new THREE.ArrowHelper(
             new THREE.Vector3(0, 1, 0),
             new THREE.Vector3(x, y, 0),
-            0.8,
-            0x38bdf8,
-            0.25,
-            0.12
+            baseLen,
+            cfg.arrowColor || 0x38bdf8,
+            headLen,
+            headWidth
           );
           arrow.userData = { gridI: i, gridJ: j };
           spatialVectorGridGroup.add(arrow);
@@ -3219,12 +3269,16 @@
       if (gridFrameCounter % 2 !== 0) return;
 
       const cfg = getCentricFrameConfig(state.activeCentricBody);
+      const steps = cfg.gridSteps || 22;
+      if (!spatialVectorGridGroup.children || spatialVectorGridGroup.children.length !== steps * steps) {
+        initSpatialVectorGrid(steps);
+      }
+
       const anchorBody = state.bodies.find(b => b.name === cfg.bodyName) || state.bodies[0];
       const scCenter = (anchorBody.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchorBody.pos);
       const anchorPhysPos = (anchorBody.name === 'Sun') ? [0, 0, 0] : anchorBody.pos;
 
       const span = cfg.spanScene;
-      const steps = 22;
       const dStep = (span * 2) / (steps - 1);
       const invScale = 1.0 / (state.sceneScale || 1.0);
 
@@ -3264,11 +3318,11 @@
             const dir = new THREE.Vector3(field.netAccel[0], field.netAccel[1], 0).normalize();
             arrow.setDirection(dir);
 
-            const maxL = cfg.baseArrowLen * 1.6;
+            const maxL = cfg.baseArrowLen * 1.5;
             const minL = cfg.baseArrowLen * 0.35;
             const scaledL = cfg.baseArrowLen * (0.5 + Math.log10(1.0 + gMag * cfg.sensitivity) * 0.35);
             const len = Math.min(maxL, Math.max(minL, scaledL));
-            arrow.setLength(len, len * 0.35, len * 0.2);
+            arrow.setLength(len, len * 0.32, len * 0.18);
 
             // Adaptive color: primary body color when dominant; saddle/competing color in transition zones
             if (field.dominantBody && field.dominantBody.name === cfg.bodyName) {
@@ -3281,6 +3335,70 @@
             }
           }
         }
+      }
+    }
+
+    function updateCentricVisibility() {
+      const isPlanetCentric = (state.activeCentricBody && state.activeCentricBody !== 'Sun');
+      const centricBodyName = state.activeCentricBody || 'Sun';
+
+      // 1. Celestial Body Meshes
+      bodyMeshes.forEach(mesh => {
+        const bName = mesh.userData ? mesh.userData.name : null;
+        if (bName) {
+          const relevant = isBodyRelevantToCentricMode(bName, centricBodyName);
+          mesh.visible = relevant;
+        }
+      });
+
+      // 2. Velocity Vector Arrows
+      state.bodies.forEach((b, idx) => {
+        if (vectorArrows[idx]) {
+          const relevant = isBodyRelevantToCentricMode(b.name, centricBodyName);
+          vectorArrows[idx].visible = relevant && state.showVectors;
+        }
+      });
+
+      // 3. Hill Spheres (Roche Lobes)
+      hillSphereMeshes.forEach(h => {
+        const b = state.bodies[h.bodyIndex];
+        if (b) {
+          const relevant = isBodyRelevantToCentricMode(b.name, centricBodyName);
+          h.mesh.visible = relevant && state.showHillSpheres;
+        }
+      });
+
+      // 4. Solar Orbit Guide Rings & Trails
+      trailLines.forEach((line) => {
+        if (line.userData && line.userData.isSolarOrbitRing) {
+          line.visible = (!isPlanetCentric) && state.showTrails;
+        } else if (line.userData && line.userData.isTrail) {
+          const b = state.bodies[line.userData.bodyIndex];
+          const relevant = b ? isBodyRelevantToCentricMode(b.name, centricBodyName) : true;
+          line.visible = relevant && state.showTrails;
+        }
+      });
+
+      // 5. Gravitational Basins & Neutral Boundary Rings
+      if (gravitationalBasinsGroup) {
+        gravitationalBasinsGroup.children.forEach(child => {
+          if (child.userData && child.userData.isSunDisc) {
+            child.visible = (!isPlanetCentric) && state.showBasins;
+          } else if (child.userData && child.userData.bodyName) {
+            const relevant = isBodyRelevantToCentricMode(child.userData.bodyName, centricBodyName);
+            child.visible = relevant && state.showBasins;
+          }
+        });
+      }
+
+      // 6. Ecliptic Grid (PolarGridHelper around Sun)
+      if (eclipticGrid) {
+        eclipticGrid.visible = (!isPlanetCentric) && state.showGrid;
+      }
+
+      // 7. Spacetime Curvature Funnel Mesh
+      if (spacetimeMesh) {
+        spacetimeMesh.visible = (!isPlanetCentric) && state.showSpacetime;
       }
     }
 
@@ -3532,7 +3650,7 @@
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(bodyMeshes);
+        const intersects = raycaster.intersectObjects(bodyMeshes.filter(m => m.visible));
 
         if (intersects.length > 0) {
           const idx = intersects[0].object.userData.bodyIndex;
@@ -3666,8 +3784,15 @@
       for (let i = 0; i < state.bodies.length; i++) {
         const pin = pins[i];
         if (!pin) continue;
+        const b = state.bodies[i];
+        const isPlanetCentric = (state.activeCentricBody && state.activeCentricBody !== 'Sun');
+        if (isPlanetCentric && !isBodyRelevantToCentricMode(b.name, state.activeCentricBody)) {
+          pin.style.display = 'none';
+          continue;
+        }
+
         const mesh = bodyMeshes[i];
-        if (!mesh) {
+        if (!mesh || !mesh.visible) {
           pin.style.display = 'none';
           continue;
         }
@@ -4112,7 +4237,19 @@
           bar.innerText = `Focus: ${sel.name} • (${xAU}, ${yAU}) AU`;
         }
       }
-      tText.innerText = `T + ${(state.time_s / DAY_S).toFixed(2)} d`;
+      const totalSec = Math.floor(state.time_s);
+      const days = Math.floor(totalSec / 86400);
+      const remSec1 = totalSec % 86400;
+      const hours = Math.floor(remSec1 / 3600);
+      const remSec2 = remSec1 % 3600;
+      const minutes = Math.floor(remSec2 / 60);
+      const seconds = remSec2 % 60;
+
+      if (state.activeCentricBody !== 'Sun') {
+        tText.innerText = `T + ${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s (${(state.time_s / DAY_S).toFixed(3)} d)`;
+      } else {
+        tText.innerText = `T + ${(state.time_s / DAY_S).toFixed(2)} d`;
+      }
     }
 
     // --- Dynamic Spacetime Curvature Potential Funnels ---
@@ -4174,12 +4311,21 @@
       const bodyI = state.bodies[selIdx];
       const posI = toSceneCoords(bodyI.pos);
 
+      const isPlanetCentric = (state.activeCentricBody && state.activeCentricBody !== 'Sun');
+      if (isPlanetCentric && !isBodyRelevantToCentricMode(bodyI.name, state.activeCentricBody)) return;
+
       let netForce = [0, 0, 0];
       const forces = [];
 
       for (let j = 0; j < state.bodies.length; j++) {
         if (j === selIdx) continue;
         const bodyJ = state.bodies[j];
+        if (isPlanetCentric) {
+          if (bodyJ.name === 'Sun' || !isBodyRelevantToCentricMode(bodyJ.name, state.activeCentricBody)) {
+            continue;
+          }
+        }
+
         const dx = bodyJ.pos[0] - bodyI.pos[0];
         const dy = bodyJ.pos[1] - bodyI.pos[1];
         const dz = bodyJ.pos[2] - bodyI.pos[2];
@@ -4226,19 +4372,22 @@
       // Draw 3D Force Vectors
       if (state.showForces && forces.length > 0) {
         const sunForce = forces.find(f => f.isSun);
-        const maxSunF = sunForce ? sunForce.fMag : 1.0;
-        const primaryArrowLen = 4.2;
+        const maxRefF = sunForce ? sunForce.fMag : Math.max(...forces.map(f => f.fMag));
+        const primaryArrowLen = isPlanetCentric ? 2.2 : 4.2;
 
         forces.forEach(f => {
           let arrowLen = 1.0;
           if (f.isSun) {
             arrowLen = primaryArrowLen;
-          } else {
-            const scaledRatio = (f.fMag / maxSunF) * state.perturbationMagnifier;
+          } else if (sunForce) {
+            const scaledRatio = (f.fMag / (maxRefF || 1.0)) * state.perturbationMagnifier;
             arrowLen = Math.min(6.5, Math.max(0.65, primaryArrowLen * scaledRatio));
+          } else {
+            const ratio = f.fMag / (maxRefF || 1.0);
+            arrowLen = Math.min(primaryArrowLen * 1.5, Math.max(0.4, primaryArrowLen * ratio));
           }
 
-          const arrow = new THREE.ArrowHelper(f.dir, posI, arrowLen, f.color, 0.45, 0.25);
+          const arrow = new THREE.ArrowHelper(f.dir, posI, arrowLen, f.color, isPlanetCentric ? 0.25 : 0.45, isPlanetCentric ? 0.14 : 0.25);
           scene.add(arrow);
           forceVectorArrows.push(arrow);
         });
@@ -4247,7 +4396,7 @@
         const netFMag = Math.sqrt(netForce[0]**2 + netForce[1]**2 + netForce[2]**2);
         if (netFMag > 1e-12) {
           const netDir = new THREE.Vector3(netForce[0], netForce[1], netForce[2]).normalize();
-          const netArrow = new THREE.ArrowHelper(netDir, posI, primaryArrowLen * 1.15, 0x22c55e, 0.55, 0.3);
+          const netArrow = new THREE.ArrowHelper(netDir, posI, primaryArrowLen * 1.15, 0x22c55e, isPlanetCentric ? 0.3 : 0.55, isPlanetCentric ? 0.18 : 0.3);
           scene.add(netArrow);
           forceVectorArrows.push(netArrow);
         }
@@ -4329,7 +4478,18 @@
       document.getElementById('hud-lin-mom').innerText = `${inv.pMag.toExponential(3)} kg·m/s`;
       document.getElementById('hud-ang-mom').innerText = `${inv.lMag.toExponential(3)} kg·m²/s`;
 
-      document.getElementById('sim-time-text').innerText = `${(state.time_s / DAY_S).toFixed(2)} days (${(state.time_s / YEAR_S).toFixed(3)} yr)`;
+      const totalSec = Math.floor(state.time_s);
+      const days = Math.floor(totalSec / 86400);
+      const remSec1 = totalSec % 86400;
+      const hours = Math.floor(remSec1 / 3600);
+      const remSec2 = remSec1 % 3600;
+      const minutes = Math.floor(remSec2 / 60);
+
+      if (state.activeCentricBody !== 'Sun') {
+        document.getElementById('sim-time-text').innerText = `${days}d ${hours}h ${minutes}m (${(state.time_s / DAY_S).toFixed(3)} d)`;
+      } else {
+        document.getElementById('sim-time-text').innerText = `${(state.time_s / DAY_S).toFixed(2)} days (${(state.time_s / YEAR_S).toFixed(3)} yr)`;
+      }
       document.getElementById('sim-steps-text').innerText = state.step_count.toLocaleString();
 
       // 2. Telemetry of selected body
@@ -4427,7 +4587,17 @@
       if (state.isPlaying && state.bodies.length > 0) {
         let baseDt = 100.0;
         if (state.presetId === 'solar_system' || state.presetId === 'inner_solar_system_jupiter') {
-          baseDt = 3600.0 * 2; // 2 hours per step
+          if (state.activeCentricBody === 'Earth') {
+            baseDt = 120.0; // 2 minutes per step for smooth cislunar integration
+          } else if (state.activeCentricBody === 'Moon') {
+            baseDt = 30.0; // 30 seconds per step for lunar integration
+          } else if (state.activeCentricBody === 'Jupiter') {
+            baseDt = 300.0; // 5 minutes per step for Jovian system
+          } else if (state.activeCentricBody === 'Venus' || state.activeCentricBody === 'Mars') {
+            baseDt = 120.0;
+          } else {
+            baseDt = 3600.0 * 2; // 2 hours per step in Heliocentric mode
+          }
         } else if (state.presetId === 'laplace_resonance') {
           baseDt = 300.0;
         } else if (state.presetId === 'figure_eight') {
@@ -4532,6 +4702,7 @@
         controls.target.lerp(targetPos, 0.08);
       }
 
+      updateCentricVisibility();
       controls.update();
       renderer.render(scene, camera);
       updateHUD();
@@ -4618,14 +4789,14 @@
       state.showSpacetime = !state.showSpacetime;
       e.target.innerText = `Spacetime: ${state.showSpacetime ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', state.showSpacetime);
-      if (spacetimeMesh) spacetimeMesh.visible = state.showSpacetime;
+      updateCentricVisibility();
     });
 
     document.getElementById('btn-toggle-hills').addEventListener('click', (e) => {
       state.showHillSpheres = !state.showHillSpheres;
       e.target.innerText = `Hill Spheres: ${state.showHillSpheres ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', state.showHillSpheres);
-      hillSphereMeshes.forEach(h => h.mesh.visible = state.showHillSpheres);
+      updateCentricVisibility();
     });
 
     document.getElementById('btn-toggle-gr').addEventListener('click', (e) => {
@@ -4638,21 +4809,21 @@
       state.showTrails = !state.showTrails;
       e.target.innerText = `Trails: ${state.showTrails ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', state.showTrails);
-      trailLines.forEach(l => l.visible = state.showTrails);
+      updateCentricVisibility();
     });
 
     document.getElementById('btn-toggle-vel').addEventListener('click', (e) => {
       state.showVectors = !state.showVectors;
       e.target.innerText = `Vectors: ${state.showVectors ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', state.showVectors);
-      vectorArrows.forEach(a => a.visible = state.showVectors);
+      updateCentricVisibility();
     });
 
     document.getElementById('btn-toggle-grid').addEventListener('click', (e) => {
       state.showGrid = !state.showGrid;
       e.target.innerText = `Grid: ${state.showGrid ? 'ON' : 'OFF'}`;
       e.target.classList.toggle('active', state.showGrid);
-      if (eclipticGrid) eclipticGrid.visible = state.showGrid;
+      updateCentricVisibility();
     });
 
     document.getElementById('body-selector-dropdown').addEventListener('change', (e) => {
@@ -4769,7 +4940,7 @@
         state.showBasins = params.get('basins') === '1';
         const chk = document.getElementById('chk-layer-basins');
         if (chk) chk.checked = state.showBasins;
-        if (gravitationalBasinsGroup) gravitationalBasinsGroup.visible = state.showBasins;
+        updateCentricVisibility();
       }
       if (params.get('vector_grid')) {
         state.showVectorGrid = params.get('vector_grid') === '1';
@@ -4807,6 +4978,7 @@
       } else {
         state.viewMode = 'google_maps';
       }
+      setViewMode(state.viewMode);
 
       // Toggle View Mode (Google Maps vs Full Cockpit)
       const toggleViewBtn = document.getElementById('btn-toggle-view-mode');
@@ -5058,7 +5230,7 @@
       if (chkBasins) {
         chkBasins.addEventListener('change', (e) => {
           state.showBasins = e.target.checked;
-          if (gravitationalBasinsGroup) gravitationalBasinsGroup.visible = state.showBasins;
+          updateCentricVisibility();
         });
       }
 

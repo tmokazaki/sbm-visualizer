@@ -3,9 +3,9 @@ use sbm_core::nbody::{
     compute_earth_moon_barycenter, compute_gravitational_spheres, compute_laplace_resonance_metrics,
     compute_pairwise_forces, compute_spatial_field_grid, compute_spatial_field_point,
     compute_tidal_tensor, compute_trojan_libration_deg, create_preset, extract_osculating_elements,
-    propagate_trajectory, step_hermite4, step_leapfrog, step_system, CelestialBody,
-    GravitationalCentricFrame, IntegratorType, NBodySystem, PresetId, ASTRONOMICAL_UNIT_M,
-    G_STANDARD, JULIAN_DAY_S,
+    is_body_relevant_to_centric, propagate_trajectory, step_hermite4, step_leapfrog, step_system,
+    CelestialBody, GravitationalCentricFrame, IntegratorType, NBodySystem, PresetId,
+    ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S,
 };
 
 #[test]
@@ -705,5 +705,76 @@ fn test_centric_spatial_field_grid_heliocentric_includes_sun() {
         );
     }
 }
+
+#[test]
+fn test_is_body_relevant_to_centric() {
+    // Heliocentric mode includes all celestial bodies
+    assert!(is_body_relevant_to_centric("Sun", "Sun"));
+    assert!(is_body_relevant_to_centric("Earth", "Sun"));
+    assert!(is_body_relevant_to_centric("Moon", "Sun"));
+    assert!(is_body_relevant_to_centric("Jupiter", "Sun"));
+    assert!(is_body_relevant_to_centric("Mars", "Sun"));
+
+    // Geocentric mode includes only Earth and Moon
+    assert!(is_body_relevant_to_centric("Earth", "Earth"));
+    assert!(is_body_relevant_to_centric("Moon", "Earth"));
+    assert!(!is_body_relevant_to_centric("Sun", "Earth"));
+    assert!(!is_body_relevant_to_centric("Jupiter", "Earth"));
+    assert!(!is_body_relevant_to_centric("Mars", "Earth"));
+    assert!(!is_body_relevant_to_centric("Venus", "Earth"));
+
+    // Selenocentric mode includes only Moon and Earth
+    assert!(is_body_relevant_to_centric("Moon", "Moon"));
+    assert!(is_body_relevant_to_centric("Earth", "Moon"));
+    assert!(!is_body_relevant_to_centric("Sun", "Moon"));
+    assert!(!is_body_relevant_to_centric("Jupiter", "Moon"));
+
+    // Jovicentric mode includes Jupiter and Jovian satellites
+    assert!(is_body_relevant_to_centric("Jupiter", "Jupiter"));
+    assert!(is_body_relevant_to_centric("Ganymede", "Jupiter"));
+    assert!(!is_body_relevant_to_centric("Sun", "Jupiter"));
+    assert!(!is_body_relevant_to_centric("Earth", "Jupiter"));
+}
+
+#[test]
+fn test_centric_spatial_field_grid_high_resolution_granularity() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    // 32x32 = 1,024 vector lattice in Earth cislunar space (±1,200,000 km)
+    let half_span_m = 1_200_000_000.0;
+    let resolution = 32;
+    let grid = compute_centric_spatial_field_grid(&system, "Earth", half_span_m, resolution).unwrap();
+
+    assert_eq!(grid.len(), 32 * 32);
+
+    // Physical granularity: delta x = 2 * 1,200,000 / 31 ~ 77,419 km
+    let delta_x_km = (2.0 * half_span_m / ((resolution - 1) as f64)) / 1e3;
+    assert!((delta_x_km - 77419.35).abs() < 1.0, "Physical step size must be ~77,419 km: got {:.2}", delta_x_km);
+
+    for pt in &grid {
+        assert!(pt.acceleration_magnitude > 0.0, "Acceleration magnitude must be non-zero");
+        assert!(!pt.acceleration_magnitude.is_nan(), "Acceleration magnitude must not be NaN");
+        assert!(!pt.acceleration_magnitude.is_infinite(), "Acceleration magnitude must be finite");
+
+        // Verify only relevant bodies (Earth and Moon) are in the contributions list
+        assert_eq!(pt.contributions.len(), 2, "Only Earth and Moon should be present in Geocentric mode");
+        assert!(pt.contributions.iter().any(|c| c.body_name == "Earth"));
+        assert!(pt.contributions.iter().any(|c| c.body_name == "Moon"));
+        assert!(pt.contributions.iter().all(|c| c.body_name != "Sun" && c.body_name != "Jupiter" && c.body_name != "Mars"));
+    }
+
+    // Selenocentric high-resolution grid (32x32 = 1,024 vectors across ±100,000 km)
+    let moon_half_span_m = 100_000_000.0;
+    let moon_grid = compute_centric_spatial_field_grid(&system, "Moon", moon_half_span_m, resolution).unwrap();
+    assert_eq!(moon_grid.len(), 1024);
+
+    let moon_delta_x_km = (2.0 * moon_half_span_m / ((resolution - 1) as f64)) / 1e3;
+    assert!((moon_delta_x_km - 6451.61).abs() < 1.0, "Moon micro-step size must be ~6,452 km: got {:.2}", moon_delta_x_km);
+
+    for pt in &moon_grid {
+        assert_eq!(pt.contributions.len(), 2, "Only Moon and Earth should be present in Selenocentric mode");
+        assert!(pt.contributions.iter().all(|c| c.body_name != "Sun"));
+    }
+}
+
 
 

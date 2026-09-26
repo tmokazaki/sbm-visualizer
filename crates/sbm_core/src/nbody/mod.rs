@@ -15,7 +15,7 @@ pub use dynamics::{
     compute_earth_moon_barycenter, compute_gravitational_spheres, compute_jerks,
     compute_laplace_resonance_metrics, compute_pairwise_forces, compute_spatial_field_grid,
     compute_spatial_field_point, compute_tidal_tensor, compute_trojan_libration_deg,
-    extract_osculating_elements,
+    extract_osculating_elements, is_body_relevant_to_centric,
 };
 pub use integrator::{
     propagate_trajectory, step_dormand_prince853, step_hermite4, step_leapfrog, step_system,
