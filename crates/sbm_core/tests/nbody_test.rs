@@ -1,8 +1,10 @@
 use sbm_core::nbody::{
-    compute_accelerations, compute_conservation_metrics, compute_laplace_resonance_metrics,
+    compute_accelerations, compute_conservation_metrics, compute_earth_moon_barycenter,
+    compute_gravitational_spheres, compute_laplace_resonance_metrics, compute_pairwise_forces,
+    compute_spatial_field_grid, compute_spatial_field_point, compute_tidal_tensor,
     compute_trojan_libration_deg, create_preset, extract_osculating_elements,
     propagate_trajectory, step_hermite4, step_leapfrog, step_system, CelestialBody,
-    IntegratorType, PresetId, ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S,
+    IntegratorType, NBodySystem, PresetId, ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S,
 };
 
 #[test]
@@ -279,3 +281,369 @@ fn test_leapfrog_and_hermite4_steps() {
     step_hermite4(&mut sys_herm, 3600.0);
     assert!(sys_herm.bodies[3].speed() > 0.0);
 }
+
+#[test]
+fn test_chebotarev_1964_gravitational_spheres_reproduction() {
+    // Chebotarev (1964), Soviet Astronomy 7(5), Table 1 "Dimensions of Gravitational Spheres"
+    // Tabulates Sphere of Attraction (r_a), Laplace Sphere of Influence (r_s), and Hill Sphere (r_H).
+    let m_sun = 1.98847e30;
+    let m_earth = 5.9722e24;
+    let a_earth = 1.495978707e11; // 1 AU in m
+    let e_earth = 0.0167;
+    let e_moon = 0.0549;
+
+    let earth_spheres = compute_gravitational_spheres(m_earth, m_sun, a_earth, e_earth, e_moon);
+
+    // Convert to km
+    let r_a_km = earth_spheres.sphere_of_attraction_m / 1000.0;
+    let r_s_km = earth_spheres.laplace_soi_m / 1000.0;
+    let r_h_km = earth_spheres.hill_sphere_m / 1000.0;
+
+    // Assert within 1-2% of Chebotarev (1964) Table 1 (259k, 924k, 1472k km)
+    assert!(
+        (r_a_km - 259_000.0).abs() / 259_000.0 < 0.015,
+        "Earth r_a mismatch: got {:.1} km, expected ~259,000 km",
+        r_a_km
+    );
+    assert!(
+        (r_s_km - 924_000.0).abs() / 924_000.0 < 0.015,
+        "Earth r_s mismatch: got {:.1} km, expected ~924,000 km",
+        r_s_km
+    );
+    assert!(
+        (r_h_km - 1_472_000.0).abs() / 1_472_000.0 < 0.02,
+        "Earth r_H mismatch: got {:.1} km, expected ~1,472,000 km",
+        r_h_km
+    );
+
+    // Jupiter
+    let m_jupiter = 1.89813e27;
+    let a_jupiter = 5.2044 * ASTRONOMICAL_UNIT_M;
+    let e_jupiter = 0.0484;
+
+    let jupiter_spheres = compute_gravitational_spheres(m_jupiter, m_sun, a_jupiter, e_jupiter, 0.0);
+    let r_a_jup_mkm = jupiter_spheres.sphere_of_attraction_m / 1e9;
+    let r_s_jup_mkm = jupiter_spheres.laplace_soi_m / 1e9;
+    let r_h_jup_mkm = jupiter_spheres.hill_sphere_m / 1e9;
+
+    // Chebotarev Table 1: Jupiter r_a = 24.1 million km, r_s = 48.2 million km, r_H = 53.1 million km
+    assert!((r_a_jup_mkm - 24.1).abs() < 0.8, "Jupiter r_a: {:.2}M km", r_a_jup_mkm);
+    assert!((r_s_jup_mkm - 48.2).abs() < 1.0, "Jupiter r_s: {:.2}M km", r_s_jup_mkm);
+    assert!((r_h_jup_mkm - 50.5).abs() < 3.0, "Jupiter r_H: {:.2}M km", r_h_jup_mkm);
+}
+
+#[test]
+fn test_domingos_2006_hill_sphere_satellite_stability() {
+    // Domingos, Winter, & Yokoyama (2006) MNRAS 373(3), pp. 1227-1234
+    // Critical prograde stability radius:
+    // r_crit = 0.4895 * r_H * (1.0 - 1.0305 * e_sat - 0.2738 * e_planet)
+    let m_sun = 1.98847e30;
+    let m_earth = 5.9722e24;
+    let a_earth = 1.0 * ASTRONOMICAL_UNIT_M;
+    let e_earth = 0.0167;
+    let e_moon = 0.0549;
+
+    let earth_spheres = compute_gravitational_spheres(m_earth, m_sun, a_earth, e_earth, e_moon);
+    let r_h = earth_spheres.hill_sphere_m;
+    let r_crit = earth_spheres.critical_stability_radius_m;
+
+    let a_moon = 384_400_000.0; // 384,400 km in meters
+
+    // The Moon must be well inside r_crit, which in turn is well inside r_H:
+    assert!(
+        a_moon < r_crit,
+        "Moon semi-major axis must be within Domingos 2006 critical stability boundary: a_moon = {:.0} km, r_crit = {:.0} km",
+        a_moon / 1000.0,
+        r_crit / 1000.0
+    );
+    assert!(
+        r_crit < r_h,
+        "Domingos critical radius must be inside the Hill sphere: r_crit = {:.0} km, r_h = {:.0} km",
+        r_crit / 1000.0,
+        r_h / 1000.0
+    );
+
+    // Critical radius is ~680,000 km
+    let r_crit_km = r_crit / 1000.0;
+    assert!(r_crit_km > 650_000.0 && r_crit_km < 750_000.0, "r_crit out of expected range: {:.0} km", r_crit_km);
+}
+
+#[test]
+fn test_tidal_tensor_trace_free_and_eigenvalues_arxiv_1608_03366() {
+    // arXiv:1608.03366: Gravity Gradient / Tidal Tensor
+    // T_ab = G * M / r^3 * (3 * n_a * n_b - delta_ab)
+    // 1. Trace must be exactly zero: Tr(T) = 0
+    // 2. Maximum eigenvalue (radial stretching) = +2 * G * M / r^3
+    // 3. Orthogonal eigenvalues (lateral compression) = -G * M / r^3, -G * M / r^3
+    // 4. Sum of eigenvalues must be 0
+
+    let mut system = NBodySystem::new();
+    let earth = CelestialBody::new(0, "Earth", 5.9722e24, 6371.0, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], "#3b82f6");
+    let moon_pos = [384_400_000.0, 0.0, 0.0];
+    let moon = CelestialBody::new(1, "Moon", 7.3477e22, 1737.4, moon_pos, [0.0, 1022.0, 0.0], "#94a3b8");
+    system.add_body(earth);
+    system.add_body(moon);
+
+    let tidal = compute_tidal_tensor(&system, [0.0, 0.0, 0.0]);
+
+    // Analytical check
+    let r: f64 = 384_400_000.0;
+    let expected_lambda1 = 2.0 * G_STANDARD * 7.3477e22 / r.powi(3);
+    let expected_lambda2 = -G_STANDARD * 7.3477e22 / r.powi(3);
+
+    // 1. Trace free
+    assert!(tidal.trace.abs() < 1e-18, "Tidal tensor must be trace-free: trace = {:e}", tidal.trace);
+
+    // 2. Eigenvalue sum is zero
+    let sum_eigen = tidal.eigenvalues[0] + tidal.eigenvalues[1] + tidal.eigenvalues[2];
+    assert!(sum_eigen.abs() < 1e-18, "Sum of eigenvalues must be zero: sum = {:e}", sum_eigen);
+
+    // 3. Radial stretching
+    let rel_err_lambda1 = (tidal.eigenvalues[0] - expected_lambda1).abs() / expected_lambda1;
+    assert!(rel_err_lambda1 < 1e-5, "Radial eigenvalue mismatch: {:e} vs {:e}", tidal.eigenvalues[0], expected_lambda1);
+
+    // 4. Lateral compression
+    let rel_err_lambda2 = (tidal.eigenvalues[1] - expected_lambda2).abs() / expected_lambda2.abs();
+    assert!(rel_err_lambda2 < 1e-5, "Lateral eigenvalue 1 mismatch");
+    let rel_err_lambda3 = (tidal.eigenvalues[2] - expected_lambda2).abs() / expected_lambda2.abs();
+    assert!(rel_err_lambda3 < 1e-5, "Lateral eigenvalue 2 mismatch");
+}
+
+#[test]
+fn test_earth_moon_sun_gravitational_tug_of_war() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    assert_eq!(system.bodies.len(), 6);
+
+    // Find Sun, Earth, Moon
+    let sun_idx = system.bodies.iter().position(|b| b.name == "Sun").unwrap();
+    let earth_idx = system.bodies.iter().position(|b| b.name == "Earth").unwrap();
+    let moon_idx = system.bodies.iter().position(|b| b.name == "Moon").unwrap();
+
+    let moon_forces = compute_pairwise_forces(&system, moon_idx);
+    let f_sun_on_moon = moon_forces.iter().find(|pf| pf.source_id == system.bodies[sun_idx].id).unwrap();
+    let f_earth_on_moon = moon_forces.iter().find(|pf| pf.source_id == system.bodies[earth_idx].id).unwrap();
+
+    // Verify Sun pull on Moon is ~2.2x Earth pull on Moon!
+    let ratio = f_sun_on_moon.magnitude_n / f_earth_on_moon.magnitude_n;
+    assert!(
+        (ratio - 2.20).abs() < 0.15,
+        "Gravitational Tug-of-War ratio F_sun / F_earth on Moon must be ~2.20: got {:.3}",
+        ratio
+    );
+
+    // Percentage checks
+    assert!(f_sun_on_moon.fraction_of_total > 0.65 && f_sun_on_moon.fraction_of_total < 0.72);
+    assert!(f_earth_on_moon.fraction_of_total > 0.28 && f_earth_on_moon.fraction_of_total < 0.35);
+
+    // Verify Earth-Moon Barycenter (EMB)
+    let earth = &system.bodies[earth_idx];
+    let (emb, emb_dist_m) = compute_earth_moon_barycenter(&system).expect("EMB must compute");
+
+    let dx = emb[0] - earth.position_m[0];
+    let dy = emb[1] - earth.position_m[1];
+    let dz = emb[2] - earth.position_m[2];
+    let emb_dist_km = (dx * dx + dy * dy + dz * dz).sqrt() / 1000.0;
+
+    // Analytical EMB displacement = m_moon / (m_earth + m_moon) * 384,400 km ~= 4,671 km
+    assert!(
+        (emb_dist_km - 4671.0).abs() < 50.0,
+        "EMB displacement from Earth center must be ~4,671 km: got {:.1} km",
+        emb_dist_km
+    );
+    assert!(
+        (emb_dist_m / 1000.0 - 4671.0).abs() < 50.0,
+        "EMB displacement return value mismatch"
+    );
+    // EMB is inside Earth (Earth radius = 6371 km)
+    assert!(emb_dist_km < earth.radius_km, "EMB must reside within Earth's mantle");
+}
+
+#[test]
+fn test_spatial_field_point_at_1au_matches_solar_gravity() {
+    let mut system = NBodySystem::new();
+    let sun = CelestialBody::new(
+        0,
+        "Sun",
+        1.98847e30,
+        696340.0,
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        "#fbbf24",
+    );
+    system.add_body(sun);
+
+    let point = [ASTRONOMICAL_UNIT_M, 0.0, 0.0];
+    let field = compute_spatial_field_point(&system, point);
+
+    // Theoretical acceleration g = G * M / r^2
+    let expected_g = G_STANDARD * 1.98847e30 / (ASTRONOMICAL_UNIT_M * ASTRONOMICAL_UNIT_M);
+    assert!(
+        (field.acceleration_magnitude - expected_g).abs() / expected_g < 1e-6,
+        "Field acceleration at 1 AU must match analytical solar gravity: {:e} vs {:e}",
+        field.acceleration_magnitude,
+        expected_g
+    );
+
+    // Vector direction: pulls towards origin (-x direction)
+    assert!(field.acceleration_vector_mps2[0] < 0.0);
+    assert!(field.acceleration_vector_mps2[1].abs() < 1e-12);
+    assert!(field.acceleration_vector_mps2[2].abs() < 1e-12);
+
+    // Dominant body is Sun
+    assert_eq!(field.dominant_body_name, "Sun");
+    assert!((field.dominant_body_fraction - 1.0).abs() < 1e-6);
+
+    // Potential Phi = -G * M / r
+    let expected_phi = -G_STANDARD * 1.98847e30 / ASTRONOMICAL_UNIT_M;
+    assert!(
+        (field.gravitational_potential_j_kg - expected_phi).abs() / expected_phi.abs() < 1e-6,
+        "Potential mismatch: {:e} vs {:e}",
+        field.gravitational_potential_j_kg,
+        expected_phi
+    );
+}
+
+#[test]
+fn test_spatial_dominance_chebotarev_boundary_sun_earth() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    let earth = system.bodies.iter().find(|b| b.name == "Earth").expect("Earth");
+    let sun = system.bodies.iter().find(|b| b.name == "Sun").expect("Sun");
+
+    // Earth's sphere of attraction (Chebotarev 1964): r_a = a * sqrt(m_earth / M_sun) ~ 259,000 km
+    let mass_ratio = earth.mass_kg / sun.mass_kg;
+    let dist_sun_earth = (earth.position_m[0].powi(2) + earth.position_m[1].powi(2)).sqrt();
+    let r_attraction = dist_sun_earth * mass_ratio.sqrt();
+
+    // 1. Inside Earth's dominance basin (e.g. 100,000 km from Earth towards Sun)
+    let probe_inside = [
+        earth.position_m[0] - 100_000_000.0,
+        earth.position_m[1],
+        0.0,
+    ];
+    let field_inside = compute_spatial_field_point(&system, probe_inside);
+    assert_eq!(
+        field_inside.dominant_body_name, "Earth",
+        "Inside Chebotarev attraction sphere (< 259,000 km), Earth must dominate"
+    );
+
+    // 2. Outside Earth's dominance basin (e.g. 500,000 km from Earth towards Sun)
+    let probe_outside = [
+        earth.position_m[0] - 500_000_000.0,
+        earth.position_m[1],
+        0.0,
+    ];
+    let field_outside = compute_spatial_field_point(&system, probe_outside);
+    assert_eq!(
+        field_outside.dominant_body_name, "Sun",
+        "Outside Chebotarev attraction sphere (> 259,000 km), Sun must dominate"
+    );
+
+    // 3. Near the neutral gravity boundary (r_a distance)
+    let probe_neutral = [
+        earth.position_m[0] - r_attraction,
+        earth.position_m[1],
+        0.0,
+    ];
+    let field_neutral = compute_spatial_field_point(&system, probe_neutral);
+    let g_sun = field_neutral.contributions.iter().find(|c| c.body_name == "Sun").unwrap().acceleration_magnitude;
+    let g_earth = field_neutral.contributions.iter().find(|c| c.body_name == "Earth").unwrap().acceleration_magnitude;
+    let ratio = g_earth / g_sun;
+    assert!(
+        (ratio - 1.0).abs() < 0.05,
+        "At Chebotarev attraction radius r_a, g_earth / g_sun must be ~1.0: got {:.3}",
+        ratio
+    );
+}
+
+#[test]
+fn test_spatial_dominance_earth_moon_neutral_point() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    let earth = system.bodies.iter().find(|b| b.name == "Earth").expect("Earth");
+    let moon = system.bodies.iter().find(|b| b.name == "Moon").expect("Moon");
+
+    // Earth-Moon distance vector
+    let dx = moon.position_m[0] - earth.position_m[0];
+    let dy = moon.position_m[1] - earth.position_m[1];
+    let dz = moon.position_m[2] - earth.position_m[2];
+    let d_em = (dx * dx + dy * dy + dz * dz).sqrt();
+
+    // Neutral point along the Earth-Moon axis where g_earth == g_moon:
+    // d_moon = d_em / (1 + sqrt(M_earth / M_moon)) ~ 38,400 km
+    let sqrt_ratio = (earth.mass_kg / moon.mass_kg).sqrt();
+    let neutral_dist_from_moon = d_em / (1.0 + sqrt_ratio);
+
+    // Probe 1: 15,000 km from Moon towards Earth (deep in Moon dominance basin)
+    let frac_moon_basin = (d_em - 15_000_000.0) / d_em;
+    let p_moon = [
+        earth.position_m[0] + dx * frac_moon_basin,
+        earth.position_m[1] + dy * frac_moon_basin,
+        earth.position_m[2] + dz * frac_moon_basin,
+    ];
+    let field_moon = compute_spatial_field_point(&system, p_moon);
+    assert_eq!(
+        field_moon.dominant_body_name, "Moon",
+        "Within 15,000 km of Moon, Moon must dominate over Earth and Sun"
+    );
+
+    // Probe 2: 150,000 km from Earth towards Moon (inside Earth dominance basin < 259,000 km)
+    let frac_earth_basin = 150_000_000.0 / d_em;
+    let p_earth = [
+        earth.position_m[0] + dx * frac_earth_basin,
+        earth.position_m[1] + dy * frac_earth_basin,
+        earth.position_m[2] + dz * frac_earth_basin,
+    ];
+    let field_earth = compute_spatial_field_point(&system, p_earth);
+    assert_eq!(
+        field_earth.dominant_body_name, "Earth",
+        "At 150,000 km from Earth towards Moon, Earth must dominate"
+    );
+
+    // Probe 3: 70,000 km from Moon towards Earth (314,400 km from Earth).
+    // Because Earth's sphere of attraction against the Sun is ~259,000 km,
+    // this spatial region is actually dominated by the SUN!
+    let frac_sun_gap = (d_em - 70_000_000.0) / d_em;
+    let p_sun_gap = [
+        earth.position_m[0] + dx * frac_sun_gap,
+        earth.position_m[1] + dy * frac_sun_gap,
+        earth.position_m[2] + dz * frac_sun_gap,
+    ];
+    let field_sun_gap = compute_spatial_field_point(&system, p_sun_gap);
+    assert_eq!(
+        field_sun_gap.dominant_body_name, "Sun",
+        "At 314,400 km from Earth (> 259,000 km), Sun's gravitational pull exceeds Earth's"
+    );
+
+    // Probe 4: Pairwise neutral gravity point between Earth and Moon
+    let frac_neutral = (d_em - neutral_dist_from_moon) / d_em;
+    let p_neutral = [
+        earth.position_m[0] + dx * frac_neutral,
+        earth.position_m[1] + dy * frac_neutral,
+        earth.position_m[2] + dz * frac_neutral,
+    ];
+    let field_neutral = compute_spatial_field_point(&system, p_neutral);
+    let g_earth = field_neutral.contributions.iter().find(|c| c.body_name == "Earth").unwrap().acceleration_magnitude;
+    let g_moon = field_neutral.contributions.iter().find(|c| c.body_name == "Moon").unwrap().acceleration_magnitude;
+    let ratio = g_earth / g_moon;
+    assert!(
+        (ratio - 1.0).abs() < 0.05,
+        "At Earth-Moon neutral gravity point, g_earth / g_moon must be ~1.0: got {:.3}",
+        ratio
+    );
+}
+
+#[test]
+fn test_spatial_field_grid_sampling() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    let x_range = [-1.5 * ASTRONOMICAL_UNIT_M, 1.5 * ASTRONOMICAL_UNIT_M];
+    let y_range = [-1.5 * ASTRONOMICAL_UNIT_M, 1.5 * ASTRONOMICAL_UNIT_M];
+    let grid = compute_spatial_field_grid(&system, x_range, y_range, 5, 5);
+
+    assert_eq!(grid.len(), 25);
+    for pt in &grid {
+        assert_eq!(pt.contributions.len(), 6);
+        assert!(pt.acceleration_magnitude > 0.0);
+        assert!(pt.dominant_body_fraction > 0.0 && pt.dominant_body_fraction <= 1.0);
+    }
+}
+
+

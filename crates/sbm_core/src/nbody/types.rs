@@ -217,3 +217,99 @@ impl Default for NBodySystem {
         Self::new()
     }
 }
+
+/// Breakdown of pairwise gravitational force from a source body acting on a target body.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PairwiseForce {
+    /// Source body identifier.
+    pub source_id: usize,
+    /// Source body name (e.g., "Sun", "Jupiter").
+    pub source_name: String,
+    /// Cartesian force vector $[F_x, F_y, F_z]$ in Newtons ($\text{N}$).
+    pub force_vector_n: [f64; 3],
+    /// Scalar force magnitude $\|\mathbf{F}\|$ in Newtons ($\text{N}$).
+    pub magnitude_n: f64,
+    /// Fraction of total gravitational pull on the target body ($0.0 \dots 1.0$).
+    pub fraction_of_total: f64,
+}
+
+/// Gravitational tidal tensor (spatial gravity gradient matrix $\mathbf{T}_{ab} = \frac{\partial g_a}{\partial x_b}$).
+///
+/// In vacuum, $\nabla \cdot \mathbf{g} = 0$, so $\text{Tr}(\mathbf{T}) = 0$.
+/// The eigenvalues satisfy $\lambda_1 > 0$ (stretching along radial line)
+/// and $\lambda_2, \lambda_3 < 0$ (orthogonal compression).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TidalTensor {
+    /// $3 \times 3$ symmetric tidal gradient matrix in $\text{s}^{-2}$.
+    pub matrix: [[f64; 3]; 3],
+    /// Trace of the matrix (analytically 0.0 in vacuum).
+    pub trace: f64,
+    /// Sorted eigenvalues $[\lambda_1, \lambda_2, \lambda_3]$ in descending order.
+    pub eigenvalues: [f64; 3],
+    /// Maximum tidal stretching strain in Eötvös units ($1\text{ E} = 10^{-9}\text{ s}^{-2}$).
+    pub max_strain_eotvos: f64,
+}
+
+/// Characteristic gravitational domains of planetary dominance.
+///
+/// References:
+/// - Chebotarev, G. A. (1964), *Soviet Astronomy*, 7(5), pp. 618–622.
+/// - Domingos, Winter, & Yokoyama (2006), *MNRAS*, 373(3), pp. 1227–1234.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GravitationalSphereRadii {
+    /// Sphere of attraction radius $r_a = a \sqrt{\frac{m}{M_\odot}}$ in meters.
+    pub sphere_of_attraction_m: f64,
+    /// Laplace Sphere of Influence (SOI) $r_s = a \left(\frac{m}{M_\odot}\right)^{2/5}$ in meters.
+    pub laplace_soi_m: f64,
+    /// Hill sphere radius $r_H = a(1 - e) \sqrt[3]{\frac{m}{3 M_\odot}}$ in meters.
+    pub hill_sphere_m: f64,
+    /// Critical empirical stability radius for prograde satellites (Domingos et al. 2006):
+    /// $r_{\text{crit}} \approx 0.4895 r_H (1 - 1.0305 e_{\text{sat}} - 0.2738 e_{\text{planet}})$.
+    pub critical_stability_radius_m: f64,
+}
+
+/// Individual celestial body's gravitational field contribution at an arbitrary spatial point.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BodyFieldContribution {
+    /// Identifier of the source celestial body.
+    pub body_id: usize,
+    /// Name of the source celestial body.
+    pub body_name: String,
+    /// Hex color code of the source celestial body.
+    pub body_color: String,
+    /// Gravitational acceleration vector $\mathbf{g}_j(\mathbf{r}) = \frac{G m_j (\mathbf{r}_j - \mathbf{r})}{\|\mathbf{r}_j - \mathbf{r}\|^3}$ in $\text{m/s}^2$.
+    pub acceleration_vector_mps2: [f64; 3],
+    /// Acceleration scalar magnitude $\|\mathbf{g}_j(\mathbf{r})\|$ in $\text{m/s}^2$.
+    pub acceleration_magnitude: f64,
+    /// Newtonian gravitational potential contribution $\Phi_j(\mathbf{r}) = -\frac{G m_j}{\|\mathbf{r}_j - \mathbf{r}\|}$ in $\text{J/kg}$.
+    pub gravitational_potential_j_kg: f64,
+    /// Fraction of total scalar gravitational pull at this point ($0.0 \dots 1.0$).
+    pub fraction_of_total: f64,
+    /// Distance from the source body center to the spatial point in meters.
+    pub distance_m: f64,
+}
+
+/// Comprehensive physical state of the gravitational field at an arbitrary spatial coordinate $\mathbf{r} = (x, y, z)$.
+///
+/// Enables spatial probe telemetry and domain fragmentation into Gravitational Dominance Basins.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SpatialFieldPoint {
+    /// Cartesian position of the probe point $[x, y, z]$ in meters.
+    pub position_m: [f64; 3],
+    /// Net gravitational acceleration vector $\mathbf{g}(\mathbf{r}) = -\nabla \Phi(\mathbf{r})$ in $\text{m/s}^2$.
+    pub acceleration_vector_mps2: [f64; 3],
+    /// Net gravitational acceleration magnitude $\|\mathbf{g}(\mathbf{r})\|$ in $\text{m/s}^2$.
+    pub acceleration_magnitude: f64,
+    /// Total gravitational potential $\Phi(\mathbf{r}) = -\sum_{j=1}^N \frac{G m_j}{\|\mathbf{r}_j - \mathbf{r}\|}$ in $\text{J/kg}$ ($\text{m}^2/\text{s}^2$).
+    pub gravitational_potential_j_kg: f64,
+    /// ID of the dominant gravitational body at this point ($\arg\max_j \|\mathbf{g}_j(\mathbf{r})\|$).
+    pub dominant_body_id: usize,
+    /// Name of the dominant gravitational body (defines the spatial basin).
+    pub dominant_body_name: String,
+    /// Dominant body pull fraction ($0.0 \dots 1.0$).
+    pub dominant_body_fraction: f64,
+    /// Individual gravitational field contributions from all bodies in the system (Tug-of-War breakdown).
+    pub contributions: Vec<BodyFieldContribution>,
+    /// Gravitational tidal tensor (gravity gradient matrix $\mathbf{T}_{ab} = \partial g_a / \partial x_b$) at this point.
+    pub tidal_tensor: TidalTensor,
+}

@@ -14,6 +14,14 @@ use crate::dto::{
 pub async fn get_nbody_presets() -> impl IntoResponse {
     let presets = vec![
         PresetSummaryDto {
+            id: "inner_solar_system_jupiter".to_string(),
+            name: "Sun-Venus-Earth-Moon-Mars-Jupiter (Gravitational Force Focus)".to_string(),
+            description: "Inner Solar System and Jupiter for high-fidelity gravitational force, tidal tensor, and Hill sphere analysis."
+                .to_string(),
+            body_count: 6,
+            primary_body: "Sun".to_string(),
+        },
+        PresetSummaryDto {
             id: "solar_system".to_string(),
             name: "Solar System (JPL J2000)".to_string(),
             description: "Sun, 8 major planets, Pluto, and Earth's Moon from NASA JPL Horizons ephemerides."
@@ -80,6 +88,9 @@ pub async fn simulate_nbody_handler(
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let mut system = if let Some(ref pid) = payload.preset_id {
         match pid.to_lowercase().as_str() {
+            "inner_solar_system_jupiter" | "inner_focus_jupiter" | "inner" => {
+                create_preset(PresetId::InnerSolarSystemJupiter)
+            }
             "solar_system" | "solarsystem" => create_preset(PresetId::SolarSystemJpl),
             "laplace_resonance" | "laplace" => create_preset(PresetId::LaplaceResonance),
             "figure_eight" | "figure8" => create_preset(PresetId::FigureEight),

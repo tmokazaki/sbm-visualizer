@@ -23,11 +23,13 @@ pub enum PresetId {
     RelativisticMercury,
     Pythagorean3Body,
     Trappist1Chain,
+    InnerSolarSystemJupiter,
 }
 
 impl PresetId {
     pub fn all() -> &'static [PresetId] {
         &[
+            PresetId::InnerSolarSystemJupiter,
             PresetId::SolarSystemJpl,
             PresetId::LaplaceResonance,
             PresetId::FigureEight,
@@ -40,6 +42,7 @@ impl PresetId {
 
     pub fn name(&self) -> &'static str {
         match self {
+            PresetId::InnerSolarSystemJupiter => "Sun-Venus-Earth-Moon-Mars-Jupiter (Gravitational Force Focus)",
             PresetId::SolarSystemJpl => "Solar System (JPL J2000)",
             PresetId::LaplaceResonance => "Jovian Laplace Resonance (4:2:1)",
             PresetId::FigureEight => "Figure-8 Three-Body Choreography",
@@ -54,6 +57,7 @@ impl PresetId {
 /// Generates an N-body system matching the requested preset.
 pub fn create_preset(preset: PresetId) -> NBodySystem {
     match preset {
+        PresetId::InnerSolarSystemJupiter => create_inner_solar_system_jupiter(),
         PresetId::SolarSystemJpl => create_solar_system_jpl(),
         PresetId::LaplaceResonance => create_laplace_resonance_jovian(),
         PresetId::FigureEight => create_figure_eight_choreography(),
@@ -62,6 +66,97 @@ pub fn create_preset(preset: PresetId) -> NBodySystem {
         PresetId::Pythagorean3Body => create_pythagorean_three_body(),
         PresetId::Trappist1Chain => create_trappist1_resonant_chain(),
     }
+}
+
+/// Inner Solar System + Jupiter: Focus on gravitational force interactions,
+/// Earth-Moon barycenter, and Jovian secular perturbations.
+pub fn create_inner_solar_system_jupiter() -> NBodySystem {
+    let mut system = NBodySystem::new();
+    system.integrator = IntegratorType::Yoshida4th;
+    let au = ASTRONOMICAL_UNIT_M;
+
+    // 0: Sun (1.98847e30 kg)
+    system.add_body(CelestialBody::new(
+        0,
+        "Sun",
+        1.98847e30,
+        696340.0,
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        "#fbbf24",
+    ));
+
+    // 1: Venus (0.723 AU, mass: 4.8675e24 kg)
+    system.add_body(CelestialBody::new(
+        1,
+        "Venus",
+        4.8675e24,
+        6051.8,
+        [0.721 * au, 0.088 * au, -0.038 * au],
+        [-4.2e3, 34.8e3, 1.2e3],
+        "#f59e0b",
+    ));
+
+    // 2: Earth (1.000 AU, mass: 5.9722e24 kg)
+    system.add_body(CelestialBody::new(
+        2,
+        "Earth",
+        5.9722e24,
+        6371.0,
+        [-0.178 * au, 0.967 * au, -0.0001 * au],
+        [-29.8e3, -5.2e3, 0.0],
+        "#38bdf8",
+    ));
+
+    // 3: Moon (384,400 km from Earth, mass: 7.342e22 kg)
+    system.add_body(CelestialBody::new(
+        3,
+        "Moon",
+        7.342e22,
+        1737.4,
+        [-0.178 * au + 384400e3, 0.967 * au, 28000e3],
+        [-29.8e3, -5.2e3 + 1022.0, 90.0],
+        "#cbd5e1",
+    ));
+
+    // 4: Mars (1.524 AU, mass: 6.4171e23 kg)
+    system.add_body(CelestialBody::new(
+        4,
+        "Mars",
+        6.4171e23,
+        3389.5,
+        [1.385 * au, -0.635 * au, -0.045 * au],
+        [10.1e3, 22.4e3, 0.2e3],
+        "#ef4444",
+    ));
+
+    // 5: Jupiter (5.204 AU, mass: 1.89813e27 kg)
+    system.add_body(CelestialBody::new(
+        5,
+        "Jupiter",
+        1.89813e27,
+        69911.0,
+        [4.020 * au, 3.290 * au, -0.105 * au],
+        [-8.4e3, 10.7e3, 0.2e3],
+        "#fb923c",
+    ));
+
+    // Barycentric momentum balance
+    let mut px = 0.0;
+    let mut py = 0.0;
+    let mut pz = 0.0;
+    for b in &system.bodies[1..] {
+        px += b.mass_kg * b.velocity_mps[0];
+        py += b.mass_kg * b.velocity_mps[1];
+        pz += b.mass_kg * b.velocity_mps[2];
+    }
+    system.bodies[0].velocity_mps = [
+        -px / system.bodies[0].mass_kg,
+        -py / system.bodies[0].mass_kg,
+        -pz / system.bodies[0].mass_kg,
+    ];
+
+    system
 }
 
 /// Solar System with Sun, 8 planets, Pluto, and Moon at J2000.0 epoch from NASA JPL Horizons.

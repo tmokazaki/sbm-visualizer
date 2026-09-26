@@ -277,11 +277,591 @@
       z-index: 100;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
     }
+
+    /* ========================================================= */
+    /* GOOGLE MAPS SOLAR SYSTEM REPRESENTATION STYLES            */
+    /* ========================================================= */
+
+    /* Floating Omnibox / Search Box */
+    #gmap-search-container {
+      position: absolute;
+      top: 66px;
+      left: 16px;
+      z-index: 40;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .gmap-search-card {
+      background: rgba(18, 24, 38, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 24px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3);
+      transition: all 0.25s ease;
+    }
+
+    .gmap-search-card:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3), 0 8px 24px rgba(0, 0, 0, 0.65);
+    }
+
+    .gmap-search-icon {
+      font-size: 16px;
+      color: var(--accent);
+      opacity: 0.9;
+    }
+
+    .gmap-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      padding: 4px 0;
+    }
+
+    .gmap-search-input::placeholder {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    .gmap-search-btn-clear {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .gmap-search-btn-clear:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Autocomplete dropdown */
+    #gmap-search-dropdown {
+      position: absolute;
+      top: 46px;
+      left: 0;
+      width: 100%;
+      background: rgba(15, 21, 35, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      max-height: 240px;
+      overflow-y: auto;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.8);
+      display: none;
+      flex-direction: column;
+      z-index: 55;
+    }
+
+    .gmap-dropdown-item {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.15s;
+    }
+
+    .gmap-dropdown-item:hover {
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    /* Quick Filter Chips */
+    .gmap-chips-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .gmap-chips-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .gmap-chip {
+      background: rgba(18, 24, 38, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .gmap-chip:hover {
+      background: rgba(30, 41, 59, 0.98);
+      border-color: var(--accent);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .gmap-chip.active {
+      background: var(--accent);
+      color: #040810;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Place Card Drawer */
+    #gmap-place-card {
+      position: absolute;
+      top: 140px;
+      left: 16px;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 165px);
+      overflow-y: auto;
+      background: rgba(15, 21, 35, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 35;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 1px 3px rgba(255, 255, 255, 0.05);
+      display: none;
+      animation: gmapSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes gmapSlideIn {
+      from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .place-card-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .place-card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .place-card-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+      background: rgba(30, 41, 59, 0.8);
+      border: 2px solid var(--accent);
+    }
+
+    .place-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .place-card-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .place-card-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 50%;
+    }
+    .place-card-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .place-card-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .place-action-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #e2e8f0;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .place-action-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .place-action-btn span.icon {
+      font-size: 14px;
+    }
+
+    /* Google Maps Control Stack (Bottom-Right) */
+    #gmap-controls-stack {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .gmap-btn-group {
+      background: rgba(18, 24, 38, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .gmap-ctrl-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+      border-radius: 0;
+    }
+
+    .gmap-ctrl-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      color: #fff;
+    }
+
+    .gmap-ctrl-btn:active {
+      background: rgba(56, 189, 248, 0.4);
+    }
+
+    .gmap-ctrl-btn + .gmap-ctrl-btn {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .gmap-single-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(18, 24, 38, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+      transition: all 0.2s;
+    }
+
+    .gmap-single-btn:hover {
+      background: rgba(30, 41, 59, 0.98);
+      border-color: var(--accent);
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    #compass-needle {
+      transition: transform 0.1s linear;
+      transform-origin: center center;
+    }
+
+    /* Dynamic Scale Bar (Bottom-Left) */
+    #gmap-scale-container {
+      position: absolute;
+      bottom: 20px;
+      left: 24px;
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      font-size: 11px;
+      color: #e2e8f0;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      pointer-events: none;
+    }
+
+    #gmap-scale-line {
+      height: 5px;
+      border-left: 2px solid #fff;
+      border-right: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      width: 120px;
+      transition: width 0.15s ease;
+    }
+
+    /* Google Maps Layers Switcher Button (Bottom-Left above Scale) */
+    #gmap-layers-widget {
+      position: absolute;
+      bottom: 58px;
+      left: 24px;
+      z-index: 45;
+    }
+
+    .gmap-layers-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: rgba(18, 24, 38, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      gap: 2px;
+      transition: all 0.2s;
+    }
+
+    .gmap-layers-btn:hover {
+      border-color: var(--accent);
+      transform: scale(1.05);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    #gmap-layers-menu {
+      position: absolute;
+      bottom: 56px;
+      left: 0;
+      width: 220px;
+      background: rgba(15, 21, 35, 0.96);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .layer-menu-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .layer-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+
+    /* 2D Celestial POI Pins on 3D Canvas */
+    #gmap-poi-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .gmap-poi-pin {
+      position: absolute;
+      pointer-events: auto;
+      transform: translate(-50%, -100%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px 3px 6px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid var(--accent);
+      border-radius: 14px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.75);
+      transition: transform 0.15s ease, background 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .gmap-poi-pin:hover {
+      transform: translate(-50%, -108%) scale(1.1);
+      background: rgba(30, 41, 59, 0.98);
+      border-color: #fff;
+      box-shadow: 0 0 16px var(--accent);
+    }
+
+    .gmap-poi-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    /* Surface View Banner */
+    #gmap-surface-banner {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(239, 68, 68, 0.9);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 50;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    /* Bottom Status Bar */
+    #gmap-status-bar {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #94a3b8;
+      font-family: monospace;
+      background: rgba(10, 14, 24, 0.7);
+      padding: 2px 12px;
+      border-radius: 10px;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    /* Spatial Probe Real-Time Cursor HUD */
+    #spatial-probe-cursor-hud {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #e2e8f0;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 40;
+      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75), 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+
+    .cursor-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .space-pin-marker {
+      position: absolute;
+      pointer-events: auto;
+      transform: translate(-50%, -100%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border: 2px solid #38bdf8;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.65), 0 4px 12px rgba(0, 0, 0, 0.8);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      z-index: 25;
+    }
+
+    .space-pin-marker:hover {
+      transform: translate(-50%, -108%) scale(1.08);
+      border-color: #fbbf24;
+      box-shadow: 0 0 22px rgba(251, 191, 36, 0.85);
+    }
   </style>
 </head>
 <body>
   <div id="canvas-container"></div>
   <div id="hover-tooltip"></div>
+  <div id="spatial-probe-cursor-hud">
+    <span style="font-size: 14px;">📍</span>
+    <span id="cursor-coords-val">Heliocentric: (0.000, 0.000) AU</span>
+    <span style="color: var(--text-muted);">&bull;</span>
+    <span id="cursor-accel-val">g = 0.00 mm/s²</span>
+    <span style="color: var(--text-muted);">&bull;</span>
+    <span class="cursor-badge badge-blue" id="cursor-basin-badge">Earth Basin</span>
+  </div>
 
   <!-- Top Header -->
   <header>
@@ -294,8 +874,10 @@
     </div>
 
     <div class="top-controls">
+      <button id="btn-toggle-view-mode" class="active" title="Toggle Google Maps Representation vs Classic Engineering Cockpit" style="border-color: var(--accent); color: #fff; background: rgba(56, 189, 248, 0.25);">🗺️ Google Maps View</button>
       <label style="font-size: 11px; color: var(--text-muted);">Preset:</label>
       <select id="preset-select">
+        <option value="inner_solar_system_jupiter" selected>★ Sun-Venus-Earth-Moon-Mars-Jupiter (Gravitational Force Focus)</option>
         <option value="solar_system">Solar System (JPL J2000)</option>
         <option value="laplace_resonance">Jovian Laplace Resonance (4:2:1)</option>
         <option value="figure_eight">Figure-8 3-Body Choreography</option>
@@ -311,9 +893,240 @@
 
       <select id="camera-focus-select">
         <option value="-1">Focus: Origin / Primary</option>
+        <option value="emb">Focus: Earth-Moon Barycenter (EMB)</option>
+        <option value="jupiter">Focus: Jupiter (Tidal Perturber)</option>
       </select>
     </div>
   </header>
+
+  <!-- ========================================================= -->
+  <!-- GOOGLE MAPS SOLAR SYSTEM REPRESENTATION HTML COMPONENTS   -->
+  <!-- ========================================================= -->
+
+  <!-- Google Maps Omnibox / Search & Quick Filters -->
+  <div id="gmap-search-container">
+    <div class="gmap-search-card">
+      <span class="gmap-search-icon">🔍</span>
+      <input type="text" class="gmap-search-input" id="gmap-search-input" placeholder="Search Solar System (e.g. Earth, Moon, Jupiter...)" autocomplete="off">
+      <button class="gmap-search-btn-clear" id="gmap-search-clear">&times;</button>
+    </div>
+    <div id="gmap-search-dropdown"></div>
+
+    <!-- Quick Chips -->
+    <div class="gmap-chips-row">
+      <div class="gmap-chip" data-body="Earth"><span>🌍</span> Earth</div>
+      <div class="gmap-chip" data-body="Moon"><span>🌕</span> Moon (Tug-of-War)</div>
+      <div class="gmap-chip" data-body="Jupiter"><span>🪐</span> Jupiter</div>
+      <div class="gmap-chip" data-body="Mars"><span>🔴</span> Mars</div>
+      <div class="gmap-chip" data-body="Venus"><span>🟡</span> Venus</div>
+      <div class="gmap-chip" data-body="Sun"><span>☀️</span> Sun</div>
+      <div class="gmap-chip" data-space-preset="sun_earth_neutral"><span>📍</span> Sun-Earth Boundary (259k km)</div>
+      <div class="gmap-chip" data-space-preset="earth_moon_neutral"><span>📍</span> Earth-Moon Neutral Point (38k km)</div>
+      <div class="gmap-chip" data-space-preset="earth_l1"><span>📍</span> Earth L1 Saddle</div>
+      <div class="gmap-chip" data-space-preset="jupiter_basin"><span>📍</span> Jupiter Basin Edge (24M km)</div>
+      <div class="gmap-chip" data-special="emb"><span>⚖️</span> EMB</div>
+      <div class="gmap-chip" data-special="overview"><span>🔭</span> 10 AU View</div>
+    </div>
+  </div>
+
+  <!-- Google Maps Style Place Card Drawer -->
+  <div id="gmap-place-card">
+    <div class="place-card-hero">
+      <div class="place-card-title-group">
+        <div class="place-card-icon" id="place-icon">🌍</div>
+        <div>
+          <div class="place-card-title" id="place-title">Earth</div>
+          <div class="place-card-subtitle" id="place-subtitle">Terrestrial Planet &bull; Habitable Zone</div>
+        </div>
+      </div>
+      <button class="place-card-close" id="btn-place-close" title="Close Place Card">&times;</button>
+    </div>
+
+    <!-- Place Action Buttons (Planet Mode) -->
+    <div class="place-card-actions" id="planet-actions-row">
+      <button class="place-action-btn" id="btn-place-flyto">
+        <span class="icon">🚀</span>
+        <span>Fly To</span>
+      </button>
+      <button class="place-action-btn" id="btn-place-tug">
+        <span class="icon">⚖️</span>
+        <span>Tug-of-War</span>
+      </button>
+      <button class="place-action-btn" id="btn-place-hill">
+        <span class="icon">🌐</span>
+        <span>Hill Sphere</span>
+      </button>
+      <button class="place-action-btn" id="btn-place-surface">
+        <span class="icon">👤</span>
+        <span>Surface POV</span>
+      </button>
+    </div>
+
+    <!-- Place Action Buttons (Space Point Mode) -->
+    <div class="place-card-actions" id="space-actions-row" style="display: none;">
+      <button class="place-action-btn" id="btn-space-drop-probe" title="Release zero-mass test mass along field lines" style="border-color: #34d399;">
+        <span class="icon" style="color: #34d399;">🛰️</span>
+        <span>Drop Probe</span>
+      </button>
+      <button class="place-action-btn" id="btn-space-focus" title="Center camera on this spatial point">
+        <span class="icon">🎯</span>
+        <span>Center</span>
+      </button>
+      <button class="place-action-btn" id="btn-space-tidal" title="Toggle Tidal Gravity Gradient Tensor">
+        <span class="icon">📐</span>
+        <span>Tidal Strain</span>
+      </button>
+      <button class="place-action-btn" id="btn-space-clear" title="Clear this space probe pin">
+        <span class="icon">🗑️</span>
+        <span>Clear Pin</span>
+      </button>
+    </div>
+
+    <!-- Place Facts & Astronomy Telemetry -->
+    <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;" id="place-specs-heading">
+      Celestial Specifications
+    </div>
+    <table class="data-table" id="place-specs-table" style="margin-bottom: 12px;">
+      <!-- Populated dynamically -->
+    </table>
+
+    <!-- Embedded Gravitational Tug-of-War Card -->
+    <div id="place-tug-card" style="padding: 10px; background: rgba(20, 28, 45, 0.85); border: 1px solid var(--accent); border-radius: 8px; margin-bottom: 10px;">
+      <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+        <span id="place-tug-header-title">GRAVITATIONAL TUG-OF-WAR</span>
+        <span class="badge badge-purple" id="place-tug-badge">Active</span>
+      </div>
+      <table class="data-table" id="place-tug-table" style="margin-bottom: 6px;"></table>
+      <div id="place-tug-insight" style="font-size: 10px; color: #94a3b8; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;"></div>
+    </div>
+
+    <!-- Tidal Tensor & Strain Card -->
+    <div id="place-tidal-card" style="display: none; padding: 10px; background: rgba(20, 28, 45, 0.85); border: 1px solid var(--accent-purple); border-radius: 8px; margin-bottom: 10px;">
+      <div style="font-weight: 700; color: var(--accent-purple); font-size: 11px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+        <span>TIDAL TENSOR &bull; GRAVITY GRADIENT</span>
+        <span class="badge badge-purple" id="place-tidal-badge">Trace &equiv; 0</span>
+      </div>
+      <table class="data-table" id="place-tidal-table" style="margin-bottom: 6px;"></table>
+      <div id="place-tidal-insight" style="font-size: 10px; color: #94a3b8; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;"></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 8px;">
+      <button id="btn-place-cockpit-toggle" style="width: 100%; padding: 6px; font-size: 11px; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent); border-radius: 6px;">
+        Open Full Engineering Telemetry &rarr;
+      </button>
+    </div>
+  </div>
+
+  <!-- Surface View Banner -->
+  <div id="gmap-surface-banner">
+    <span>📍 Surface Observation Mode (<span id="surface-planet-name">Earth</span>) &bull; Looking at Celestial Dome</span>
+    <button id="btn-exit-surface" style="background: #fff; color: #000; border: none; padding: 2px 10px; border-radius: 12px; font-weight: 700; cursor: pointer;">Exit</button>
+  </div>
+
+  <!-- Google Maps Control Stack -->
+  <div id="gmap-controls-stack">
+    <!-- Recenter / My Location -->
+    <button class="gmap-single-btn" id="btn-gmap-recenter" title="Recenter on Earth / Home">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="4" />
+        <line x1="12" y1="2" x2="12" y2="6" />
+        <line x1="12" y1="18" x2="12" y2="22" />
+        <line x1="2" y1="12" x2="6" y2="12" />
+        <line x1="18" y1="12" x2="22" y2="12" />
+      </svg>
+    </button>
+
+    <!-- Compass Needle -->
+    <button class="gmap-single-btn" id="btn-gmap-compass" title="Reset North / Ecliptic Up">
+      <svg id="compass-needle" width="22" height="22" viewBox="0 0 24 24">
+        <polygon points="12,2 16,12 12,10 8,12" fill="#ef4444" />
+        <polygon points="12,22 16,12 12,14 8,12" fill="#e2e8f0" />
+        <circle cx="12" cy="12" r="2.2" fill="#0f172a" />
+      </svg>
+    </button>
+
+    <!-- 2D / 3D Tilt Toggle -->
+    <button class="gmap-single-btn" id="btn-gmap-tilt" title="Toggle 2D Top-Down Map vs 3D Oblique View">
+      <span id="tilt-label" style="font-size: 11px; font-weight: 800; font-family: monospace; color: var(--accent);">3D</span>
+    </button>
+
+    <!-- Street View / Surface View -->
+    <button class="gmap-single-btn" id="btn-gmap-streetview" title="Surface In-Situ View (Looking Up from Surface)">
+      <span style="font-size: 16px; filter: drop-shadow(0 0 4px #fbbf24);">👤</span>
+    </button>
+
+    <!-- Zoom Stack (+ / -) -->
+    <div class="gmap-btn-group">
+      <button class="gmap-ctrl-btn" id="btn-gmap-zoom-in" title="Zoom in">+</button>
+      <button class="gmap-ctrl-btn" id="btn-gmap-zoom-out" title="Zoom out">&minus;</button>
+    </div>
+  </div>
+
+  <!-- Google Maps Layers Switcher -->
+  <div id="gmap-layers-widget">
+    <button class="gmap-layers-btn" id="btn-gmap-layers" title="Map Layers & Overlays">
+      <span style="font-size: 16px;">🥞</span>
+      <span>Layers</span>
+    </button>
+    <div id="gmap-layers-menu">
+      <div class="layer-menu-title">Map Overlays</div>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-forces" checked> Gravitational Forces (&rarr;F)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-tethers" checked> Force Tethers (Beams)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-hills" checked> 3D Hill Spheres (Roche)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-spacetime" checked> Spacetime Gravity Funnels
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-trails" checked> Orbit Trajectory Ribbons
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-labels" checked> Celestial POI Pins
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-grid" checked> Ecliptic Grid
+      </label>
+      <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: var(--accent);">
+        Space Gravitational Field
+      </div>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-basins" checked> Dominance Basins (Territory Map)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-vector-grid" checked> Spatial Vector Field Grid (&rarr;g)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-equipotentials" checked> Equipotential Contours (&Phi;)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-space-probe" checked> Interactive Space Probe
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-test-particles" checked> Free-Fall Geodesic Streams
+      </label>
+    </div>
+  </div>
+
+  <!-- Dynamic Metric Scale Bar -->
+  <div id="gmap-scale-container">
+    <span id="gmap-scale-text">1.0 AU (150M km)</span>
+    <div id="gmap-scale-line"></div>
+  </div>
+
+  <!-- 2D Celestial POI Pins Container -->
+  <div id="gmap-poi-container"></div>
+
+  <!-- Bottom Status Bar -->
+  <div id="gmap-status-bar">
+    <span id="gmap-status-coords">Heliocentric: (0.00, 0.00, 0.00) AU</span> &bull; 
+    <span id="gmap-status-time">T + 0.00 d</span> &bull; 
+    <span>Symplectic Integrator: Yoshida 4th</span>
+  </div>
 
   <!-- Left Control Panel -->
   <div id="left-panel" class="panel">
@@ -350,8 +1163,42 @@
       <input type="range" id="substeps-slider" min="1" max="50" step="1" value="10">
     </div>
 
+    <!-- Gravitational Force Visuals Section -->
+    <h3 style="margin-top: 12px; margin-bottom: 8px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+      <span>Gravitational Force Fields</span>
+      <span class="badge badge-gold" id="force-badge">Active</span>
+    </h3>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Force Vectors (&rarr;F)</span>
+      <button id="btn-toggle-forces" class="active" style="padding: 4px 8px; font-size: 11px;">Forces: ON</button>
+    </div>
+
+    <div class="control-group" id="magnifier-group">
+      <div class="control-label">
+        <span>Perturbation Magnifier</span>
+        <span class="val" id="magnifier-val">5,000x</span>
+      </div>
+      <input type="range" id="magnifier-slider" min="1" max="50000" step="100" value="5000">
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Force Tethers (Beams)</span>
+      <button id="btn-toggle-tethers" class="active" style="padding: 4px 8px; font-size: 11px;">Tethers: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">3D Spacetime Funnel Mesh</span>
+      <button id="btn-toggle-spacetime" class="active" style="padding: 4px 8px; font-size: 11px;">Spacetime: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">3D Hill Spheres (Roche)</span>
+      <button id="btn-toggle-hills" class="active" style="padding: 4px 8px; font-size: 11px;">Hill Spheres: ON</button>
+    </div>
+
     <div class="control-group" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-      <span style="font-size: 11px; color: var(--text-muted);">1PN General Relativity Precession</span>
+      <span style="font-size: 11px; color: var(--text-muted);">1PN General Relativity</span>
       <button id="btn-toggle-gr" style="padding: 4px 8px; font-size: 11px;">1PN GR: OFF</button>
     </div>
 
@@ -387,6 +1234,19 @@
       <select id="body-selector-dropdown" style="width: 100%;">
         <option value="0">Sun</option>
       </select>
+    </div>
+
+    <!-- Gravitational Tug-of-War Section -->
+    <div id="gravitational-tug-container" style="margin-bottom: 10px; padding: 10px; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent); border-radius: 6px;">
+      <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+        <span>GRAVITATIONAL TUG-OF-WAR</span>
+        <span class="badge badge-purple" id="tug-focus-name">Earth</span>
+      </div>
+      <table class="data-table" id="tug-table" style="margin-bottom: 6px;">
+        <!-- Dynamically populated -->
+      </table>
+      <div id="tug-summary-note" style="font-size: 10px; color: #94a3b8; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">
+      </div>
     </div>
 
     <table class="data-table">
@@ -472,7 +1332,7 @@
 
     // --- Simulation State ---
     const state = {
-      presetId: 'solar_system',
+      presetId: 'inner_solar_system_jupiter',
       bodies: [],
       time_s: 0.0,
       step_count: 0,
@@ -486,11 +1346,31 @@
       trailLength: 300,
       showTrails: true,
       showVectors: false,
+      showForces: true,
+      perturbationMagnifier: 5000,
+      showTethers: true,
+      showSpacetime: true,
+      showHillSpheres: true,
+      specialCameraFocus: null,
       showGrid: true,
-      selectedBodyIndex: 0,
+      selectedBodyIndex: 2, // Default Earth
       cameraFollowIndex: -1,
       initialEnergy: null,
-      initialLMag: null
+      initialLMag: null,
+      currentForces: [],
+      currentNetForce: [0, 0, 0],
+      viewMode: 'google_maps',
+      isTopDown2D: false,
+      isSurfaceView: false,
+      showPoiPins: true,
+      // Space Gravitational Field Telemetry & Basins
+      showBasins: true,
+      showVectorGrid: true,
+      showEquipotentials: true,
+      showSpaceProbe: true,
+      showTestParticles: true,
+      spaceProbe: null,
+      testParticles: []
     };
 
     // Three.js Objects
@@ -500,8 +1380,20 @@
     let trailGeometries = [];
     let trailPoints = [];
     let vectorArrows = [];
+    let forceVectorArrows = [];
+    let forceTetherLines = [];
+    let spacetimeMesh;
+    let hillSphereMeshes = [];
     let eclipticGrid;
     let primaryBarycenterMesh;
+    let gravitationalBasinsGroup;
+    let spatialVectorGridGroup;
+    let equipotentialContoursGroup;
+    let spaceProbeGroup;
+    let spaceProbeReticleMesh;
+    let spaceProbePin2D;
+    let spaceProbeVectorArrows = [];
+    let spaceProbeTetherLines = [];
 
     // --- Astronomical Presets Generator ---
     function loadPreset(id) {
@@ -510,8 +1402,26 @@
       state.step_count = 0;
       state.initialEnergy = null;
       state.initialLMag = null;
+      state.currentForces = [];
 
-      if (id === 'solar_system') {
+      if (id === 'inner_solar_system_jupiter') {
+        state.softening_m = 0.0;
+        state.showForces = true;
+        state.showTethers = true;
+        state.showSpacetime = true;
+        state.showHillSpheres = true;
+        // Sun, Venus, Earth, Moon, Mars, Jupiter (Exact JPL J2000 Ephemerides coordinates)
+        state.bodies = [
+          { id: 0, name: "Sun", mass: 1.98847e30, radius: 696340, pos: [0,0,0], vel: [0,0,0], color: "#fbbf24" },
+          { id: 1, name: "Venus", mass: 4.8675e24, radius: 6051.8, pos: [0.721*AU_M, 0.088*AU_M, -0.038*AU_M], vel: [-4.2e3, 34.8e3, 1.2e3], color: "#f59e0b" },
+          { id: 2, name: "Earth", mass: 5.9722e24, radius: 6371.0, pos: [-0.178*AU_M, 0.967*AU_M, -0.0001*AU_M], vel: [-29.8e3, -5.2e3, 0], color: "#38bdf8" },
+          { id: 3, name: "Moon", mass: 7.342e22, radius: 1737.4, pos: [-0.178*AU_M + 384400e3, 0.967*AU_M, 28000e3], vel: [-29.8e3, -5.2e3 + 1022, 90], color: "#cbd5e1" },
+          { id: 4, name: "Mars", mass: 6.4171e23, radius: 3389.5, pos: [1.385*AU_M, -0.635*AU_M, -0.045*AU_M], vel: [10.1e3, 22.4e3, 0.2e3], color: "#ef4444" },
+          { id: 5, name: "Jupiter", mass: 1.89813e27, radius: 69911, pos: [4.020*AU_M, 3.290*AU_M, -0.105*AU_M], vel: [-8.4e3, 10.7e3, 0.2e3], color: "#fb923c" }
+        ];
+        balanceMomentum();
+        state.selectedBodyIndex = 2; // Earth
+      } else if (id === 'solar_system') {
         state.softening_m = 0.0;
         // Sun, 8 planets, Pluto, Moon
         state.bodies = [
@@ -1025,7 +1935,15 @@
       camera.up.set(0, 0, 1);
       camera.position.set(0, -55, 38);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+      } catch (e) {
+        try {
+          renderer = new THREE.WebGLRenderer({ antialias: true });
+        } catch (e2) {
+          renderer = new THREE.WebGLRenderer();
+        }
+      }
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
@@ -1075,13 +1993,30 @@
       bodyMeshes.forEach(m => scene.remove(m));
       trailLines.forEach(l => scene.remove(l));
       vectorArrows.forEach(a => scene.remove(a));
+      forceVectorArrows.forEach(a => scene.remove(a));
+      forceTetherLines.forEach(l => scene.remove(l));
+      if (spacetimeMesh) scene.remove(spacetimeMesh);
+      hillSphereMeshes.forEach(h => scene.remove(h.mesh));
       if (eclipticGrid) scene.remove(eclipticGrid);
+      if (gravitationalBasinsGroup) scene.remove(gravitationalBasinsGroup);
+      if (spatialVectorGridGroup) scene.remove(spatialVectorGridGroup);
+      if (equipotentialContoursGroup) scene.remove(equipotentialContoursGroup);
+      if (spaceProbeGroup) scene.remove(spaceProbeGroup);
+      if (spaceProbeReticleMesh) scene.remove(spaceProbeReticleMesh);
+      spaceProbeTetherLines.forEach(l => scene.remove(l));
+      spaceProbeVectorArrows.forEach(a => scene.remove(a));
+      spaceProbeTetherLines = [];
+      spaceProbeVectorArrows = [];
+      clearTestParticles();
 
       bodyMeshes = [];
       trailLines = [];
       trailGeometries = [];
       trailPoints = [];
       vectorArrows = [];
+      forceVectorArrows = [];
+      forceTetherLines = [];
+      hillSphereMeshes = [];
 
       // Determine characteristic distance scale
       let maxDist = 1.0;
@@ -1097,6 +2032,28 @@
       scene.add(gridHelper);
       eclipticGrid = gridHelper;
       eclipticGrid.visible = state.showGrid;
+
+      // 3D Deformable Spacetime Curvature Potential Funnel Mesh
+      const stGridSize = 75;
+      const stSegments = 50;
+      const stGeo = new THREE.PlaneGeometry(stGridSize, stGridSize, stSegments, stSegments);
+      const vCount = stGeo.attributes.position.count;
+      const stColors = new Float32Array(vCount * 3);
+      for (let i = 0; i < vCount; i++) {
+        stColors[i * 3] = 0.2;
+        stColors[i * 3 + 1] = 0.4;
+        stColors[i * 3 + 2] = 0.8;
+      }
+      stGeo.setAttribute('color', new THREE.BufferAttribute(stColors, 3));
+      const stMat = new THREE.MeshBasicMaterial({
+        wireframe: true,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.38
+      });
+      spacetimeMesh = new THREE.Mesh(stGeo, stMat);
+      spacetimeMesh.visible = state.showSpacetime;
+      scene.add(spacetimeMesh);
 
       // Orbit guide rings (visualizing full orbital paths)
       state.bodies.forEach((b, idx) => {
@@ -1119,12 +2076,12 @@
         }
       });
 
-      // Bodies
+      // Bodies & 3D Hill Spheres
       state.bodies.forEach((b, idx) => {
         let visualRadius = 0.4;
         if (state.scaleMode === 'perceptual') {
           visualRadius = Math.max(0.35, Math.log10(b.radius + 1) * 0.22);
-          if (idx === 0 && (state.presetId === 'solar_system' || state.presetId === 'mercury_gr' || state.presetId === 'trojans')) {
+          if (idx === 0 && (state.presetId === 'solar_system' || state.presetId === 'inner_solar_system_jupiter' || state.presetId === 'mercury_gr' || state.presetId === 'trojans')) {
             visualRadius = 1.4;
           }
         } else {
@@ -1133,7 +2090,7 @@
 
         const geom = new THREE.SphereGeometry(visualRadius, 32, 32);
         let mat;
-        if (idx === 0 && (state.presetId === 'solar_system' || state.presetId === 'mercury_gr' || state.presetId === 'trojans')) {
+        if (idx === 0 && (state.presetId === 'solar_system' || state.presetId === 'inner_solar_system_jupiter' || state.presetId === 'mercury_gr' || state.presetId === 'trojans')) {
           mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(b.color) });
         } else {
           mat = new THREE.MeshStandardMaterial({
@@ -1147,6 +2104,40 @@
         mesh.position.copy(toSceneCoords(b.pos));
         scene.add(mesh);
         bodyMeshes.push(mesh);
+
+        // 3D Hill Spheres (Roche Lobes)
+        let rH_km = 0;
+        if (b.name === "Moon") {
+          rH_km = 384400.0 * Math.cbrt(7.342e22 / (3.0 * 5.9722e24)); // ~61,500 km
+        } else if (b.name === "Earth") {
+          rH_km = 149597870.0 * Math.cbrt(5.9722e24 / (3.0 * 1.98847e30)); // ~1.50M km (~0.01 AU)
+        } else if (b.name === "Jupiter") {
+          rH_km = 5.2044 * 149597870.0 * Math.cbrt(1.89813e27 / (3.0 * 1.98847e30)); // ~53.1M km (~0.355 AU)
+        } else if (b.name === "Venus") {
+          rH_km = 0.723 * 149597870.0 * Math.cbrt(4.8675e24 / (3.0 * 1.98847e30)); // ~1.0M km
+        } else if (b.name === "Mars") {
+          rH_km = 1.524 * 149597870.0 * Math.cbrt(6.4171e23 / (3.0 * 1.98847e30)); // ~1.08M km
+        }
+
+        if (rH_km > 0) {
+          const rH_m = rH_km * 1e3;
+          let rH_scene = rH_m * state.sceneScale;
+          if (state.scaleMode === 'perceptual' && b.name === 'Moon') {
+            rH_scene = Math.max(0.65, rH_scene * 2.2);
+          }
+          const hGeo = new THREE.SphereGeometry(rH_scene, 24, 16);
+          const hMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(b.color),
+            wireframe: true,
+            transparent: true,
+            opacity: 0.22
+          });
+          const hMesh = new THREE.Mesh(hGeo, hMat);
+          hMesh.position.copy(toSceneCoords(b.pos));
+          hMesh.visible = state.showHillSpheres;
+          scene.add(hMesh);
+          hillSphereMeshes.push({ mesh: hMesh, bodyIndex: idx, radius_km: rH_km, sceneRadius: rH_scene });
+        }
 
         // Trail ribbon
         const trailPositions = new Float32Array(state.trailLength * 3);
@@ -1171,12 +2162,24 @@
       });
 
       // Frame camera comfortably
-      camera.position.set(0, -55, 38);
+      if (state.presetId === 'inner_solar_system_jupiter') {
+        camera.position.set(0, -42, 28);
+      } else {
+        camera.position.set(0, -55, 38);
+      }
       camera.lookAt(0, 0, 0);
       controls.target.set(0, 0, 0);
       controls.update();
 
-      // Immediately render first frame
+      // Initialize Space Field Layers & Objects
+      initGravitationalBasins();
+      initSpatialVectorGrid();
+      initEquipotentialContours();
+      initSpaceProbeObjects();
+
+      // Immediately render first frame & initial potential mesh
+      updateSpacetimeMesh();
+      updateForceVectorsAndTethers();
       renderer.render(scene, camera);
       updateHUD();
     }
@@ -1189,13 +2192,873 @@
       );
     }
 
+    // =========================================================
+    // SPATIAL GRAVITATIONAL FIELD PHYSICS & BASIN TELEMETRY
+    // =========================================================
+
+    function computeSpatialFieldAt(physPos) {
+      const bodies = state.bodies;
+      let netAccel = [0, 0, 0];
+      let totalPotential = 0;
+      let maxBodyA = -1;
+      let dominantBody = null;
+      let contributions = [];
+      let scalarSum = 0;
+      const eps2 = (state.softening_m || 0) ** 2;
+
+      for (let j = 0; j < bodies.length; j++) {
+        const b = bodies[j];
+        const dx = b.pos[0] - physPos[0];
+        const dy = b.pos[1] - physPos[1];
+        const dz = b.pos[2] - physPos[2];
+        const r2 = dx * dx + dy * dy + dz * dz;
+        const dist = Math.sqrt(r2);
+        const distSoftSq = r2 + eps2;
+        const distSoft = Math.sqrt(distSoftSq);
+
+        let ax = 0, ay = 0, az = 0, aMag = 0, phi = 0;
+        if (distSoft > 1e-6) {
+          const gm = G_STANDARD * b.mass;
+          const factor = gm / (distSoftSq * distSoft);
+          ax = factor * dx;
+          ay = factor * dy;
+          az = factor * dz;
+          aMag = Math.sqrt(ax * ax + ay * ay + az * az);
+          phi = -gm / distSoft;
+        }
+
+        netAccel[0] += ax;
+        netAccel[1] += ay;
+        netAccel[2] += az;
+        totalPotential += phi;
+        scalarSum += aMag;
+
+        const contrib = {
+          bodyIndex: j,
+          name: b.name,
+          color: b.color,
+          vec: [ax, ay, az],
+          aMag,
+          phi,
+          dist,
+          fraction: 0
+        };
+        contributions.push(contrib);
+
+        if (aMag > maxBodyA) {
+          maxBodyA = aMag;
+          dominantBody = b;
+        }
+      }
+
+      if (scalarSum > 1e-30) {
+        contributions.forEach(c => {
+          c.fraction = c.aMag / scalarSum;
+        });
+      }
+
+      const netMag = Math.sqrt(netAccel[0]**2 + netAccel[1]**2 + netAccel[2]**2);
+      const dominantFraction = scalarSum > 1e-30 ? maxBodyA / scalarSum : 0;
+      const tidal = computeTidalTensorAt(physPos);
+
+      return {
+        physPos,
+        netAccel,
+        netMag,
+        totalPotential,
+        dominantBody: {
+          name: dominantBody ? dominantBody.name : 'Deep Space',
+          color: dominantBody ? dominantBody.color : '#38bdf8',
+          fraction: dominantFraction,
+          aMag: maxBodyA
+        },
+        contributions,
+        tidal
+      };
+    }
+
+    function computeTidalTensorAt(physPos) {
+      let matrix = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      const bodies = state.bodies;
+      const eps2 = (state.softening_m || 0) ** 2;
+
+      for (let j = 0; j < bodies.length; j++) {
+        const b = bodies[j];
+        const rx = b.pos[0] - physPos[0];
+        const ry = b.pos[1] - physPos[1];
+        const rz = b.pos[2] - physPos[2];
+        const r2 = rx * rx + ry * ry + rz * rz;
+        const distSoftSq = r2 + eps2;
+        const distSoft = Math.sqrt(distSoftSq);
+        if (distSoft <= 1e-6) continue;
+
+        const gm = G_STANDARD * b.mass;
+        const invR3 = 1.0 / (distSoftSq * distSoft);
+        const invR5 = 1.0 / (distSoftSq * distSoftSq * distSoft);
+        const rVec = [rx, ry, rz];
+
+        for (let a = 0; a < 3; a++) {
+          for (let c = 0; c < 3; c++) {
+            const delta = a === c ? 1.0 : 0.0;
+            matrix[a][c] += gm * (3.0 * rVec[a] * rVec[c] * invR5 - delta * invR3);
+          }
+        }
+      }
+
+      const trace = matrix[0][0] + matrix[1][1] + matrix[2][2];
+      let sumSq = 0;
+      for (let a = 0; a < 3; a++) {
+        for (let c = 0; c < 3; c++) sumSq += matrix[a][c] * matrix[a][c];
+      }
+      const q = sumSq / 6.0;
+      const det = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+                - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+                + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+
+      let eigenvalues = [0, 0, 0];
+      if (q > 1e-30) {
+        const rVal = det * 0.5;
+        const arg = Math.min(1.0, Math.max(-1.0, rVal / Math.pow(q, 1.5)));
+        const theta = Math.acos(arg) / 3.0;
+        const sqrtQ = Math.sqrt(q);
+        const e1 = 2.0 * sqrtQ * Math.cos(theta);
+        const e2 = 2.0 * sqrtQ * Math.cos(theta - 2.0 * Math.PI / 3.0);
+        const e3 = 2.0 * sqrtQ * Math.cos(theta + 2.0 * Math.PI / 3.0);
+        eigenvalues = [e1, e2, e3].sort((a, b) => b - a);
+      }
+      const maxStrainEotvos = Math.max(Math.abs(eigenvalues[0]), Math.abs(eigenvalues[2])) * 1e9;
+
+      return { matrix, trace, eigenvalues, maxStrainEotvos };
+    }
+
+    function formatAccel(mps2) {
+      if (mps2 >= 1.0) return `${mps2.toFixed(3)} m/s²`;
+      if (mps2 >= 1e-3) return `${(mps2 * 1e3).toFixed(2)} mm/s²`;
+      if (mps2 >= 1e-6) return `${(mps2 * 1e6).toFixed(2)} μm/s²`;
+      return `${(mps2 * 1e9).toFixed(2)} nm/s²`;
+    }
+
+    function formatPotential(j_kg) {
+      const absVal = Math.abs(j_kg);
+      const sign = j_kg < 0 ? '-' : '';
+      if (absVal >= 1e9) return `${sign}${(absVal / 1e9).toFixed(2)} GJ/kg`;
+      if (absVal >= 1e6) return `${sign}${(absVal / 1e6).toFixed(2)} MJ/kg`;
+      if (absVal >= 1e3) return `${sign}${(absVal / 1e3).toFixed(2)} kJ/kg`;
+      return `${sign}${absVal.toFixed(1)} J/kg`;
+    }
+
+    function updateCursorReticleAndHUD(intersectPos) {
+      const hud = document.getElementById('spatial-probe-cursor-hud');
+      if (!hud) return;
+
+      const invScale = 1.0 / (state.sceneScale || 1.0);
+      const physX = intersectPos.x * invScale;
+      const physY = intersectPos.y * invScale;
+      const physZ = intersectPos.z * invScale;
+
+      const field = computeSpatialFieldAt([physX, physY, physZ]);
+      const xAU = (physX / AU_M).toFixed(3);
+      const yAU = (physY / AU_M).toFixed(3);
+
+      document.getElementById('cursor-coords-val').innerText = `Space: (${xAU}, ${yAU}) AU`;
+      document.getElementById('cursor-accel-val').innerText = `g = ${formatAccel(field.netMag)}`;
+
+      const badge = document.getElementById('cursor-basin-badge');
+      if (badge && field.dominantBody) {
+        badge.innerText = `${field.dominantBody.name} Basin (${(field.dominantBody.fraction * 100).toFixed(0)}%)`;
+        badge.style.color = field.dominantBody.color;
+        badge.style.borderColor = field.dominantBody.color;
+      }
+      hud.style.display = 'flex';
+
+      if (spaceProbeReticleMesh) {
+        spaceProbeReticleMesh.position.set(intersectPos.x, intersectPos.y, 0.02);
+        spaceProbeReticleMesh.visible = true;
+      }
+    }
+
+    function initSpaceProbeObjects() {
+      if (spaceProbeGroup) scene.remove(spaceProbeGroup);
+      spaceProbeGroup = new THREE.Group();
+
+      // Pulsing reticle ring on ecliptic plane for cursor hover
+      if (spaceProbeReticleMesh) scene.remove(spaceProbeReticleMesh);
+      const ringGeo = new THREE.RingGeometry(0.35, 0.48, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.65
+      });
+      spaceProbeReticleMesh = new THREE.Mesh(ringGeo, ringMat);
+      spaceProbeReticleMesh.visible = false;
+      scene.add(spaceProbeReticleMesh);
+
+      // Dedicated Space Probe Pin 3D Marker
+      const pinAnchorGeo = new THREE.SphereGeometry(0.18, 16, 16);
+      const pinAnchorMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const pinAnchor = new THREE.Mesh(pinAnchorGeo, pinAnchorMat);
+      spaceProbeGroup.add(pinAnchor);
+
+      // Beacon vertical line
+      const beaconGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, 2.2)
+      ]);
+      const beaconMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+      const beaconLine = new THREE.Line(beaconGeo, beaconMat);
+      spaceProbeGroup.add(beaconLine);
+
+      // Pin head sphere
+      const headGeo = new THREE.SphereGeometry(0.32, 16, 16);
+      const headMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.set(0, 0, 2.2);
+      spaceProbeGroup.add(head);
+
+      // Main Acceleration Vector Arrow
+      const arrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), 2.5, 0x38bdf8, 0.6, 0.25);
+      spaceProbeGroup.add(arrow);
+      spaceProbeGroup.userData.mainArrow = arrow;
+
+      spaceProbeGroup.visible = false;
+      scene.add(spaceProbeGroup);
+    }
+
+    function setSpaceProbe(scenePos, physPos) {
+      const field = computeSpatialFieldAt(physPos);
+      state.spaceProbe = { scenePos: scenePos.clone(), physPos, field };
+
+      updateSpaceProbeVisuals();
+      openSpacePlaceCard(field);
+    }
+
+    function clearSpaceProbe() {
+      state.spaceProbe = null;
+      if (spaceProbeGroup) spaceProbeGroup.visible = false;
+      if (spaceProbePin2D) spaceProbePin2D.style.display = 'none';
+      spaceProbeTetherLines.forEach(l => scene.remove(l));
+      spaceProbeVectorArrows.forEach(a => scene.remove(a));
+      spaceProbeTetherLines = [];
+      spaceProbeVectorArrows = [];
+      const card = document.getElementById('gmap-place-card');
+      if (card && card.dataset.isSpacePoint === 'true') {
+        card.style.display = 'none';
+      }
+    }
+
+    function updateSpaceProbeVisuals() {
+      if (!state.spaceProbe || !spaceProbeGroup) return;
+      if (!state.showSpaceProbe) {
+        spaceProbeGroup.visible = false;
+        return;
+      }
+
+      const p = state.spaceProbe;
+      const scPos = toSceneCoords(p.physPos);
+      spaceProbeGroup.position.copy(scPos);
+      spaceProbeGroup.visible = true;
+
+      // Clean old tether lines & component arrows
+      spaceProbeTetherLines.forEach(l => scene.remove(l));
+      spaceProbeVectorArrows.forEach(a => scene.remove(a));
+      spaceProbeTetherLines = [];
+      spaceProbeVectorArrows = [];
+
+      const field = computeSpatialFieldAt(p.physPos);
+      state.spaceProbe.field = field;
+
+      // Update main acceleration arrow
+      const mainArrow = spaceProbeGroup.userData.mainArrow;
+      if (mainArrow && field.netMag > 1e-12) {
+        const dir = new THREE.Vector3(field.netAccel[0], field.netAccel[1], field.netAccel[2]).normalize();
+        mainArrow.setDirection(dir);
+        const len = Math.min(4.5, Math.max(1.2, 1.2 + Math.log10(1.0 + field.netMag * 1000) * 0.8));
+        mainArrow.setLength(len, len * 0.3, len * 0.18);
+        mainArrow.setColor(new THREE.Color(field.dominantBody.color || 0x38bdf8));
+      }
+
+      // Draw component pull lines and arrows from bodies to this spatial point
+      if (state.showForces || state.showTethers) {
+        field.contributions.forEach(c => {
+          if (c.fraction < 0.01) return; // skip tiny negligible perturbers
+          const b = state.bodies[c.bodyIndex];
+          if (!b) return;
+          const bodyScPos = toSceneCoords(b.pos);
+
+          // Component Tether Line
+          if (state.showTethers) {
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([scPos, bodyScPos]);
+            const lineMat = new THREE.LineBasicMaterial({
+              color: new THREE.Color(c.color),
+              transparent: true,
+              opacity: Math.min(0.8, Math.max(0.18, c.fraction * 0.9))
+            });
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+            spaceProbeTetherLines.push(line);
+          }
+
+          // Component Vector Arrow at probe pointing towards the body
+          if (state.showForces && c.aMag > 1e-12) {
+            const dir = new THREE.Vector3(c.vec[0], c.vec[1], c.vec[2]).normalize();
+            const arrowLen = Math.min(3.8, Math.max(0.8, c.fraction * 3.5));
+            const cArrow = new THREE.ArrowHelper(dir, scPos, arrowLen, c.color, arrowLen * 0.3, arrowLen * 0.18);
+            scene.add(cArrow);
+            spaceProbeVectorArrows.push(cArrow);
+          }
+        });
+      }
+    }
+
+    function openSpacePlaceCard(field) {
+      const card = document.getElementById('gmap-place-card');
+      if (!card) return;
+      card.dataset.isSpacePoint = 'true';
+
+      const xAU = (field.physPos[0] / AU_M).toFixed(4);
+      const yAU = (field.physPos[1] / AU_M).toFixed(4);
+      const zAU = (field.physPos[2] / AU_M).toFixed(4);
+      const rSunKm = Math.sqrt(field.physPos[0]**2 + field.physPos[1]**2 + field.physPos[2]**2) / 1e3;
+
+      document.getElementById('place-icon').innerText = '📍';
+      document.getElementById('place-title').innerText = `Space Point (${xAU}, ${yAU}) AU`;
+      document.getElementById('place-subtitle').innerText = `Gravitational Basin: ${field.dominantBody.name} Territory • ${(field.dominantBody.fraction * 100).toFixed(1)}% Local Field`;
+
+      // Switch to space action buttons
+      const planetActions = document.getElementById('planet-actions-row');
+      const spaceActions = document.getElementById('space-actions-row');
+      if (planetActions) planetActions.style.display = 'none';
+      if (spaceActions) spaceActions.style.display = 'grid';
+
+      // Specifications Table
+      const heading = document.getElementById('place-specs-heading');
+      if (heading) heading.innerText = 'Spatial Field Telemetry';
+
+      const specs = document.getElementById('place-specs-table');
+      const netDir = field.netMag > 1e-12 ? [
+        (field.netAccel[0] / field.netMag).toFixed(3),
+        (field.netAccel[1] / field.netMag).toFixed(3),
+        (field.netAccel[2] / field.netMag).toFixed(3)
+      ] : [0, 0, 0];
+
+      specs.innerHTML = `
+        <tr><td class="label">Coordinates (AU)</td><td class="val">${xAU}, ${yAU}, ${zAU} AU</td></tr>
+        <tr><td class="label">Distance to Sun</td><td class="val">${(rSunKm / 1e6).toFixed(2)}M km</td></tr>
+        <tr><td class="label">Acceleration |g|</td><td class="val" style="color: #38bdf8; font-weight: 700;">${formatAccel(field.netMag)}</td></tr>
+        <tr><td class="label">Field Direction ĝ</td><td class="val">[${netDir.join(', ')}]</td></tr>
+        <tr><td class="label">Potential Φ</td><td class="val">${formatPotential(field.totalPotential)}</td></tr>
+        <tr><td class="label">Dominant Basin</td><td class="val" style="color: ${field.dominantBody.color}; font-weight: 700;">${field.dominantBody.name} (${(field.dominantBody.fraction * 100).toFixed(1)}%)</td></tr>
+        <tr><td class="label">Tidal Strain Rate</td><td class="val" style="color: #c084fc;">${field.tidal.maxStrainEotvos.toFixed(1)} Eötvös</td></tr>
+        <tr><td class="label">Active Test Probes</td><td class="val" style="color: #34d399;">${state.testParticles.length} in free-fall</td></tr>
+      `;
+
+      // Embedded Tug-of-War Card for Space Point
+      updateSpaceTugOfWar(field);
+
+      // Tidal Tensor Card
+      updateSpaceTidalCard(field.tidal);
+
+      card.style.display = 'block';
+    }
+
+    function updateSpaceTugOfWar(field) {
+      const table = document.getElementById('place-tug-table');
+      const badge = document.getElementById('place-tug-badge');
+      const note = document.getElementById('place-tug-insight');
+      const title = document.getElementById('place-tug-header-title');
+      if (!table) return;
+
+      if (title) title.innerText = 'POINT GRAVITATIONAL TUG-OF-WAR';
+      if (badge) {
+        badge.innerText = `${field.dominantBody.name} Dominates`;
+        badge.style.background = 'rgba(56, 189, 248, 0.2)';
+        badge.style.color = '#38bdf8';
+      }
+
+      table.innerHTML = '';
+      const sorted = [...field.contributions].sort((a, b) => b.aMag - a.aMag);
+
+      sorted.forEach(c => {
+        const pct = (c.fraction * 100).toFixed(1);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="label" style="color: ${c.color}; font-weight: 600;">${c.name} Pull</td>
+          <td class="val">${formatAccel(c.aMag)} <span style="color: var(--text-muted); font-size: 10px;">(${pct}%)</span></td>
+        `;
+        table.appendChild(row);
+      });
+
+      if (note) {
+        if (field.dominantBody.name === 'Earth') {
+          note.innerHTML = `<strong>Territory Analysis:</strong> Inside Earth's Gravitational Dominance Basin (< 259,000 km Chebotarev Sphere of Attraction). Earth's pull exceeds the Sun's pull!`;
+        } else if (field.dominantBody.name === 'Moon') {
+          note.innerHTML = `<strong>Territory Analysis:</strong> Inside Moon's Gravitational Basin (< 38,400 km neutral boundary). Moon's local gravity dominates both Earth and Sun!`;
+        } else if (field.dominantBody.name === 'Jupiter') {
+          note.innerHTML = `<strong>Territory Analysis:</strong> Inside Jovian Dominance Basin (< 24.1 million km). Jupiter's massive gravity well commands this spatial region!`;
+        } else {
+          note.innerHTML = `<strong>Territory Analysis:</strong> Interplanetary Solar Domain. Sun dominates ${(field.dominantBody.fraction * 100).toFixed(1)}% of the net gravitational field at this coordinate.`;
+        }
+      }
+    }
+
+    function updateSpaceTidalCard(tidal) {
+      const card = document.getElementById('place-tidal-card');
+      const table = document.getElementById('place-tidal-table');
+      const note = document.getElementById('place-tidal-insight');
+      if (!card || !table) return;
+
+      table.innerHTML = `
+        <tr><td class="label">Principal Eigenvalues</td><td class="val">[${(tidal.eigenvalues[0]*1e9).toFixed(1)}, ${(tidal.eigenvalues[1]*1e9).toFixed(1)}, ${(tidal.eigenvalues[2]*1e9).toFixed(1)}] E</td></tr>
+        <tr><td class="label">Radial Stretching λ₁</td><td class="val" style="color: #34d399;">+${(tidal.eigenvalues[0]*1e9).toFixed(2)} E</td></tr>
+        <tr><td class="label">Lateral Compression λ₂</td><td class="val" style="color: #f87171;">${(tidal.eigenvalues[1]*1e9).toFixed(2)} E</td></tr>
+        <tr><td class="label">Lateral Compression λ₃</td><td class="val" style="color: #f87171;">${(tidal.eigenvalues[2]*1e9).toFixed(2)} E</td></tr>
+        <tr><td class="label">Matrix Trace (Tr T)</td><td class="val">${tidal.trace.toExponential(2)} (Vacuum ≡ 0)</td></tr>
+      `;
+
+      if (note) {
+        note.innerHTML = `<strong>Astrophysics Insight:</strong> Tidal tensor $\\mathbf{T}_{ab} = \\partial g_a / \\partial x_b$. Vacuum Laplace equation $\\nabla \\cdot \\mathbf{g} = 0$ guarantees zero trace (exact mass conservation). Positive eigenvalue $\\lambda_1$ represents stretching along radial line; negative $\\lambda_2, \\lambda_3$ represent orthogonal tidal compression (spaghettification gradient).`;
+      }
+    }
+
+    function releaseTestParticle(physPos, initialVel = [0, 0, 0]) {
+      const p = {
+        pos: [physPos[0], physPos[1], physPos[2]],
+        vel: [initialVel[0], initialVel[1], initialVel[2]],
+        trail: [toSceneCoords(physPos).clone()],
+        maxTrail: 400,
+        color: '#34d399',
+        id: Date.now() + Math.random()
+      };
+
+      const sphereGeo = new THREE.SphereGeometry(0.25, 16, 16);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+      const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+      mesh.position.copy(toSceneCoords(p.pos));
+      scene.add(mesh);
+      p.mesh = mesh;
+
+      const trailGeo = new THREE.BufferGeometry();
+      const trailMat = new THREE.LineBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.85 });
+      const trailPositions = new Float32Array(p.maxTrail * 3);
+      trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+      const trailLine = new THREE.Line(trailGeo, trailMat);
+      scene.add(trailLine);
+      p.trailLine = trailLine;
+      p.trailGeo = trailGeo;
+
+      state.testParticles.push(p);
+
+      if (state.spaceProbe) {
+        openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
+      }
+    }
+
+    function stepTestParticles(dt) {
+      if (state.testParticles.length === 0) return;
+      const bodies = state.bodies;
+      const eps2 = (state.softening_m || 0) ** 2;
+
+      for (let i = 0; i < state.testParticles.length; i++) {
+        const tp = state.testParticles[i];
+        let ax = 0, ay = 0, az = 0;
+
+        for (let j = 0; j < bodies.length; j++) {
+          const b = bodies[j];
+          const dx = b.pos[0] - tp.pos[0];
+          const dy = b.pos[1] - tp.pos[1];
+          const dz = b.pos[2] - tp.pos[2];
+          const r2 = dx * dx + dy * dy + dz * dz;
+          const distSoftSq = r2 + eps2;
+          const distSoft = Math.sqrt(distSoftSq);
+          if (distSoft > 1e-6) {
+            const factor = (G_STANDARD * b.mass) / (distSoftSq * distSoft);
+            ax += factor * dx;
+            ay += factor * dy;
+            az += factor * dz;
+          }
+        }
+
+        tp.vel[0] += ax * dt;
+        tp.vel[1] += ay * dt;
+        tp.vel[2] += az * dt;
+
+        tp.pos[0] += tp.vel[0] * dt;
+        tp.pos[1] += tp.vel[1] * dt;
+        tp.pos[2] += tp.vel[2] * dt;
+
+        const scPos = toSceneCoords(tp.pos);
+        if (tp.mesh) tp.mesh.position.copy(scPos);
+
+        tp.trail.push(scPos.clone());
+        if (tp.trail.length > tp.maxTrail) tp.trail.shift();
+
+        if (tp.trailGeo) {
+          const posAttr = tp.trailGeo.attributes.position.array;
+          for (let k = 0; k < tp.trail.length; k++) {
+            posAttr[k * 3] = tp.trail[k].x;
+            posAttr[k * 3 + 1] = tp.trail[k].y;
+            posAttr[k * 3 + 2] = tp.trail[k].z;
+          }
+          tp.trailGeo.setDrawRange(0, tp.trail.length);
+          tp.trailGeo.attributes.position.needsUpdate = true;
+        }
+      }
+    }
+
+    function clearTestParticles() {
+      state.testParticles.forEach(tp => {
+        if (tp.mesh) scene.remove(tp.mesh);
+        if (tp.trailLine) scene.remove(tp.trailLine);
+      });
+      state.testParticles = [];
+      if (state.spaceProbe) {
+        openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
+      }
+    }
+
+    function initGravitationalBasins() {
+      if (gravitationalBasinsGroup) scene.remove(gravitationalBasinsGroup);
+      gravitationalBasinsGroup = new THREE.Group();
+
+      // Interplanetary Sun Dominance Basin Disc (Solar Territory Background)
+      const sunGeo = new THREE.CircleGeometry(48, 64);
+      const sunMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.06,
+        side: THREE.DoubleSide
+      });
+      const sunDisc = new THREE.Mesh(sunGeo, sunMat);
+      sunDisc.position.set(0, 0, -0.05);
+      gravitationalBasinsGroup.add(sunDisc);
+
+      // Planet Dominance Basins
+      const basinConfigs = [
+        { name: "Earth", color: 0x38bdf8, baseRaKm: 259000.0, opacity: 0.28 },
+        { name: "Moon", color: 0xffffff, baseRaKm: 38400.0, opacity: 0.38 },
+        { name: "Jupiter", color: 0xfb923c, baseRaKm: 24100000.0, opacity: 0.26 },
+        { name: "Venus", color: 0xfef08a, baseRaKm: 200000.0, opacity: 0.26 },
+        { name: "Mars", color: 0xf87171, baseRaKm: 130000.0, opacity: 0.26 }
+      ];
+
+      basinConfigs.forEach(cfg => {
+        const bodyIdx = state.bodies.findIndex(b => b.name === cfg.name);
+        if (bodyIdx >= 0) {
+          const b = state.bodies[bodyIdx];
+          const sun = state.bodies[0];
+          const dSun = Math.sqrt(b.pos[0]**2 + b.pos[1]**2 + b.pos[2]**2);
+          let rAttraction_m = dSun * Math.sqrt(b.mass / (sun ? sun.mass : 1.98847e30));
+          if (cfg.name === "Moon") {
+            const earth = state.bodies.find(bod => bod.name === "Earth");
+            const dEm = 384400e3;
+            rAttraction_m = dEm / (1.0 + Math.sqrt((earth ? earth.mass : 5.9722e24) / b.mass));
+          }
+
+          let rScene = rAttraction_m * state.sceneScale;
+          if (state.scaleMode === 'perceptual') {
+            if (cfg.name === "Moon") rScene = Math.max(0.55, rScene * 2.5);
+            else if (cfg.name === "Earth") rScene = Math.max(1.1, rScene * 1.8);
+            else if (cfg.name === "Jupiter") rScene = Math.max(3.2, rScene * 1.2);
+            else rScene = Math.max(0.8, rScene * 1.5);
+          }
+
+          // Filled Basin Disc
+          const discGeo = new THREE.CircleGeometry(rScene, 48);
+          const discMat = new THREE.MeshBasicMaterial({
+            color: cfg.color,
+            transparent: true,
+            opacity: cfg.opacity,
+            side: THREE.DoubleSide
+          });
+          const disc = new THREE.Mesh(discGeo, discMat);
+          disc.userData = { bodyName: cfg.name, bodyIndex: bodyIdx, rScene };
+          disc.position.copy(toSceneCoords(b.pos));
+          disc.position.z = -0.02;
+          gravitationalBasinsGroup.add(disc);
+
+          // Glowing Chebotarev Neutral Gravity Boundary Ring (gA = gB)
+          const ringPoints = [];
+          for (let a = 0; a <= 64; a++) {
+            const theta = (a / 64) * 2 * Math.PI;
+            ringPoints.push(new THREE.Vector3(Math.cos(theta) * rScene, Math.sin(theta) * rScene, 0));
+          }
+          const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
+          const ringMat = new THREE.LineBasicMaterial({
+            color: cfg.color,
+            transparent: true,
+            opacity: 0.75
+          });
+          const ringLine = new THREE.LineLoop(ringGeo, ringMat);
+          ringLine.position.copy(toSceneCoords(b.pos));
+          ringLine.position.z = 0.01;
+          ringLine.userData = { bodyName: cfg.name, bodyIndex: bodyIdx };
+          gravitationalBasinsGroup.add(ringLine);
+        }
+      });
+
+      scene.add(gravitationalBasinsGroup);
+      gravitationalBasinsGroup.visible = state.showBasins;
+    }
+
+    function updateGravitationalBasins() {
+      if (!gravitationalBasinsGroup || !state.showBasins) return;
+      gravitationalBasinsGroup.children.forEach(child => {
+        if (child.userData && child.userData.bodyIndex !== undefined) {
+          const b = state.bodies[child.userData.bodyIndex];
+          if (b) {
+            const scPos = toSceneCoords(b.pos);
+            child.position.x = scPos.x;
+            child.position.y = scPos.y;
+          }
+        }
+      });
+    }
+
+    function initSpatialVectorGrid() {
+      if (spatialVectorGridGroup) scene.remove(spatialVectorGridGroup);
+      spatialVectorGridGroup = new THREE.Group();
+
+      const span = 32.0; // scene units (covers -5.5 to +5.5 AU)
+      const steps = 22; // 22 x 22 grid = 484 vector arrows
+      const dStep = (span * 2) / (steps - 1);
+
+      for (let i = 0; i < steps; i++) {
+        const x = -span + i * dStep;
+        for (let j = 0; j < steps; j++) {
+          const y = -span + j * dStep;
+          const arrow = new THREE.ArrowHelper(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(x, y, 0),
+            0.8,
+            0x38bdf8,
+            0.25,
+            0.12
+          );
+          arrow.userData = { gridX: x, gridY: y };
+          spatialVectorGridGroup.add(arrow);
+        }
+      }
+
+      scene.add(spatialVectorGridGroup);
+      spatialVectorGridGroup.visible = state.showVectorGrid;
+    }
+
+    let gridFrameCounter = 0;
+    function updateSpatialVectorGrid() {
+      if (!spatialVectorGridGroup || !state.showVectorGrid || state.bodies.length === 0) return;
+      gridFrameCounter++;
+      if (gridFrameCounter % 2 !== 0) return;
+
+      const invScale = 1.0 / (state.sceneScale || 1.0);
+      spatialVectorGridGroup.children.forEach(arrow => {
+        const x = arrow.userData.gridX;
+        const y = arrow.userData.gridY;
+        const physX = x * invScale;
+        const physY = y * invScale;
+
+        const field = computeSpatialFieldAt([physX, physY, 0]);
+        const gMag = field.netMag;
+
+        if (gMag > 1e-12) {
+          const dir = new THREE.Vector3(field.netAccel[0], field.netAccel[1], 0).normalize();
+          arrow.setDirection(dir);
+          const len = Math.min(1.8, Math.max(0.35, 0.4 + Math.log10(1.0 + gMag * 500) * 0.4));
+          arrow.setLength(len, len * 0.35, len * 0.2);
+
+          if (gMag > 0.01) {
+            arrow.setColor(new THREE.Color(0xfbbf24));
+          } else if (gMag > 1e-4) {
+            arrow.setColor(new THREE.Color(0x38bdf8));
+          } else {
+            arrow.setColor(new THREE.Color(0x60a5fa));
+          }
+        }
+      });
+    }
+
+    function initEquipotentialContours() {
+      if (equipotentialContoursGroup) scene.remove(equipotentialContoursGroup);
+      equipotentialContoursGroup = new THREE.Group();
+
+      const contourSpecs = [
+        { bodyName: 'Sun', count: 6, minR: 4, maxR: 35, color: 0xfbbf24, opacity: 0.15 },
+        { bodyName: 'Earth', count: 4, minR: 0.6, maxR: 3.5, color: 0x38bdf8, opacity: 0.22 },
+        { bodyName: 'Jupiter', count: 4, minR: 1.5, maxR: 7.0, color: 0xfb923c, opacity: 0.22 }
+      ];
+
+      contourSpecs.forEach(spec => {
+        const bodyIdx = state.bodies.findIndex(b => b.name === spec.bodyName);
+        if (bodyIdx >= 0) {
+          const b = state.bodies[bodyIdx];
+          for (let k = 1; k <= spec.count; k++) {
+            const r = spec.minR + (k / spec.count) * (spec.maxR - spec.minR);
+            const pts = [];
+            for (let a = 0; a <= 64; a++) {
+              const th = (a / 64) * 2 * Math.PI;
+              pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+            }
+            const geo = new THREE.BufferGeometry().setFromPoints(pts);
+            const mat = new THREE.LineBasicMaterial({
+              color: spec.color,
+              transparent: true,
+              opacity: spec.opacity
+            });
+            const line = new THREE.LineLoop(geo, mat);
+            line.position.copy(toSceneCoords(b.pos));
+            line.position.z = -0.01;
+            line.userData = { bodyIndex: bodyIdx };
+            equipotentialContoursGroup.add(line);
+          }
+        }
+      });
+
+      scene.add(equipotentialContoursGroup);
+      equipotentialContoursGroup.visible = state.showEquipotentials;
+    }
+
+    function updateEquipotentialContours() {
+      if (!equipotentialContoursGroup || !state.showEquipotentials) return;
+      equipotentialContoursGroup.children.forEach(child => {
+        if (child.userData && child.userData.bodyIndex !== undefined) {
+          const b = state.bodies[child.userData.bodyIndex];
+          if (b) {
+            const scPos = toSceneCoords(b.pos);
+            child.position.x = scPos.x;
+            child.position.y = scPos.y;
+          }
+        }
+      });
+    }
+
+    function handleSpacePointPreset(preset) {
+      const sun = state.bodies.find(b => b.name === 'Sun');
+      const earth = state.bodies.find(b => b.name === 'Earth');
+      const moon = state.bodies.find(b => b.name === 'Moon');
+      const jupiter = state.bodies.find(b => b.name === 'Jupiter');
+
+      let targetPhysPos = [0, 0, 0];
+      let targetDist = 10;
+
+      if (preset === 'sun_earth_neutral') {
+        if (earth && sun) {
+          const dx = sun.pos[0] - earth.pos[0];
+          const dy = sun.pos[1] - earth.pos[1];
+          const dz = sun.pos[2] - earth.pos[2];
+          const dSe = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const rAttraction = dSe * Math.sqrt(earth.mass / sun.mass); // ~259,000 km
+          const factor = rAttraction / dSe;
+          targetPhysPos = [
+            earth.pos[0] + dx * factor,
+            earth.pos[1] + dy * factor,
+            earth.pos[2] + dz * factor
+          ];
+          targetDist = 3.5;
+        }
+      } else if (preset === 'earth_moon_neutral') {
+        if (earth && moon) {
+          const dx = earth.pos[0] - moon.pos[0];
+          const dy = earth.pos[1] - moon.pos[1];
+          const dz = earth.pos[2] - moon.pos[2];
+          const dEm = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const neutralDist = dEm / (1.0 + Math.sqrt(earth.mass / moon.mass)); // ~38,400 km from Moon
+          const factor = neutralDist / dEm;
+          targetPhysPos = [
+            moon.pos[0] + dx * factor,
+            moon.pos[1] + dy * factor,
+            moon.pos[2] + dz * factor
+          ];
+          targetDist = 1.8;
+        }
+      } else if (preset === 'earth_l1') {
+        if (earth && sun) {
+          const dx = sun.pos[0] - earth.pos[0];
+          const dy = sun.pos[1] - earth.pos[1];
+          const dz = sun.pos[2] - earth.pos[2];
+          const dSe = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const rL1 = dSe * Math.cbrt(earth.mass / (3.0 * sun.mass)); // ~1.50M km
+          const factor = rL1 / dSe;
+          targetPhysPos = [
+            earth.pos[0] + dx * factor,
+            earth.pos[1] + dy * factor,
+            earth.pos[2] + dz * factor
+          ];
+          targetDist = 4.5;
+        }
+      } else if (preset === 'jupiter_basin') {
+        if (jupiter && sun) {
+          const dx = sun.pos[0] - jupiter.pos[0];
+          const dy = sun.pos[1] - jupiter.pos[1];
+          const dz = sun.pos[2] - jupiter.pos[2];
+          const dSj = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const rAttraction = dSj * Math.sqrt(jupiter.mass / sun.mass); // ~24.1M km
+          const factor = rAttraction / dSj;
+          targetPhysPos = [
+            jupiter.pos[0] + dx * factor,
+            jupiter.pos[1] + dy * factor,
+            jupiter.pos[2] + dz * factor
+          ];
+          targetDist = 9.0;
+        }
+      }
+
+      const scPos = toSceneCoords(targetPhysPos);
+      setSpaceProbe(scPos, targetPhysPos);
+      flyTo(scPos, targetDist, 1000);
+    }
+
     function setupRaycasting() {
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
+      const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const planeIntersect = new THREE.Vector3();
+
+      window.addEventListener('pointermove', (e) => {
+        if (
+          e.target.closest('.panel') ||
+          e.target.closest('header') ||
+          e.target.closest('#bottom-toolbar') ||
+          e.target.closest('#gmap-search-container') ||
+          e.target.closest('#gmap-place-card') ||
+          e.target.closest('#gmap-controls-stack') ||
+          e.target.closest('#gmap-layers-widget') ||
+          e.target.closest('.gmap-poi-pin') ||
+          e.target.closest('.space-pin-marker')
+        ) {
+          const hud = document.getElementById('spatial-probe-cursor-hud');
+          if (hud) hud.style.display = 'none';
+          if (spaceProbeReticleMesh) spaceProbeReticleMesh.visible = false;
+          return;
+        }
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        if (camera && state.showSpaceProbe) {
+          raycaster.setFromCamera(mouse, camera);
+          const hit = raycaster.ray.intersectPlane(eclipticPlane, planeIntersect);
+          if (hit) {
+            updateCursorReticleAndHUD(planeIntersect);
+          } else {
+            const hud = document.getElementById('spatial-probe-cursor-hud');
+            if (hud) hud.style.display = 'none';
+            if (spaceProbeReticleMesh) spaceProbeReticleMesh.visible = false;
+          }
+        }
+      });
 
       window.addEventListener('click', (e) => {
-        // Ignore clicks on HUD panels
-        if (e.target.closest('.panel') || e.target.closest('header') || e.target.closest('#bottom-toolbar')) return;
+        if (
+          e.target.closest('.panel') ||
+          e.target.closest('header') ||
+          e.target.closest('#bottom-toolbar') ||
+          e.target.closest('#gmap-search-container') ||
+          e.target.closest('#gmap-place-card') ||
+          e.target.closest('#gmap-controls-stack') ||
+          e.target.closest('#gmap-layers-widget') ||
+          e.target.closest('.gmap-poi-pin') ||
+          e.target.closest('.space-pin-marker')
+        ) return;
 
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1206,13 +3069,728 @@
         if (intersects.length > 0) {
           const idx = intersects[0].object.userData.bodyIndex;
           selectBody(idx);
+          flyToBody(idx);
+        } else if (state.showSpaceProbe && raycaster.ray.intersectPlane(eclipticPlane, planeIntersect)) {
+          const invScale = 1.0 / (state.sceneScale || 1.0);
+          const physPos = [
+            planeIntersect.x * invScale,
+            planeIntersect.y * invScale,
+            planeIntersect.z * invScale
+          ];
+          setSpaceProbe(planeIntersect, physPos);
         }
       });
     }
 
     function selectBody(idx) {
       state.selectedBodyIndex = idx;
-      document.getElementById('body-selector-dropdown').value = idx;
+      const drop = document.getElementById('body-selector-dropdown');
+      if (drop) drop.value = idx;
+      updateForceVectorsAndTethers();
+      updateTugOfWarHUD();
+      openPlaceCard(idx);
+    }
+
+    // =========================================================
+    // GOOGLE MAPS SOLAR SYSTEM REPRESENTATION LOGIC
+    // =========================================================
+
+    let flightAnimation = null;
+    function flyTo(targetPos, targetDist = 12, durationMs = 1200) {
+      if (flightAnimation) cancelAnimationFrame(flightAnimation);
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+
+      let dir = startPos.clone().sub(startTarget);
+      if (dir.lengthSq() < 0.001) {
+        dir.set(0, -0.85, 0.52);
+      }
+      dir.normalize();
+      const endPos = endTarget.clone().add(dir.multiplyScalar(targetDist));
+
+      const startTime = performance.now();
+      controls.enabled = false;
+
+      function step(now) {
+        const elapsed = now - startTime;
+        let t = Math.min(1.0, elapsed / durationMs);
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        controls.update();
+
+        if (t < 1.0) {
+          flightAnimation = requestAnimationFrame(step);
+        } else {
+          controls.enabled = true;
+          flightAnimation = null;
+        }
+      }
+      flightAnimation = requestAnimationFrame(step);
+    }
+
+    function flyToBody(idx) {
+      if (idx < 0 || idx >= state.bodies.length) return;
+      selectBody(idx);
+      const b = state.bodies[idx];
+      const scPos = toSceneCoords(b.pos);
+      let targetDist = 12;
+      if (b.name === 'Sun') targetDist = 26;
+      else if (b.name === 'Moon') targetDist = 4.0;
+      else if (b.name === 'Jupiter') targetDist = 18;
+      else if (b.name === 'Earth') targetDist = 7.5;
+      else targetDist = 9.0;
+
+      state.cameraFollowIndex = idx;
+      const camDrop = document.getElementById('camera-focus-select');
+      if (camDrop) camDrop.value = idx;
+      flyTo(scPos, targetDist, 1000);
+    }
+
+    function getBodyEmoji(name) {
+      switch (name) {
+        case 'Sun': return '☀️';
+        case 'Venus': return '🟡';
+        case 'Earth': return '🌍';
+        case 'Moon': return '🌕';
+        case 'Mars': return '🔴';
+        case 'Jupiter': return '🪐';
+        case 'Saturn': return '🪐';
+        case 'Mercury': return '⚪';
+        case 'Pluto': return '🟣';
+        default: return '📍';
+      }
+    }
+
+    function updatePoiPins() {
+      const poiContainer = document.getElementById('gmap-poi-container');
+      if (!state.showPoiPins || state.bodies.length === 0 || !poiContainer) {
+        if (poiContainer) poiContainer.innerHTML = '';
+        return;
+      }
+
+      let pins = poiContainer.children;
+      if (pins.length !== state.bodies.length) {
+        poiContainer.innerHTML = '';
+        state.bodies.forEach((b, i) => {
+          const pin = document.createElement('div');
+          pin.className = 'gmap-poi-pin';
+          pin.dataset.index = i;
+          const emoji = getBodyEmoji(b.name);
+          pin.innerHTML = `
+            <span style="font-size: 13px;">${emoji}</span>
+            <span>${b.name}</span>
+          `;
+          pin.addEventListener('click', (e) => {
+            e.stopPropagation();
+            flyToBody(i);
+          });
+          poiContainer.appendChild(pin);
+        });
+        pins = poiContainer.children;
+      }
+
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      for (let i = 0; i < state.bodies.length; i++) {
+        const pin = pins[i];
+        if (!pin) continue;
+        const mesh = bodyMeshes[i];
+        if (!mesh) {
+          pin.style.display = 'none';
+          continue;
+        }
+
+        const pos = mesh.position.clone();
+        pos.project(camera);
+
+        if (pos.z > 1.0) {
+          pin.style.display = 'none';
+          continue;
+        }
+
+        const x = (pos.x * 0.5 + 0.5) * width;
+        const y = (-(pos.y * 0.5) + 0.5) * height;
+
+        if (x < -60 || x > width + 60 || y < -60 || y > height + 60) {
+          pin.style.display = 'none';
+          continue;
+        }
+
+        pin.style.display = 'flex';
+        pin.style.left = `${x}px`;
+        pin.style.top = `${y}px`;
+
+        if (i === state.selectedBodyIndex) {
+          pin.style.borderColor = '#fbbf24';
+          pin.style.boxShadow = '0 0 16px rgba(251, 191, 36, 0.7)';
+        } else {
+          pin.style.borderColor = 'var(--accent)';
+          pin.style.boxShadow = '0 3px 12px rgba(0, 0, 0, 0.75)';
+        }
+      }
+
+      // Space Probe 2D Pin Marker
+      if (state.spaceProbe && state.showSpaceProbe) {
+        if (!spaceProbePin2D) {
+          spaceProbePin2D = document.createElement('div');
+          spaceProbePin2D.className = 'space-pin-marker';
+          spaceProbePin2D.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.spaceProbe) {
+              openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
+            }
+          });
+          poiContainer.appendChild(spaceProbePin2D);
+        }
+        const field = computeSpatialFieldAt(state.spaceProbe.physPos);
+        const xAU = (state.spaceProbe.physPos[0] / AU_M).toFixed(3);
+        const yAU = (state.spaceProbe.physPos[1] / AU_M).toFixed(3);
+        spaceProbePin2D.innerHTML = `
+          <span style="font-size: 14px;">📍</span>
+          <span>Space Probe (${xAU}, ${yAU}) AU &bull; ${formatAccel(field.netMag)}</span>
+        `;
+        const scPos = toSceneCoords(state.spaceProbe.physPos);
+        const proj = scPos.clone().project(camera);
+        if (proj.z <= 1.0) {
+          const px = (proj.x * 0.5 + 0.5) * width;
+          const py = (-(proj.y * 0.5) + 0.5) * height;
+          spaceProbePin2D.style.left = `${px}px`;
+          spaceProbePin2D.style.top = `${py}px`;
+          spaceProbePin2D.style.display = 'flex';
+        } else {
+          spaceProbePin2D.style.display = 'none';
+        }
+      } else if (spaceProbePin2D) {
+        spaceProbePin2D.style.display = 'none';
+      }
+    }
+
+    function updateScaleBar() {
+      const line = document.getElementById('gmap-scale-line');
+      const label = document.getElementById('gmap-scale-text');
+      if (!line || !label) return;
+
+      const dist = camera.position.distanceTo(controls.target);
+      const vFovRad = (camera.fov * Math.PI) / 180;
+      const visibleHeightScene = 2 * Math.tan(vFovRad / 2) * dist;
+      const metersPerScene = 1.0 / (state.sceneScale || 1.0);
+      const visibleHeightM = visibleHeightScene * metersPerScene;
+      const metersPerPixel = visibleHeightM / window.innerHeight;
+
+      const candidateDistancesM = [
+        50 * AU_M, 20 * AU_M, 10 * AU_M, 5 * AU_M, 2 * AU_M, 1 * AU_M,
+        0.5 * AU_M, 0.2 * AU_M, 0.1 * AU_M,
+        10e9, 5e9, 2e9, 1e9,
+        500e6, 200e6, 100e6, 50e6, 20e6, 10e6,
+        5e6, 2e6, 1e6, 500e3, 200e3, 100e3, 50e3, 10e3
+      ];
+
+      let chosenDistM = candidateDistancesM[0];
+      let bestPx = 120;
+      for (const cand of candidateDistancesM) {
+        const px = cand / metersPerPixel;
+        if (px >= 65 && px <= 210) {
+          chosenDistM = cand;
+          bestPx = px;
+          break;
+        }
+      }
+
+      let text = "";
+      if (chosenDistM >= 0.1 * AU_M) {
+        const au = chosenDistM / AU_M;
+        text = `${au >= 1.0 ? au.toFixed(1) : au.toFixed(2)} AU (${(chosenDistM / 1e9).toFixed(0)}M km)`;
+      } else if (chosenDistM >= 1e6) {
+        text = `${(chosenDistM / 1e6).toLocaleString()} km`;
+      } else {
+        text = `${(chosenDistM / 1e3).toLocaleString()} km`;
+      }
+
+      line.style.width = `${Math.round(bestPx)}px`;
+      label.innerText = text;
+    }
+
+    function updateCompass() {
+      const needle = document.getElementById('compass-needle');
+      if (!needle) return;
+      const dx = camera.position.x - controls.target.x;
+      const dy = camera.position.y - controls.target.y;
+      const angleRad = Math.atan2(dx, -dy);
+      const angleDeg = (angleRad * 180) / Math.PI;
+      needle.style.transform = `rotate(${-angleDeg}deg)`;
+    }
+
+    function openPlaceCard(idx) {
+      if (idx < 0 || idx >= state.bodies.length) return;
+      const b = state.bodies[idx];
+      const card = document.getElementById('gmap-place-card');
+      if (!card) return;
+
+      card.dataset.isSpacePoint = 'false';
+      const planetActions = document.getElementById('planet-actions-row');
+      const spaceActions = document.getElementById('space-actions-row');
+      if (planetActions) planetActions.style.display = 'grid';
+      if (spaceActions) spaceActions.style.display = 'none';
+      const heading = document.getElementById('place-specs-heading');
+      if (heading) heading.innerText = 'Celestial Specifications';
+      const tidalCard = document.getElementById('place-tidal-card');
+      if (tidalCard) tidalCard.style.display = 'none';
+      const tugTitle = document.getElementById('place-tug-header-title');
+      if (tugTitle) tugTitle.innerText = 'GRAVITATIONAL TUG-OF-WAR';
+
+      document.getElementById('place-icon').innerText = getBodyEmoji(b.name);
+      document.getElementById('place-title').innerText = b.name;
+
+      let subtitle = "Celestial Body";
+      if (b.name === "Sun") subtitle = "G-Type Main-Sequence Star • Solar Primary";
+      else if (b.name === "Earth") subtitle = "Terrestrial Planet • Habitable Zone • 1.0 AU";
+      else if (b.name === "Moon") subtitle = "Natural Satellite • Earth Tidally Locked • 384k km";
+      else if (b.name === "Jupiter") subtitle = "Gas Giant • Dominant Solar System Perturber";
+      else if (b.name === "Mars") subtitle = "Terrestrial Planet • Outer Habitable Edge";
+      else if (b.name === "Venus") subtitle = "Terrestrial Planet • Inner Solar Sister";
+      document.getElementById('place-subtitle').innerText = subtitle;
+
+      const specs = document.getElementById('place-specs-table');
+      const dSun = Math.sqrt(b.pos[0]**2 + b.pos[1]**2 + b.pos[2]**2);
+      const vMag = Math.sqrt(b.vel[0]**2 + b.vel[1]**2 + b.vel[2]**2);
+      const gSurface = (G_STANDARD * b.mass) / ((b.radius * 1000)**2);
+
+      let rH_text = "N/A (Primary)";
+      if (b.name === "Moon") rH_text = "~61,500 km";
+      else if (b.name === "Earth") rH_text = "1.50M km (0.010 AU)";
+      else if (b.name === "Jupiter") rH_text = "53.1M km (0.355 AU)";
+      else if (b.name === "Venus") rH_text = "1.01M km";
+      else if (b.name === "Mars") rH_text = "1.08M km";
+
+      specs.innerHTML = `
+        <tr><td class="label">Mass</td><td class="val">${b.mass.toExponential(3)} kg</td></tr>
+        <tr><td class="label">Radius</td><td class="val">${b.radius.toLocaleString()} km</td></tr>
+        <tr><td class="label">Distance to Sun</td><td class="val">${(dSun / AU_M).toFixed(3)} AU (${(dSun / 1e9).toFixed(1)}M km)</td></tr>
+        <tr><td class="label">Orbital Speed</td><td class="val">${(vMag / 1000).toFixed(2)} km/s</td></tr>
+        <tr><td class="label">Surface Gravity (g)</td><td class="val">${gSurface.toFixed(2)} m/s²</td></tr>
+        <tr><td class="label">Hill Sphere (rH)</td><td class="val" style="color: var(--accent);">${rH_text}</td></tr>
+      `;
+
+      updatePlaceTugOfWar(b);
+      card.style.display = 'block';
+    }
+
+    function updatePlaceTugOfWar(b) {
+      const table = document.getElementById('place-tug-table');
+      const badge = document.getElementById('place-tug-badge');
+      const note = document.getElementById('place-tug-insight');
+      if (!table || !state.currentForces || state.currentForces.length === 0) return;
+
+      table.innerHTML = '';
+      badge.innerText = b.name;
+      const totalF = state.currentForces.reduce((s, f) => s + f.fMag, 0);
+      const sorted = [...state.currentForces].sort((a, b) => b.fMag - a.fMag);
+
+      sorted.slice(0, 4).forEach(f => {
+        const pct = totalF > 0 ? ((f.fMag / totalF) * 100).toFixed(1) : "0.0";
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="label" style="color: ${f.color}; font-weight: 600;">${f.name} Pull</td>
+          <td class="val">${f.fMag.toExponential(2)} N <span style="color: var(--text-muted); font-size: 10px;">(${pct}%)</span></td>
+        `;
+        table.appendChild(row);
+      });
+
+      if (b.name === 'Moon') {
+        note.innerHTML = `<strong>Tug-of-War Insight:</strong> Sun pull (${sorted[0]?.fMag.toExponential(2)} N) is <strong>2.20&times;</strong> Earth pull, yet Moon stays stably bound within Earth's Hill sphere (61,500 km)!`;
+      } else if (b.name === 'Earth') {
+        note.innerHTML = `<strong>Gravitational Anchor:</strong> Sun accounts for 99.47% of pull. Jupiter exerts secular 1.46 &times; 10¹⁸ N perturbation.`;
+      } else {
+        note.innerHTML = `Resultant gravitational acceleration: ${(Math.sqrt(state.currentNetForce[0]**2 + state.currentNetForce[1]**2 + state.currentNetForce[2]**2) / b.mass).toExponential(3)} m/s².`;
+      }
+    }
+
+    function enterSurfaceView() {
+      const selIdx = state.selectedBodyIndex;
+      const b = state.bodies[selIdx];
+      state.isSurfaceView = true;
+      document.getElementById('gmap-surface-banner').style.display = 'flex';
+      document.getElementById('surface-planet-name').innerText = b.name;
+
+      const scPos = toSceneCoords(b.pos);
+      const visualRadius = Math.max(0.35, Math.log10(b.radius + 1) * 0.22);
+      camera.position.set(scPos.x, scPos.y + visualRadius * 1.05, scPos.z + visualRadius * 0.3);
+      controls.target.set(scPos.x, scPos.y + 20, scPos.z + 5);
+      controls.minDistance = 0.05;
+      controls.update();
+    }
+
+    function exitSurfaceView() {
+      state.isSurfaceView = false;
+      document.getElementById('gmap-surface-banner').style.display = 'none';
+      controls.minDistance = 0.5;
+      flyToBody(state.selectedBodyIndex);
+    }
+
+    function initGmapSearch() {
+      const input = document.getElementById('gmap-search-input');
+      const dropdown = document.getElementById('gmap-search-dropdown');
+      const clearBtn = document.getElementById('gmap-search-clear');
+      if (!input || !dropdown) return;
+
+      function renderDropdown(filterText = '') {
+        dropdown.innerHTML = '';
+        const query = filterText.trim().toLowerCase();
+        const matched = state.bodies.filter(b => b.name.toLowerCase().includes(query));
+
+        if (matched.length === 0) {
+          dropdown.style.display = 'none';
+          return;
+        }
+
+        matched.forEach(b => {
+          const item = document.createElement('div');
+          item.className = 'gmap-dropdown-item';
+          const dSunAU = (Math.sqrt(b.pos[0]**2 + b.pos[1]**2 + b.pos[2]**2) / AU_M).toFixed(2);
+          item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 15px;">${getBodyEmoji(b.name)}</span>
+              <span style="font-weight: 600; color: #fff;">${b.name}</span>
+            </div>
+            <span style="font-size: 11px; color: var(--accent); font-family: monospace;">${dSunAU} AU</span>
+          `;
+          item.addEventListener('click', () => {
+            input.value = b.name;
+            clearBtn.style.display = 'block';
+            dropdown.style.display = 'none';
+            const bIdx = state.bodies.findIndex(bod => bod.name === b.name);
+            if (bIdx >= 0) flyToBody(bIdx);
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'flex';
+      }
+
+      input.addEventListener('focus', () => renderDropdown(input.value));
+      input.addEventListener('input', (e) => {
+        clearBtn.style.display = e.target.value ? 'block' : 'none';
+        renderDropdown(e.target.value);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const query = input.value.trim().toLowerCase();
+          const bIdx = state.bodies.findIndex(b => b.name.toLowerCase() === query);
+          if (bIdx >= 0) {
+            flyToBody(bIdx);
+            dropdown.style.display = 'none';
+          }
+        }
+      });
+
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.style.display = 'none';
+        dropdown.style.display = 'none';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#gmap-search-container')) {
+          dropdown.style.display = 'none';
+        }
+      });
+
+      // Quick Chips click handlers
+      document.querySelectorAll('.gmap-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('.gmap-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          const bName = chip.dataset.body;
+          const special = chip.dataset.special;
+
+          if (bName) {
+            const bIdx = state.bodies.findIndex(b => b.name.toLowerCase() === bName.toLowerCase());
+            if (bIdx >= 0) flyToBody(bIdx);
+          } else if (special === 'emb') {
+            state.specialCameraFocus = 'emb';
+            document.getElementById('camera-focus-select').value = 'emb';
+            const earth = state.bodies.find(b => b.name === 'Earth');
+            if (earth) {
+              flyTo(toSceneCoords(earth.pos), 6.5, 1000);
+              selectBody(state.bodies.findIndex(b => b.name === 'Moon'));
+            }
+          } else if (special === 'overview') {
+            state.specialCameraFocus = null;
+            state.cameraFollowIndex = -1;
+            document.getElementById('camera-focus-select').value = '-1';
+            flyTo({ x: 0, y: 0, z: 0 }, 55, 1200);
+          } else if (chip.dataset.spacePreset) {
+            state.specialCameraFocus = null;
+            state.cameraFollowIndex = -1;
+            handleSpacePointPreset(chip.dataset.spacePreset);
+          }
+        });
+      });
+    }
+
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      const leftPanel = document.getElementById('left-panel');
+      const rightPanel = document.getElementById('right-panel');
+      const bottomPanel = document.getElementById('bottom-panel');
+      const bottomToolbar = document.getElementById('bottom-toolbar');
+      const gmapSearch = document.getElementById('gmap-search-container');
+      const gmapControls = document.getElementById('gmap-controls-stack');
+      const gmapScale = document.getElementById('gmap-scale-container');
+      const gmapLayers = document.getElementById('gmap-layers-widget');
+      const gmapPoi = document.getElementById('gmap-poi-container');
+      const gmapStatusBar = document.getElementById('gmap-status-bar');
+      const toggleBtn = document.getElementById('btn-toggle-view-mode');
+
+      if (mode === 'google_maps') {
+        if (leftPanel) leftPanel.style.display = 'none';
+        if (rightPanel) rightPanel.style.display = 'none';
+        if (bottomPanel) bottomPanel.style.display = 'none';
+        if (bottomToolbar) bottomToolbar.style.display = 'none';
+        if (gmapSearch) gmapSearch.style.display = 'flex';
+        if (gmapControls) gmapControls.style.display = 'flex';
+        if (gmapScale) gmapScale.style.display = 'flex';
+        if (gmapLayers) gmapLayers.style.display = 'block';
+        if (gmapPoi) gmapPoi.style.display = 'block';
+        if (gmapStatusBar) gmapStatusBar.style.display = 'block';
+        if (toggleBtn) {
+          toggleBtn.innerText = '🗺️ Google Maps View';
+          toggleBtn.classList.add('active');
+        }
+        if (state.spaceProbe) {
+          openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
+        } else {
+          openPlaceCard(state.selectedBodyIndex);
+        }
+      } else {
+        if (leftPanel) leftPanel.style.display = 'block';
+        if (rightPanel) rightPanel.style.display = 'block';
+        if (bottomPanel) bottomPanel.style.display = 'block';
+        if (bottomToolbar) bottomToolbar.style.display = 'flex';
+        if (gmapSearch) gmapSearch.style.display = 'none';
+        if (gmapControls) gmapControls.style.display = 'none';
+        if (gmapScale) gmapScale.style.display = 'none';
+        if (gmapLayers) gmapLayers.style.display = 'none';
+        if (gmapPoi) gmapPoi.style.display = 'none';
+        if (gmapStatusBar) gmapStatusBar.style.display = 'none';
+        const card = document.getElementById('gmap-place-card');
+        if (card) card.style.display = 'none';
+        if (toggleBtn) {
+          toggleBtn.innerText = '🎛️ Full Cockpit';
+          toggleBtn.classList.remove('active');
+        }
+      }
+    }
+
+    function updateGmapStatusBar() {
+      const bar = document.getElementById('gmap-status-coords');
+      const tText = document.getElementById('gmap-status-time');
+      if (!bar || !tText || state.bodies.length === 0) return;
+      const sel = state.bodies[state.selectedBodyIndex];
+      if (sel) {
+        const xAU = (sel.pos[0] / AU_M).toFixed(3);
+        const yAU = (sel.pos[1] / AU_M).toFixed(3);
+        const zAU = (sel.pos[2] / AU_M).toFixed(3);
+        bar.innerText = `Focus: ${sel.name} • (${xAU}, ${yAU}, ${zAU}) AU`;
+      }
+      tText.innerText = `T + ${(state.time_s / DAY_S).toFixed(2)} d`;
+    }
+
+    // --- Dynamic Spacetime Curvature Potential Funnels ---
+    function updateSpacetimeMesh() {
+      if (!spacetimeMesh || !state.showSpacetime || state.bodies.length === 0) return;
+      const geo = spacetimeMesh.geometry;
+      const posAttr = geo.attributes.position;
+      const colAttr = geo.attributes.color;
+      const posArray = posAttr.array;
+      const colArray = colAttr.array;
+      const vCount = posAttr.count;
+
+      const invScale = 1.0 / (state.sceneScale || 1.0);
+      const eps2 = (0.05 * AU_M) ** 2;
+      const phi0 = G_STANDARD * 1.98847e30 / AU_M;
+
+      for (let i = 0; i < vCount; i++) {
+        const vx = posArray[i * 3];
+        const vy = posArray[i * 3 + 1];
+        const physX = vx * invScale;
+        const physY = vy * invScale;
+
+        let phi = 0;
+        for (let bIdx = 0; bIdx < state.bodies.length; bIdx++) {
+          const b = state.bodies[bIdx];
+          const dx = physX - b.pos[0];
+          const dy = physY - b.pos[1];
+          const r2 = dx * dx + dy * dy;
+          const dist = Math.sqrt(r2 + eps2);
+          phi -= (G_STANDARD * b.mass) / dist;
+        }
+
+        const ratio = Math.abs(phi) / phi0;
+        const depth = -Math.min(5.5, Math.log(1.0 + ratio * 2.8) * 1.6);
+        posArray[i * 3 + 2] = depth;
+
+        const t = Math.min(1.0, Math.max(0.0, -depth / 5.5));
+        colArray[i * 3] = 0.2 + 0.75 * (1.0 - t);
+        colArray[i * 3 + 1] = 0.1 + 0.55 * (1.0 - t);
+        colArray[i * 3 + 2] = 0.5 + 0.5 * t;
+      }
+
+      posAttr.needsUpdate = true;
+      colAttr.needsUpdate = true;
+    }
+
+    // --- Gravitational Force Vectors & Dynamic Tethers ---
+    function updateForceVectorsAndTethers() {
+      forceVectorArrows.forEach(a => scene.remove(a));
+      forceTetherLines.forEach(l => scene.remove(l));
+      forceVectorArrows = [];
+      forceTetherLines = [];
+
+      if ((!state.showForces && !state.showTethers) || state.bodies.length < 2) return;
+
+      const selIdx = state.selectedBodyIndex;
+      if (selIdx < 0 || selIdx >= state.bodies.length) return;
+
+      const bodyI = state.bodies[selIdx];
+      const posI = toSceneCoords(bodyI.pos);
+
+      let netForce = [0, 0, 0];
+      const forces = [];
+
+      for (let j = 0; j < state.bodies.length; j++) {
+        if (j === selIdx) continue;
+        const bodyJ = state.bodies[j];
+        const dx = bodyJ.pos[0] - bodyI.pos[0];
+        const dy = bodyJ.pos[1] - bodyI.pos[1];
+        const dz = bodyJ.pos[2] - bodyI.pos[2];
+        const r2 = dx * dx + dy * dy + dz * dz;
+        const r = Math.sqrt(r2);
+        if (r <= 1e-12) continue;
+
+        const fMag = (G_STANDARD * bodyI.mass * bodyJ.mass) / r2;
+        const fx = fMag * (dx / r);
+        const fy = fMag * (dy / r);
+        const fz = fMag * (dz / r);
+
+        netForce[0] += fx;
+        netForce[1] += fy;
+        netForce[2] += fz;
+
+        forces.push({
+          targetIndex: j,
+          name: bodyJ.name,
+          color: bodyJ.color,
+          fMag,
+          vec: [fx, fy, fz],
+          dir: new THREE.Vector3(dx, dy, dz).normalize(),
+          isSun: j === 0,
+          isJupiter: bodyJ.name === 'Jupiter'
+        });
+
+        // 3D Force Tether Line (Beam)
+        if (state.showTethers) {
+          const posJ = toSceneCoords(bodyJ.pos);
+          const tetherGeo = new THREE.BufferGeometry().setFromPoints([posI, posJ]);
+          const tetherOpacity = Math.min(0.85, Math.max(0.15, Math.log10(fMag + 1) / 26.0));
+          const tetherMat = new THREE.LineBasicMaterial({
+            color: new THREE.Color(bodyJ.color),
+            transparent: true,
+            opacity: tetherOpacity
+          });
+          const tetherLine = new THREE.Line(tetherGeo, tetherMat);
+          scene.add(tetherLine);
+          forceTetherLines.push(tetherLine);
+        }
+      }
+
+      // Draw 3D Force Vectors
+      if (state.showForces && forces.length > 0) {
+        const sunForce = forces.find(f => f.isSun);
+        const maxSunF = sunForce ? sunForce.fMag : 1.0;
+        const primaryArrowLen = 4.2;
+
+        forces.forEach(f => {
+          let arrowLen = 1.0;
+          if (f.isSun) {
+            arrowLen = primaryArrowLen;
+          } else {
+            const scaledRatio = (f.fMag / maxSunF) * state.perturbationMagnifier;
+            arrowLen = Math.min(6.5, Math.max(0.65, primaryArrowLen * scaledRatio));
+          }
+
+          const arrow = new THREE.ArrowHelper(f.dir, posI, arrowLen, f.color, 0.45, 0.25);
+          scene.add(arrow);
+          forceVectorArrows.push(arrow);
+        });
+
+        // Net Acceleration Vector (Bright Green)
+        const netFMag = Math.sqrt(netForce[0]**2 + netForce[1]**2 + netForce[2]**2);
+        if (netFMag > 1e-12) {
+          const netDir = new THREE.Vector3(netForce[0], netForce[1], netForce[2]).normalize();
+          const netArrow = new THREE.ArrowHelper(netDir, posI, primaryArrowLen * 1.15, 0x22c55e, 0.55, 0.3);
+          scene.add(netArrow);
+          forceVectorArrows.push(netArrow);
+        }
+      }
+
+      state.currentForces = forces;
+      state.currentNetForce = netForce;
+    }
+
+    // --- Gravitational Tug-of-War Telemetry Panel ---
+    function updateTugOfWarHUD() {
+      const container = document.getElementById('gravitational-tug-container');
+      if (!state.showForces || !state.currentForces || state.currentForces.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+      container.style.display = 'block';
+
+      const selIdx = state.selectedBodyIndex;
+      const b = state.bodies[selIdx];
+      document.getElementById('tug-focus-name').innerText = b.name;
+
+      const table = document.getElementById('tug-table');
+      table.innerHTML = '';
+
+      const totalF = state.currentForces.reduce((sum, f) => sum + f.fMag, 0);
+      const sorted = [...state.currentForces].sort((a, b) => b.fMag - a.fMag);
+
+      sorted.forEach(f => {
+        const pct = totalF > 0 ? (f.fMag / totalF * 100).toFixed(2) : "0.00";
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="label" style="color: ${f.color}; font-weight: 600;">Pull from ${f.name}</td>
+          <td class="val">${f.fMag.toExponential(3)} N <span style="color: var(--text-muted); font-size: 10px;">(${pct}%)</span></td>
+        `;
+        table.appendChild(row);
+      });
+
+      const netAcc = Math.sqrt(state.currentNetForce[0]**2 + state.currentNetForce[1]**2 + state.currentNetForce[2]**2) / b.mass;
+      const accRow = document.createElement('tr');
+      accRow.style.borderTop = '1px solid rgba(56, 189, 248, 0.3)';
+      accRow.innerHTML = `
+        <td class="label" style="color: #22c55e; font-weight: 700;">Net Acceleration (&rarr;a)</td>
+        <td class="val" style="color: #22c55e; font-weight: 700;">${netAcc.toExponential(3)} m/s²</td>
+      `;
+      table.appendChild(accRow);
+
+      const noteElem = document.getElementById('tug-summary-note');
+      if (b.name === 'Moon') {
+        noteElem.innerHTML = `<b>★ Sun-Earth-Moon Tug-of-War:</b> Solar pull (4.36&times;10<sup>20</sup> N) is <b>2.20&times; stronger</b> than Earth's pull (1.98&times;10<sup>20</sup> N). The Moon stays bound because Earth and Moon are together in solar free-fall within Earth's 1.50&times;10<sup>6</sup> km Hill sphere.`;
+      } else if (b.name === 'Earth') {
+        noteElem.innerHTML = `<b>★ Planetary Perturbations:</b> Solar gravity dominates at 99.99%. Jupiter is the dominant planetary perturber (1.9&times;10<sup>18</sup> N), followed by Venus (1.1&times;10<sup>18</sup> N). Moon provides mutual pull (1.98&times;10<sup>20</sup> N) driving Earth's 4,670 km barycenter reflex wobble.`;
+      } else if (b.name === 'Mars') {
+        noteElem.innerHTML = `<b>★ Jovian Secular Resonance:</b> Jupiter's immense gravity (1.89&times;10<sup>27</sup> kg) exerts strong non-Keplerian torque on Mars, driving long-term eccentricity oscillations and sculpting Kirkwood gaps.`;
+      } else if (b.name === 'Jupiter') {
+        noteElem.innerHTML = `<b>★ Gravitational Master:</b> Jupiter holds 71% of all planetary mass, commanding a colossal 53.1&times;10<sup>6</sup> km (0.355 AU) Hill sphere.`;
+      } else {
+        noteElem.innerHTML = `Showing instantaneous pairwise gravitational force decomposition. Use slider to magnify perturbations.`;
+      }
     }
 
     function updateHUD() {
@@ -1316,6 +3894,9 @@
       } else {
         resContainer.style.display = 'none';
       }
+
+      // 4. Update Gravitational Tug-of-War Telemetry
+      updateTugOfWarHUD();
     }
 
     // --- Animation & Render Loop ---
@@ -1328,19 +3909,27 @@
       lastTimestamp = now;
 
       if (state.isPlaying && state.bodies.length > 0) {
-        // Base dt scaled to physical system timescale
         let baseDt = 100.0;
-        if (state.presetId === 'solar_system') baseDt = 3600.0 * 2; // 2 hours per step
-        else if (state.presetId === 'laplace_resonance') baseDt = 300.0;
-        else if (state.presetId === 'figure_eight') baseDt = 0.5;
-        else if (state.presetId === 'mercury_gr') baseDt = 1800.0;
-        else if (state.presetId === 'pythagorean') baseDt = 1000.0;
+        if (state.presetId === 'solar_system' || state.presetId === 'inner_solar_system_jupiter') {
+          baseDt = 3600.0 * 2; // 2 hours per step
+        } else if (state.presetId === 'laplace_resonance') {
+          baseDt = 300.0;
+        } else if (state.presetId === 'figure_eight') {
+          baseDt = 0.5;
+        } else if (state.presetId === 'mercury_gr') {
+          baseDt = 1800.0;
+        } else if (state.presetId === 'pythagorean') {
+          baseDt = 1000.0;
+        }
 
         const effectiveDt = baseDt * (state.timeMultiplier / 100.0);
         const subDt = effectiveDt / state.subSteps;
 
         for (let s = 0; s < state.subSteps; s++) {
           stepSystem(subDt);
+          if (state.testParticles.length > 0) {
+            stepTestParticles(subDt);
+          }
         }
       }
 
@@ -1379,8 +3968,47 @@
         }
       });
 
+      // Update 3D Hill Spheres positions
+      hillSphereMeshes.forEach(h => {
+        if (state.bodies[h.bodyIndex]) {
+          h.mesh.position.copy(toSceneCoords(state.bodies[h.bodyIndex].pos));
+          h.mesh.visible = state.showHillSpheres;
+        }
+      });
+
+      // Update 3D Spacetime Funnel Mesh
+      if (spacetimeMesh) {
+        spacetimeMesh.visible = state.showSpacetime;
+        if (state.showSpacetime) {
+          updateSpacetimeMesh();
+        }
+      }
+
+      // Update Force Vectors & Tethers
+      updateForceVectorsAndTethers();
+
+      // Update Space Field Visual Layers
+      updateGravitationalBasins();
+      updateSpatialVectorGrid();
+      updateEquipotentialContours();
+      if (state.spaceProbe) {
+        updateSpaceProbeVisuals();
+      }
+
       // Camera Tracking
-      if (state.cameraFollowIndex >= 0 && state.cameraFollowIndex < bodyMeshes.length) {
+      if (state.specialCameraFocus === 'emb') {
+        const earth = state.bodies.find(b => b.name === 'Earth');
+        const moon = state.bodies.find(b => b.name === 'Moon');
+        if (earth && moon) {
+          const totM = earth.mass + moon.mass;
+          const embPos = toSceneCoords([
+            (earth.pos[0] * earth.mass + moon.pos[0] * moon.mass) / totM,
+            (earth.pos[1] * earth.mass + moon.pos[1] * moon.mass) / totM,
+            (earth.pos[2] * earth.mass + moon.pos[2] * moon.mass) / totM
+          ]);
+          controls.target.lerp(embPos, 0.1);
+        }
+      } else if (state.cameraFollowIndex >= 0 && state.cameraFollowIndex < bodyMeshes.length) {
         const targetPos = bodyMeshes[state.cameraFollowIndex].position;
         controls.target.lerp(targetPos, 0.08);
       }
@@ -1388,6 +4016,12 @@
       controls.update();
       renderer.render(scene, camera);
       updateHUD();
+      if (state.viewMode === 'google_maps') {
+        updatePoiPins();
+        updateScaleBar();
+        updateCompass();
+        updateGmapStatusBar();
+      }
     }
 
     function onWindowResize() {
@@ -1439,6 +4073,42 @@
       document.getElementById('substeps-val').innerText = `${state.subSteps} steps`;
     });
 
+    // Force Controls Listeners
+    document.getElementById('btn-toggle-forces').addEventListener('click', (e) => {
+      state.showForces = !state.showForces;
+      e.target.innerText = `Forces: ${state.showForces ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', state.showForces);
+      updateForceVectorsAndTethers();
+      updateTugOfWarHUD();
+    });
+
+    document.getElementById('magnifier-slider').addEventListener('input', (e) => {
+      state.perturbationMagnifier = parseFloat(e.target.value);
+      document.getElementById('magnifier-val').innerText = `${state.perturbationMagnifier.toLocaleString()}x`;
+      updateForceVectorsAndTethers();
+    });
+
+    document.getElementById('btn-toggle-tethers').addEventListener('click', (e) => {
+      state.showTethers = !state.showTethers;
+      e.target.innerText = `Tethers: ${state.showTethers ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', state.showTethers);
+      updateForceVectorsAndTethers();
+    });
+
+    document.getElementById('btn-toggle-spacetime').addEventListener('click', (e) => {
+      state.showSpacetime = !state.showSpacetime;
+      e.target.innerText = `Spacetime: ${state.showSpacetime ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', state.showSpacetime);
+      if (spacetimeMesh) spacetimeMesh.visible = state.showSpacetime;
+    });
+
+    document.getElementById('btn-toggle-hills').addEventListener('click', (e) => {
+      state.showHillSpheres = !state.showHillSpheres;
+      e.target.innerText = `Hill Spheres: ${state.showHillSpheres ? 'ON' : 'OFF'}`;
+      e.target.classList.toggle('active', state.showHillSpheres);
+      hillSphereMeshes.forEach(h => h.mesh.visible = state.showHillSpheres);
+    });
+
     document.getElementById('btn-toggle-gr').addEventListener('click', (e) => {
       state.enable_gr = !state.enable_gr;
       e.target.innerText = `1PN GR: ${state.enable_gr ? 'ON' : 'OFF'}`;
@@ -1468,13 +4138,30 @@
 
     document.getElementById('body-selector-dropdown').addEventListener('change', (e) => {
       selectBody(parseInt(e.target.value));
+      updateForceVectorsAndTethers();
+      updateTugOfWarHUD();
     });
 
     document.getElementById('camera-focus-select').addEventListener('change', (e) => {
-      state.cameraFollowIndex = parseInt(e.target.value);
-      if (state.cameraFollowIndex === -1) {
-        controls.target.set(0, 0, 0);
+      const val = e.target.value;
+      if (val === 'emb') {
+        state.specialCameraFocus = 'emb';
+        state.cameraFollowIndex = -2;
+        camera.position.set(0, -6, 4.5);
+      } else if (val === 'jupiter') {
+        const jIdx = state.bodies.findIndex(b => b.name === 'Jupiter');
+        state.specialCameraFocus = null;
+        state.cameraFollowIndex = jIdx >= 0 ? jIdx : -1;
+        camera.position.set(0, -18, 14);
+      } else {
+        state.specialCameraFocus = null;
+        state.cameraFollowIndex = parseInt(val);
+        if (state.cameraFollowIndex === -1) {
+          controls.target.set(0, 0, 0);
+          camera.position.set(0, -42, 28);
+        }
       }
+      controls.update();
     });
 
     // View Angle buttons
@@ -1500,7 +4187,7 @@
     function bootstrap() {
       initThree();
       const params = new URLSearchParams(window.location.search);
-      const presetParam = params.get('preset') || 'solar_system';
+      const presetParam = params.get('preset') || 'inner_solar_system_jupiter';
       state.presetId = presetParam;
       const presetDropdown = document.getElementById('preset-select');
       if (presetDropdown) presetDropdown.value = presetParam;
@@ -1513,18 +4200,386 @@
           grBtn.classList.add('active');
         }
       }
-      if (params.get('integrator')) {
-        state.integrator = params.get('integrator');
-        const intSelect = document.getElementById('integrator-select');
-        if (intSelect) intSelect.value = state.integrator;
+      if (params.get('forces')) {
+        state.showForces = params.get('forces') === '1';
+        const fBtn = document.getElementById('btn-toggle-forces');
+        if (fBtn) {
+          fBtn.innerText = `Forces: ${state.showForces ? 'ON' : 'OFF'}`;
+          fBtn.classList.toggle('active', state.showForces);
+        }
       }
-      if (params.get('speed')) {
-        state.timeMultiplier = parseFloat(params.get('speed'));
-        document.getElementById('time-speed-slider').value = state.timeMultiplier;
-        document.getElementById('time-speed-val').innerText = `${state.timeMultiplier}x`;
+      if (params.get('spacetime')) {
+        state.showSpacetime = params.get('spacetime') === '1';
+        const stBtn = document.getElementById('btn-toggle-spacetime');
+        if (stBtn) {
+          stBtn.innerText = `Spacetime: ${state.showSpacetime ? 'ON' : 'OFF'}`;
+          stBtn.classList.toggle('active', state.showSpacetime);
+        }
+      }
+      if (params.get('hills')) {
+        state.showHillSpheres = params.get('hills') === '1';
+        const hBtn = document.getElementById('btn-toggle-hills');
+        if (hBtn) {
+          hBtn.innerText = `Hill Spheres: ${state.showHillSpheres ? 'ON' : 'OFF'}`;
+          hBtn.classList.toggle('active', state.showHillSpheres);
+        }
+      }
+      if (params.get('magnifier')) {
+        state.perturbationMagnifier = parseFloat(params.get('magnifier'));
+        const magSlider = document.getElementById('magnifier-slider');
+        if (magSlider) magSlider.value = state.perturbationMagnifier;
+        const magVal = document.getElementById('magnifier-val');
+        if (magVal) magVal.innerText = `${state.perturbationMagnifier.toLocaleString()}x`;
+      }
+      loadPreset(state.presetId);
+
+      if (params.get('focus')) {
+        const fVal = params.get('focus');
+        if (fVal === 'emb') {
+          state.specialCameraFocus = 'emb';
+          document.getElementById('camera-focus-select').value = 'emb';
+          camera.position.set(0, -6, 4.5);
+        } else if (fVal === 'jupiter') {
+          state.specialCameraFocus = 'jupiter';
+          document.getElementById('camera-focus-select').value = 'jupiter';
+          camera.position.set(0, -18, 14);
+        }
       }
 
-      loadPreset(state.presetId);
+      if (params.get('basins')) {
+        state.showBasins = params.get('basins') === '1';
+        const chk = document.getElementById('chk-layer-basins');
+        if (chk) chk.checked = state.showBasins;
+        if (gravitationalBasinsGroup) gravitationalBasinsGroup.visible = state.showBasins;
+      }
+      if (params.get('vector_grid')) {
+        state.showVectorGrid = params.get('vector_grid') === '1';
+        const chk = document.getElementById('chk-layer-vector-grid');
+        if (chk) chk.checked = state.showVectorGrid;
+        if (spatialVectorGridGroup) spatialVectorGridGroup.visible = state.showVectorGrid;
+      }
+
+      if (params.get('space_point')) {
+        handleSpacePointPreset(params.get('space_point'));
+        if (params.get('drop_probe') === '1' && state.spaceProbe) {
+          releaseTestParticle(state.spaceProbe.physPos, [0, 0, 0]);
+        }
+        if (params.get('tidal') === '1') {
+          const tidalCard = document.getElementById('place-tidal-card');
+          if (tidalCard) tidalCard.style.display = 'block';
+        }
+      } else if (params.get('body') !== null) {
+        const bIdx = parseInt(params.get('body'));
+        selectBody(bIdx);
+      } else if (state.presetId === 'inner_solar_system_jupiter') {
+        selectBody(2); // Default to Earth
+      }
+
+      // Google Maps View Mode setup
+      const modeParam = params.get('mode');
+      if (modeParam === 'cockpit') {
+        state.viewMode = 'cockpit';
+      } else {
+        state.viewMode = 'google_maps';
+      }
+
+      // Toggle View Mode (Google Maps vs Full Cockpit)
+      const toggleViewBtn = document.getElementById('btn-toggle-view-mode');
+      if (toggleViewBtn) {
+        toggleViewBtn.addEventListener('click', () => {
+          const newMode = state.viewMode === 'google_maps' ? 'cockpit' : 'google_maps';
+          setViewMode(newMode);
+        });
+      }
+
+      // Google Maps Control Stack
+      const zoomInBtn = document.getElementById('btn-gmap-zoom-in');
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+          const offset = camera.position.clone().sub(controls.target);
+          camera.position.copy(controls.target).add(offset.multiplyScalar(0.7));
+          controls.update();
+        });
+      }
+
+      const zoomOutBtn = document.getElementById('btn-gmap-zoom-out');
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+          const offset = camera.position.clone().sub(controls.target);
+          camera.position.copy(controls.target).add(offset.multiplyScalar(1.4));
+          controls.update();
+        });
+      }
+
+      const compassBtn = document.getElementById('btn-gmap-compass');
+      if (compassBtn) {
+        compassBtn.addEventListener('click', () => {
+          const dist = camera.position.distanceTo(controls.target);
+          const currentTilt = Math.asin((camera.position.z - controls.target.z) / dist);
+          const cosTilt = Math.cos(currentTilt);
+          const sinTilt = Math.sin(currentTilt);
+          const newPos = new THREE.Vector3(
+            controls.target.x,
+            controls.target.y - dist * cosTilt,
+            controls.target.z + dist * sinTilt
+          );
+          flyTo(controls.target, dist, 800);
+        });
+      }
+
+      const tiltBtn = document.getElementById('btn-gmap-tilt');
+      if (tiltBtn) {
+        tiltBtn.addEventListener('click', () => {
+          state.isTopDown2D = !state.isTopDown2D;
+          const dist = camera.position.distanceTo(controls.target);
+          document.getElementById('tilt-label').innerText = state.isTopDown2D ? '2D' : '3D';
+          if (state.isTopDown2D) {
+            const newPos = new THREE.Vector3(controls.target.x, controls.target.y - 0.001, controls.target.z + dist);
+            camera.position.copy(newPos);
+            controls.update();
+          } else {
+            const newPos = new THREE.Vector3(
+              controls.target.x,
+              controls.target.y - dist * 0.82,
+              controls.target.z + dist * 0.55
+            );
+            camera.position.copy(newPos);
+            controls.update();
+          }
+        });
+      }
+
+      const recenterBtn = document.getElementById('btn-gmap-recenter');
+      if (recenterBtn) {
+        recenterBtn.addEventListener('click', () => {
+          const earthIdx = state.bodies.findIndex(b => b.name === 'Earth');
+          if (earthIdx >= 0) {
+            flyToBody(earthIdx);
+          } else {
+            flyToBody(0);
+          }
+        });
+      }
+
+      const streetviewBtn = document.getElementById('btn-gmap-streetview');
+      if (streetviewBtn) {
+        streetviewBtn.addEventListener('click', () => {
+          if (state.isSurfaceView) {
+            exitSurfaceView();
+          } else {
+            enterSurfaceView();
+          }
+        });
+      }
+
+      const exitSurfaceBtn = document.getElementById('btn-exit-surface');
+      if (exitSurfaceBtn) {
+        exitSurfaceBtn.addEventListener('click', exitSurfaceView);
+      }
+
+      // Place Card Actions
+      const placeCloseBtn = document.getElementById('btn-place-close');
+      if (placeCloseBtn) {
+        placeCloseBtn.addEventListener('click', () => {
+          document.getElementById('gmap-place-card').style.display = 'none';
+        });
+      }
+
+      const placeFlytoBtn = document.getElementById('btn-place-flyto');
+      if (placeFlytoBtn) {
+        placeFlytoBtn.addEventListener('click', () => {
+          flyToBody(state.selectedBodyIndex);
+        });
+      }
+
+      const placeTugBtn = document.getElementById('btn-place-tug');
+      if (placeTugBtn) {
+        placeTugBtn.addEventListener('click', () => {
+          state.showForces = true;
+          state.perturbationMagnifier = 10000;
+          updateForceVectorsAndTethers();
+          updateTugOfWarHUD();
+          openPlaceCard(state.selectedBodyIndex);
+        });
+      }
+
+      const placeHillBtn = document.getElementById('btn-place-hill');
+      if (placeHillBtn) {
+        placeHillBtn.addEventListener('click', () => {
+          state.showHillSpheres = true;
+          hillSphereMeshes.forEach(h => h.mesh.visible = true);
+          const selMesh = hillSphereMeshes.find(h => h.bodyIndex === state.selectedBodyIndex);
+          if (selMesh) {
+            flyTo(toSceneCoords(state.bodies[state.selectedBodyIndex].pos), selMesh.sceneRadius * 2.8, 1000);
+          }
+        });
+      }
+
+      const placeSurfaceBtn = document.getElementById('btn-place-surface');
+      if (placeSurfaceBtn) {
+        placeSurfaceBtn.addEventListener('click', enterSurfaceView);
+      }
+
+      const placeCockpitBtn = document.getElementById('btn-place-cockpit-toggle');
+      if (placeCockpitBtn) {
+        placeCockpitBtn.addEventListener('click', () => {
+          setViewMode('cockpit');
+        });
+      }
+
+      // Layers Widget
+      const layersBtn = document.getElementById('btn-gmap-layers');
+      const layersMenu = document.getElementById('gmap-layers-menu');
+      if (layersBtn && layersMenu) {
+        layersBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          layersMenu.style.display = layersMenu.style.display === 'flex' ? 'none' : 'flex';
+        });
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest('#gmap-layers-widget')) {
+            layersMenu.style.display = 'none';
+          }
+        });
+      }
+
+      // Layer checkboxes
+      const chkForces = document.getElementById('chk-layer-forces');
+      if (chkForces) {
+        chkForces.addEventListener('change', (e) => {
+          state.showForces = e.target.checked;
+          updateForceVectorsAndTethers();
+        });
+      }
+      const chkTethers = document.getElementById('chk-layer-tethers');
+      if (chkTethers) {
+        chkTethers.addEventListener('change', (e) => {
+          state.showTethers = e.target.checked;
+          updateForceVectorsAndTethers();
+        });
+      }
+      const chkHills = document.getElementById('chk-layer-hills');
+      if (chkHills) {
+        chkHills.addEventListener('change', (e) => {
+          state.showHillSpheres = e.target.checked;
+          hillSphereMeshes.forEach(h => h.mesh.visible = state.showHillSpheres);
+        });
+      }
+      const chkSpacetime = document.getElementById('chk-layer-spacetime');
+      if (chkSpacetime) {
+        chkSpacetime.addEventListener('change', (e) => {
+          state.showSpacetime = e.target.checked;
+          if (spacetimeMesh) spacetimeMesh.visible = state.showSpacetime;
+        });
+      }
+      const chkTrails = document.getElementById('chk-layer-trails');
+      if (chkTrails) {
+        chkTrails.addEventListener('change', (e) => {
+          state.showTrails = e.target.checked;
+          trailLines.forEach(l => l.visible = state.showTrails);
+        });
+      }
+      const chkLabels = document.getElementById('chk-layer-labels');
+      if (chkLabels) {
+        chkLabels.addEventListener('change', (e) => {
+          state.showPoiPins = e.target.checked;
+          const c = document.getElementById('gmap-poi-container');
+          if (c) c.style.display = state.showPoiPins ? 'block' : 'none';
+        });
+      }
+      const chkGrid = document.getElementById('chk-layer-grid');
+      if (chkGrid) {
+        chkGrid.addEventListener('change', (e) => {
+          state.showGrid = e.target.checked;
+          if (eclipticGrid) eclipticGrid.visible = state.showGrid;
+        });
+      }
+
+      // Space Action Buttons
+      const btnSpaceDrop = document.getElementById('btn-space-drop-probe');
+      if (btnSpaceDrop) {
+        btnSpaceDrop.addEventListener('click', () => {
+          if (state.spaceProbe) {
+            releaseTestParticle(state.spaceProbe.physPos, [0, 0, 0]);
+          }
+        });
+      }
+
+      const btnSpaceFocus = document.getElementById('btn-space-focus');
+      if (btnSpaceFocus) {
+        btnSpaceFocus.addEventListener('click', () => {
+          if (state.spaceProbe) {
+            flyTo(toSceneCoords(state.spaceProbe.physPos), 6.0, 1000);
+          }
+        });
+      }
+
+      const btnSpaceTidal = document.getElementById('btn-space-tidal');
+      if (btnSpaceTidal) {
+        btnSpaceTidal.addEventListener('click', () => {
+          const card = document.getElementById('place-tidal-card');
+          if (card) {
+            card.style.display = card.style.display === 'block' ? 'none' : 'block';
+          }
+        });
+      }
+
+      const btnSpaceClear = document.getElementById('btn-space-clear');
+      if (btnSpaceClear) {
+        btnSpaceClear.addEventListener('click', clearSpaceProbe);
+      }
+
+      // Space Field Layer Checkboxes
+      const chkBasins = document.getElementById('chk-layer-basins');
+      if (chkBasins) {
+        chkBasins.addEventListener('change', (e) => {
+          state.showBasins = e.target.checked;
+          if (gravitationalBasinsGroup) gravitationalBasinsGroup.visible = state.showBasins;
+        });
+      }
+
+      const chkVectorGrid = document.getElementById('chk-layer-vector-grid');
+      if (chkVectorGrid) {
+        chkVectorGrid.addEventListener('change', (e) => {
+          state.showVectorGrid = e.target.checked;
+          if (spatialVectorGridGroup) spatialVectorGridGroup.visible = state.showVectorGrid;
+        });
+      }
+
+      const chkEquipotentials = document.getElementById('chk-layer-equipotentials');
+      if (chkEquipotentials) {
+        chkEquipotentials.addEventListener('change', (e) => {
+          state.showEquipotentials = e.target.checked;
+          if (equipotentialContoursGroup) equipotentialContoursGroup.visible = state.showEquipotentials;
+        });
+      }
+
+      const chkSpaceProbe = document.getElementById('chk-layer-space-probe');
+      if (chkSpaceProbe) {
+        chkSpaceProbe.addEventListener('change', (e) => {
+          state.showSpaceProbe = e.target.checked;
+          if (!state.showSpaceProbe) clearSpaceProbe();
+        });
+      }
+
+      const chkTestParticles = document.getElementById('chk-layer-test-particles');
+      if (chkTestParticles) {
+        chkTestParticles.addEventListener('change', (e) => {
+          state.showTestParticles = e.target.checked;
+          state.testParticles.forEach(tp => {
+            if (tp.mesh) tp.mesh.visible = state.showTestParticles;
+            if (tp.trailLine) tp.trailLine.visible = state.showTestParticles;
+          });
+        });
+      }
+
+      // Initialize search omnibox
+      initGmapSearch();
+
+      // Apply initial view mode
+      setViewMode(state.viewMode);
+
+      updateForceVectorsAndTethers();
+      updateTugOfWarHUD();
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     }
