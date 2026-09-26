@@ -13,8 +13,8 @@ use tracing::error;
 
 use crate::handlers::{
     correct_halo_handler, correct_lyapunov_handler, export_oem_handler,
-    generate_manifold_handler, get_system_info, get_transfer_benchmark, health_check,
-    optimize_transfer_handler, plan_rpo_handler,
+    generate_manifold_handler, get_nbody_presets, get_system_info, get_transfer_benchmark,
+    health_check, optimize_transfer_handler, plan_rpo_handler, simulate_nbody_handler,
 };
 
 /// Shared server application state.
@@ -39,6 +39,8 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
         .route("/index.html", get(serve_sbm_index))
         .route("/rpo", get(serve_rpo_visualizer))
         .route("/rpo_visualizer.html", get(serve_rpo_visualizer))
+        .route("/astronomy", get(serve_astronomy_visualizer))
+        .route("/astronomy_visualizer.html", get(serve_astronomy_visualizer))
         // API routes
         .route("/api/v1/health", get(health_check))
         .route("/api/v1/system/:name", get(get_system_info))
@@ -49,6 +51,12 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
         .route("/api/v1/transfer/optimize", post(optimize_transfer_handler))
         .route("/api/v1/export/oem", post(export_oem_handler))
         .route("/api/v1/rpo/plan", post(plan_rpo_handler))
+        .route("/api/v1/nbody/presets", get(get_nbody_presets))
+        .route("/api/v1/nbody/simulate", post(simulate_nbody_handler))
+        .nest_service(
+            "/libs",
+            tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "libs")),
+        )
         .layer(cors)
         .with_state(state)
 }
@@ -113,3 +121,19 @@ pub async fn serve_rpo_visualizer(State(state): State<AppState>) -> Response {
         }
     }
 }
+
+pub async fn serve_astronomy_visualizer(State(state): State<AppState>) -> Response {
+    let file_path = resolve_html_path(&state.workspace_root, "astronomy_visualizer.html");
+    match tokio::fs::read_to_string(&file_path).await {
+        Ok(html_content) => Html(html_content).into_response(),
+        Err(err) => {
+            error!("Failed to read astronomy_visualizer.html: {:?}", err);
+            (
+                StatusCode::NOT_FOUND,
+                format!("Astronomy Visualizer HTML not found at: {:?}", file_path),
+            )
+                .into_response()
+        }
+    }
+}
+

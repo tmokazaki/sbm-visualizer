@@ -23,3 +23,13 @@ pub use crate::scvx::{
     Cr3bpBurnSegment, Cr3bpTransferMissionConfig, Cr3bpTransferNode, Cr3bpTransferOptimizer,
     Cr3bpTransferPlan, ScvxOptions, ScvxSolution, TrajectoryNode,
 };
+pub use crate::nbody::{
+    compute_accelerations, compute_conservation_metrics, compute_jerks,
+    compute_laplace_resonance_metrics, compute_trojan_libration_deg, create_preset,
+    extract_osculating_elements, propagate_trajectory, step_dormand_prince853, step_hermite4,
+    step_leapfrog, step_system, step_yoshida4, step_yoshida6, CelestialBody, ConservationMetrics,
+    IntegratorType, NBodySystem, OsculatingElements, PresetId, ResonanceMetrics,
+    TrajectorySnapshot, ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S, JULIAN_YEAR_S,
+    SPEED_OF_LIGHT,
+};
+
