@@ -1,10 +1,11 @@
 use sbm_core::nbody::{
-    compute_accelerations, compute_conservation_metrics, compute_earth_moon_barycenter,
-    compute_gravitational_spheres, compute_laplace_resonance_metrics, compute_pairwise_forces,
-    compute_spatial_field_grid, compute_spatial_field_point, compute_tidal_tensor,
-    compute_trojan_libration_deg, create_preset, extract_osculating_elements,
+    compute_accelerations, compute_centric_spatial_field_grid, compute_conservation_metrics,
+    compute_earth_moon_barycenter, compute_gravitational_spheres, compute_laplace_resonance_metrics,
+    compute_pairwise_forces, compute_spatial_field_grid, compute_spatial_field_point,
+    compute_tidal_tensor, compute_trojan_libration_deg, create_preset, extract_osculating_elements,
     propagate_trajectory, step_hermite4, step_leapfrog, step_system, CelestialBody,
-    IntegratorType, NBodySystem, PresetId, ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S,
+    GravitationalCentricFrame, IntegratorType, NBodySystem, PresetId, ASTRONOMICAL_UNIT_M,
+    G_STANDARD, JULIAN_DAY_S,
 };
 
 #[test]
@@ -643,6 +644,39 @@ fn test_spatial_field_grid_sampling() {
         assert_eq!(pt.contributions.len(), 6);
         assert!(pt.acceleration_magnitude > 0.0);
         assert!(pt.dominant_body_fraction > 0.0 && pt.dominant_body_fraction <= 1.0);
+    }
+}
+
+#[test]
+fn test_centric_spatial_field_grid_earth() {
+    let frame = GravitationalCentricFrame::Geocentric;
+    assert_eq!(frame, GravitationalCentricFrame::Geocentric);
+
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    // Earth-centric grid spanning ±150,000 km (corner distance 212,132 km < 259,313 km Chebotarev radius)
+    let half_span_m = 150_000_000.0;
+    // 4x4 resolution avoids exact center point (r=0) singularity
+    let grid = compute_centric_spatial_field_grid(&system, "Earth", half_span_m, 4).unwrap();
+
+    assert_eq!(grid.len(), 16);
+    for pt in &grid {
+        assert_eq!(pt.dominant_body_name, "Earth", "All points within 150,000 km (diagonal 212k km) must be in Earth dominance basin");
+        assert!(pt.dominant_body_fraction > 0.50, "Earth must account for > 50% of gravitational pull");
+    }
+}
+
+#[test]
+fn test_centric_spatial_field_grid_moon() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    // Moon-centric grid spanning ±15,000 km (corner distance 21,213 km << 28,745 km Moon-Sun Chebotarev radius)
+    let half_span_m = 15_000_000.0;
+    // 4x4 resolution avoids r=0 singularity
+    let grid = compute_centric_spatial_field_grid(&system, "Moon", half_span_m, 4).unwrap();
+
+    assert_eq!(grid.len(), 16);
+    for pt in &grid {
+        assert_eq!(pt.dominant_body_name, "Moon", "All points within 15,000 km (diagonal 21.2k km) must be in Moon dominance basin");
+        assert!(pt.dominant_body_fraction > 0.50, "Moon must account for > 50% of gravitational pull");
     }
 }
 

@@ -313,3 +313,22 @@ pub struct SpatialFieldPoint {
     /// Gravitational tidal tensor (gravity gradient matrix $\mathbf{T}_{ab} = \partial g_a / \partial x_b$) at this point.
     pub tidal_tensor: TidalTensor,
 }
+
+/// Centric frame of reference defined by the major gravitational body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GravitationalCentricFrame {
+    /// Heliocentric: centered on the Sun.
+    Heliocentric,
+    /// Geocentric: centered on the Earth.
+    Geocentric,
+    /// Selenocentric: centered on the Moon.
+    Selenocentric,
+    /// Jovicentric: centered on Jupiter.
+    Jovicentric,
+    /// Areocentric: centered on Mars.
+    Areocentric,
+    /// Cytherocentric: centered on Venus.
+    Cytherocentric,
+    /// Automatic: switches frame based on dominant gravitational attractor.
+    Auto,
+}

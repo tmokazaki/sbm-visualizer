@@ -752,3 +752,44 @@ pub fn compute_spatial_field_grid(
     grid
 }
 
+/// Computes a high-resolution gravitational field grid centered dynamically on a specific celestial body.
+///
+/// Pins the center of the sampling bounding box to the target body's position $[x_0, y_0, z_0]$
+/// and spans $[x_0 \pm \text{half\_span\_m}, y_0 \pm \text{half\_span\_m}]$.
+pub fn compute_centric_spatial_field_grid(
+    system: &NBodySystem,
+    center_body_name: &str,
+    half_span_m: f64,
+    resolution: usize,
+) -> Result<Vec<SpatialFieldPoint>, String> {
+    let center_body = system
+        .bodies
+        .iter()
+        .find(|b| b.name.eq_ignore_ascii_case(center_body_name))
+        .ok_or_else(|| format!("Body '{}' not found in system", center_body_name))?;
+
+    let cx = center_body.position_m[0];
+    let cy = center_body.position_m[1];
+    let cz = center_body.position_m[2];
+
+    let x_range = [cx - half_span_m, cx + half_span_m];
+    let y_range = [cy - half_span_m, cy + half_span_m];
+
+    let nx = resolution.max(2);
+    let ny = resolution.max(2);
+    let mut grid = Vec::with_capacity(nx * ny);
+
+    let dx = (x_range[1] - x_range[0]) / ((nx - 1) as f64);
+    let dy = (y_range[1] - y_range[0]) / ((ny - 1) as f64);
+
+    for j in 0..ny {
+        let y = y_range[0] + (j as f64) * dy;
+        for i in 0..nx {
+            let x = x_range[0] + (i as f64) * dx;
+            grid.push(compute_spatial_field_point(system, [x, y, cz]));
+        }
+    }
+
+    Ok(grid)
+}
+

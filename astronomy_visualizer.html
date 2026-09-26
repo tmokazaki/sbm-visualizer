@@ -849,6 +849,36 @@
       border-color: #fbbf24;
       box-shadow: 0 0 22px rgba(251, 191, 36, 0.85);
     }
+
+    /* Floating Gravitational Centric View Toast */
+    #gravitational-centric-toast {
+      position: absolute;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1.5px solid var(--accent);
+      border-radius: 20px;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65), 0 0 16px var(--accent-glow);
+      z-index: 50;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-family: monospace;
+      letter-spacing: 0.5px;
+      opacity: 0.95;
+    }
+    #gravitational-centric-toast.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-10px);
+    }
   </style>
 </head>
 <body>
@@ -861,6 +891,13 @@
     <span id="cursor-accel-val">g = 0.00 mm/s²</span>
     <span style="color: var(--text-muted);">&bull;</span>
     <span class="cursor-badge badge-blue" id="cursor-basin-badge">Earth Basin</span>
+  </div>
+
+  <div id="gravitational-centric-toast">
+    <span style="font-size: 14px;">🌐</span>
+    <span id="centric-toast-title">CENTRIC VIEW: HELIOCENTRIC (SUN)</span>
+    <span style="color: var(--text-muted);">&bull;</span>
+    <span id="centric-toast-desc" style="color: var(--text-muted); font-size: 10px;">Interplanetary Domain</span>
   </div>
 
   <!-- Top Header -->
@@ -914,6 +951,13 @@
 
     <!-- Quick Chips -->
     <div class="gmap-chips-row">
+      <div class="gmap-chip active" id="chip-centric-indicator" style="border-color: #38bdf8; background: rgba(56, 189, 248, 0.25);">
+        <span>🌐</span> <span id="centric-chip-text">Centric: Auto (Sun)</span>
+      </div>
+      <div class="gmap-chip" data-centric="Sun"><span>☀️</span> Heliocentric</div>
+      <div class="gmap-chip" data-centric="Earth"><span>🌍</span> Geocentric</div>
+      <div class="gmap-chip" data-centric="Moon"><span>🌕</span> Selenocentric</div>
+      <div class="gmap-chip" data-centric="Jupiter"><span>🪐</span> Jovicentric</div>
       <div class="gmap-chip" data-body="Earth"><span>🌍</span> Earth</div>
       <div class="gmap-chip" data-body="Moon"><span>🌕</span> Moon (Tug-of-War)</div>
       <div class="gmap-chip" data-body="Jupiter"><span>🪐</span> Jupiter</div>
@@ -1092,6 +1136,21 @@
         <input type="checkbox" id="chk-layer-grid" checked> Ecliptic Grid
       </label>
       <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: var(--accent);">
+        Gravitational Centric View
+      </div>
+      <div style="margin-bottom: 6px;">
+        <select id="select-gravitational-frame" style="width: 100%; font-size: 11px; background: rgba(20,28,45,0.95); color: #fff; border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px;">
+          <option value="auto" selected>Auto (Dominant Gravitation &amp; Proximity)</option>
+          <option value="Sun">☀️ Heliocentric (Sun-Centric)</option>
+          <option value="Earth">🌍 Geocentric (Earth-Centric)</option>
+          <option value="Moon">🌕 Selenocentric (Moon-Centric)</option>
+          <option value="Jupiter">🪐 Jovicentric (Jupiter-Centric)</option>
+          <option value="Mars">🔴 Areocentric (Mars-Centric)</option>
+          <option value="Venus">🟡 Cytherocentric (Venus-Centric)</option>
+        </select>
+      </div>
+
+      <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: var(--accent);">
         Space Gravitational Field
       </div>
       <label class="layer-checkbox-item">
@@ -1123,6 +1182,7 @@
 
   <!-- Bottom Status Bar -->
   <div id="gmap-status-bar">
+    <span id="gmap-status-frame" style="color: var(--accent); font-weight: 700;">Centric: Heliocentric (Sun)</span> &bull; 
     <span id="gmap-status-coords">Heliocentric: (0.00, 0.00, 0.00) AU</span> &bull; 
     <span id="gmap-status-time">T + 0.00 d</span> &bull; 
     <span>Symplectic Integrator: Yoshida 4th</span>
@@ -1370,7 +1430,11 @@
       showSpaceProbe: true,
       showTestParticles: true,
       spaceProbe: null,
-      testParticles: []
+      testParticles: [],
+      // Gravitational Centric Frame Management
+      gravitationalFrameMode: 'auto', // 'auto' | 'manual'
+      activeCentricBody: 'Sun',       // 'Sun' | 'Earth' | 'Moon' | 'Jupiter' | 'Venus' | 'Mars'
+      centricCooldownFrames: 0
     };
 
     // Three.js Objects
@@ -2080,9 +2144,20 @@
       state.bodies.forEach((b, idx) => {
         let visualRadius = 0.4;
         if (state.scaleMode === 'perceptual') {
-          visualRadius = Math.max(0.35, Math.log10(b.radius + 1) * 0.22);
-          if (idx === 0 && (state.presetId === 'solar_system' || state.presetId === 'inner_solar_system_jupiter' || state.presetId === 'mercury_gr' || state.presetId === 'trojans')) {
+          if (idx === 0) {
             visualRadius = 1.4;
+          } else if (b.name === 'Jupiter') {
+            visualRadius = 0.55;
+          } else if (b.name === 'Earth') {
+            visualRadius = 0.28;
+          } else if (b.name === 'Moon') {
+            visualRadius = 0.09;
+          } else if (b.name === 'Venus') {
+            visualRadius = 0.26;
+          } else if (b.name === 'Mars') {
+            visualRadius = 0.18;
+          } else {
+            visualRadius = Math.max(0.15, Math.log10(b.radius + 1) * 0.12);
           }
         } else {
           visualRadius = Math.max(0.12, b.radius * 1e3 * state.sceneScale * 0.5);
@@ -2122,8 +2197,10 @@
         if (rH_km > 0) {
           const rH_m = rH_km * 1e3;
           let rH_scene = rH_m * state.sceneScale;
-          if (state.scaleMode === 'perceptual' && b.name === 'Moon') {
-            rH_scene = Math.max(0.65, rH_scene * 2.2);
+          if (state.scaleMode === 'perceptual') {
+            if (b.name === 'Moon') rH_scene = 0.185;
+            else if (b.name === 'Earth') rH_scene = 4.5;
+            else if (b.name === 'Jupiter') rH_scene = 12.0;
           }
           const hGeo = new THREE.SphereGeometry(rH_scene, 24, 16);
           const hMat = new THREE.MeshBasicMaterial({
@@ -2177,14 +2254,39 @@
       initEquipotentialContours();
       initSpaceProbeObjects();
 
-      // Immediately render first frame & initial potential mesh
+      // Immediately render first frame & initial field layers
       updateSpacetimeMesh();
       updateForceVectorsAndTethers();
+      updateSpatialVectorGrid();
+      updateEquipotentialContours();
       renderer.render(scene, camera);
       updateHUD();
     }
 
-    function toSceneCoords(physPos) {
+    function toSceneCoords(physPos, bodyName) {
+      if (state.scaleMode === 'perceptual') {
+        const moon = state.bodies.find(b => b.name === 'Moon');
+        const isMoon = (bodyName === 'Moon') || (moon && (moon.pos === physPos || (Math.abs(moon.pos[0] - physPos[0]) < 1000 && Math.abs(moon.pos[1] - physPos[1]) < 1000)));
+        if (isMoon) {
+          const earth = state.bodies.find(b => b.name === 'Earth');
+          if (earth) {
+            const dx = physPos[0] - earth.pos[0];
+            const dy = physPos[1] - earth.pos[1];
+            const dz = physPos[2] - earth.pos[2];
+            const dist = Math.hypot(dx, dy, dz) || 384400e3;
+            const normX = dx / dist;
+            const normY = dy / dist;
+            const normZ = dz / dist;
+            // Visual Moon separation: 1.153 scene units (matching Geocentric 3.6 scene / 1.2M km ratio)
+            const moonSepScene = 1.153;
+            return new THREE.Vector3(
+              earth.pos[0] * state.sceneScale + normX * moonSepScene,
+              earth.pos[1] * state.sceneScale + normY * moonSepScene,
+              earth.pos[2] * state.sceneScale + normZ * moonSepScene
+            );
+          }
+        }
+      }
       return new THREE.Vector3(
         physPos[0] * state.sceneScale,
         physPos[1] * state.sceneScale,
@@ -2360,7 +2462,17 @@
       const xAU = (physX / AU_M).toFixed(3);
       const yAU = (physY / AU_M).toFixed(3);
 
-      document.getElementById('cursor-coords-val').innerText = `Space: (${xAU}, ${yAU}) AU`;
+      if (state.activeCentricBody !== 'Sun') {
+        const anchor = state.bodies.find(b => b.name === state.activeCentricBody);
+        if (anchor) {
+          const relDistKm = Math.sqrt((physX - anchor.pos[0])**2 + (physY - anchor.pos[1])**2) / 1e3;
+          document.getElementById('cursor-coords-val').innerText = `${state.activeCentricBody}: Δr = ${relDistKm.toLocaleString(undefined, { maximumFractionDigits: 0 })} km`;
+        } else {
+          document.getElementById('cursor-coords-val').innerText = `Space: (${xAU}, ${yAU}) AU`;
+        }
+      } else {
+        document.getElementById('cursor-coords-val').innerText = `Space: (${xAU}, ${yAU}) AU`;
+      }
       document.getElementById('cursor-accel-val').innerText = `g = ${formatAccel(field.netMag)}`;
 
       const badge = document.getElementById('cursor-basin-badge');
@@ -2757,9 +2869,11 @@
 
           let rScene = rAttraction_m * state.sceneScale;
           if (state.scaleMode === 'perceptual') {
-            if (cfg.name === "Moon") rScene = Math.max(0.55, rScene * 2.5);
-            else if (cfg.name === "Earth") rScene = Math.max(1.1, rScene * 1.8);
-            else if (cfg.name === "Jupiter") rScene = Math.max(3.2, rScene * 1.2);
+            if (cfg.name === "Moon") rScene = 0.18;
+            else if (cfg.name === "Earth") rScene = 0.78;
+            else if (cfg.name === "Jupiter") rScene = 5.65;
+            else if (cfg.name === "Venus") rScene = 0.75;
+            else if (cfg.name === "Mars") rScene = 0.50;
             else rScene = Math.max(0.8, rScene * 1.5);
           }
 
@@ -2815,11 +2929,256 @@
       });
     }
 
+    // =========================================================
+    // GRAVITATIONAL CENTRIC VIEW FRAME CONFIGURATION & LOGIC
+    // =========================================================
+
+    function getCentricFrameConfig(bodyName) {
+      if (bodyName === 'Earth') {
+        return {
+          bodyName: 'Earth',
+          frameName: 'Geocentric',
+          desc: 'Earth Dominance Basin (< 259,000 km Chebotarev Sphere)',
+          spanScene: 3.6,
+          halfSpanPhys_m: 1_200_000e3, // 1.2M km covers Chebotarev (259k km), Moon orbit (384k km), Hill (1.5M km)
+          baseArrowLen: 0.22,
+          arrowColor: 0x38bdf8,
+          sensitivity: 50.0,
+          contourRadiiScene: [0.25, 0.5, 0.9, 1.4, 1.9, 2.7]
+        };
+      } else if (bodyName === 'Moon') {
+        return {
+          bodyName: 'Moon',
+          frameName: 'Selenocentric',
+          desc: 'Moon Dominance Basin (< 38,400 km Neutral Gravity Boundary)',
+          spanScene: 1.4,
+          halfSpanPhys_m: 100_000e3,  // 100,000 km covers lunar surface, neutral boundary, and L1
+          baseArrowLen: 0.10,
+          arrowColor: 0xffffff,
+          sensitivity: 100.0,
+          contourRadiiScene: [0.15, 0.3, 0.55, 0.8, 1.1]
+        };
+      } else if (bodyName === 'Jupiter') {
+        return {
+          bodyName: 'Jupiter',
+          frameName: 'Jovicentric',
+          desc: 'Jovian Dominance Basin (< 24.1 Million km Chebotarev Domain)',
+          spanScene: 7.5,
+          halfSpanPhys_m: 32_000_000e3, // 32M km
+          baseArrowLen: 0.38,
+          arrowColor: 0xfb923c,
+          sensitivity: 20.0,
+          contourRadiiScene: [0.8, 1.8, 3.2, 4.8, 6.2]
+        };
+      } else if (bodyName === 'Venus') {
+        return {
+          bodyName: 'Venus',
+          frameName: 'Cytherocentric',
+          desc: 'Venus Dominance Basin (< 169,000 km Chebotarev Sphere)',
+          spanScene: 2.8,
+          halfSpanPhys_m: 600_000e3,
+          baseArrowLen: 0.18,
+          arrowColor: 0xfef08a,
+          sensitivity: 50.0,
+          contourRadiiScene: [0.3, 0.7, 1.2, 1.8, 2.4]
+        };
+      } else if (bodyName === 'Mars') {
+        return {
+          bodyName: 'Mars',
+          frameName: 'Areocentric',
+          desc: 'Mars Dominance Basin (< 129,000 km Chebotarev Sphere)',
+          spanScene: 2.5,
+          halfSpanPhys_m: 500_000e3,
+          baseArrowLen: 0.16,
+          arrowColor: 0xf87171,
+          sensitivity: 50.0,
+          contourRadiiScene: [0.25, 0.6, 1.1, 1.6, 2.2]
+        };
+      } else {
+        // Sun / Heliocentric (Default)
+        return {
+          bodyName: 'Sun',
+          frameName: 'Heliocentric',
+          desc: 'Interplanetary Solar System (Sun Dominant Gravitational Expanse)',
+          spanScene: 32.0,
+          halfSpanPhys_m: 5.5 * AU_M,
+          baseArrowLen: 0.80,
+          arrowColor: 0xfbbf24,
+          sensitivity: 500.0,
+          contourRadiiScene: [4.0, 8.0, 14.0, 20.0, 26.0, 32.0]
+        };
+      }
+    }
+
+    let toastTimeout = null;
+    function showCentricToast(cfg) {
+      const toast = document.getElementById('gravitational-centric-toast');
+      const title = document.getElementById('centric-toast-title');
+      const desc = document.getElementById('centric-toast-desc');
+      if (!toast) return;
+
+      if (title) title.innerText = `CENTRIC VIEW: ${cfg.frameName.toUpperCase()} (${cfg.bodyName.toUpperCase()})`;
+      if (desc) desc.innerText = cfg.desc;
+
+      toast.style.borderColor = `#${cfg.arrowColor.toString(16).padStart(6, '0')}`;
+      toast.classList.remove('hidden');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4500);
+    }
+
+    function setGravitationalCentricBody(bodyName, jumpCamera = false) {
+      const validNames = ['Sun', 'Earth', 'Moon', 'Jupiter', 'Venus', 'Mars'];
+      if (!validNames.includes(bodyName)) bodyName = 'Sun';
+
+      state.activeCentricBody = bodyName;
+      const cfg = getCentricFrameConfig(bodyName);
+
+      // 1. Toast notification
+      showCentricToast(cfg);
+
+      // 2. Update Omnibox chip text
+      const chipText = document.getElementById('centric-chip-text');
+      if (chipText) {
+        const modePrefix = state.gravitationalFrameMode === 'auto' ? 'Auto: ' : '';
+        chipText.innerText = `${modePrefix}${cfg.frameName} (${bodyName})`;
+      }
+
+      // 3. Update select dropdown
+      const selFrame = document.getElementById('select-gravitational-frame');
+      if (selFrame && state.gravitationalFrameMode === 'manual') {
+        selFrame.value = bodyName;
+      }
+
+      // 4. Update status bar
+      const statusFrame = document.getElementById('gmap-status-frame');
+      if (statusFrame) {
+        statusFrame.innerText = `Centric: ${cfg.frameName} (${bodyName})`;
+        statusFrame.style.color = `#${cfg.arrowColor.toString(16).padStart(6, '0')}`;
+      }
+
+      // 5. Reinitialize Equipotential Contours for this centric frame
+      initEquipotentialContours();
+
+      // 6. Camera jump if requested
+      if (jumpCamera) {
+        if (bodyName === 'Sun') {
+          controls.target.set(0, 0, 0);
+          camera.position.set(0, -42, 28);
+          controls.update();
+        } else {
+          const bIdx = state.bodies.findIndex(b => b.name === bodyName);
+          if (bIdx >= 0) {
+            const b = state.bodies[bIdx];
+            const scPos = toSceneCoords(b.pos);
+            let targetDist = cfg.spanScene * 1.35;
+            if (bodyName === 'Earth') targetDist = 3.2;
+            else if (bodyName === 'Moon') targetDist = 1.35;
+            else if (bodyName === 'Jupiter') targetDist = 8.5;
+            else if (bodyName === 'Venus' || bodyName === 'Mars') targetDist = 3.0;
+
+            controls.target.copy(scPos);
+            camera.position.set(scPos.x, scPos.y - targetDist * 0.85, scPos.z + targetDist * 0.52);
+            controls.update();
+            selectBody(bIdx);
+          }
+        }
+      }
+    }
+
+    let centricCheckCounter = 0;
+    function checkAndUpdateCentricFrame() {
+      // Smooth camera tracking when anchored to a planet-centric view
+      if (state.activeCentricBody && state.activeCentricBody !== 'Sun') {
+        const b = state.bodies.find(bod => bod.name === state.activeCentricBody);
+        if (b && !state.isSurfaceView && state.specialCameraFocus !== 'emb') {
+          const currentScPos = toSceneCoords(b.pos);
+          const delta = currentScPos.clone().sub(controls.target);
+          controls.target.copy(currentScPos);
+          camera.position.add(delta);
+        }
+      }
+
+      if (state.gravitationalFrameMode !== 'auto') return;
+
+      centricCheckCounter++;
+      if (centricCheckCounter % 6 !== 0) return; // Evaluate every 6 frames (~10Hz)
+
+      if (state.centricCooldownFrames > 0) {
+        state.centricCooldownFrames--;
+        return;
+      }
+
+      const camPos = camera.position;
+      const targetPos = controls.target;
+      const invScale = 1.0 / (state.sceneScale || 1.0);
+      const targetPhys = [targetPos.x * invScale, targetPos.y * invScale, targetPos.z * invScale];
+
+      const fieldAtTarget = computeSpatialFieldAt(targetPhys);
+      const dominantName = fieldAtTarget.dominantBody ? fieldAtTarget.dominantBody.name : 'Sun';
+
+      // Check distance from camera to each planet in scene units
+      let detectedCentricBody = 'Sun';
+
+      const earth = state.bodies.find(b => b.name === 'Earth');
+      const moon = state.bodies.find(b => b.name === 'Moon');
+      const jupiter = state.bodies.find(b => b.name === 'Jupiter');
+      const venus = state.bodies.find(b => b.name === 'Venus');
+      const mars = state.bodies.find(b => b.name === 'Mars');
+
+      const dEarthCam = earth ? camPos.distanceTo(toSceneCoords(earth.pos)) : 999;
+      const dEarthTgt = earth ? targetPos.distanceTo(toSceneCoords(earth.pos)) : 999;
+
+      const dMoonCam = moon ? camPos.distanceTo(toSceneCoords(moon.pos)) : 999;
+      const dMoonTgt = moon ? targetPos.distanceTo(toSceneCoords(moon.pos)) : 999;
+
+      const dJupCam = jupiter ? camPos.distanceTo(toSceneCoords(jupiter.pos)) : 999;
+      const dJupTgt = jupiter ? targetPos.distanceTo(toSceneCoords(jupiter.pos)) : 999;
+
+      const dVenCam = venus ? camPos.distanceTo(toSceneCoords(venus.pos)) : 999;
+      const dVenTgt = venus ? targetPos.distanceTo(toSceneCoords(venus.pos)) : 999;
+
+      const dMarsCam = mars ? camPos.distanceTo(toSceneCoords(mars.pos)) : 999;
+      const dMarsTgt = mars ? targetPos.distanceTo(toSceneCoords(mars.pos)) : 999;
+
+      // Priority 1: Close to Moon (< 2.5 scene units, or inside Moon dominance basin)
+      if ((dMoonCam < 2.5 && dMoonTgt < 1.8) || (dominantName === 'Moon' && dMoonCam < 4.0)) {
+        detectedCentricBody = 'Moon';
+      }
+      // Priority 2: Close to Earth (< 6.5 scene units, or inside Earth dominance basin)
+      else if ((dEarthCam < 6.5 && dEarthTgt < 4.2) || (dominantName === 'Earth' && dEarthCam < 16.0)) {
+        detectedCentricBody = 'Earth';
+      }
+      // Priority 3: Close to Jupiter (< 15.0 scene units, or inside Jupiter dominance basin)
+      else if ((dJupCam < 15.0 && dJupTgt < 10.0) || (dominantName === 'Jupiter' && dJupCam < 28.0)) {
+        detectedCentricBody = 'Jupiter';
+      }
+      // Priority 4: Close to Venus
+      else if ((dVenCam < 4.5 && dVenTgt < 3.2) || (dominantName === 'Venus' && dVenCam < 12.0)) {
+        detectedCentricBody = 'Venus';
+      }
+      // Priority 5: Close to Mars
+      else if ((dMarsCam < 4.5 && dMarsTgt < 3.2) || (dominantName === 'Mars' && dMarsCam < 12.0)) {
+        detectedCentricBody = 'Mars';
+      }
+      // Otherwise: Heliocentric Solar Domain
+      else {
+        detectedCentricBody = 'Sun';
+      }
+
+      if (detectedCentricBody !== state.activeCentricBody) {
+        setGravitationalCentricBody(detectedCentricBody, false);
+        state.centricCooldownFrames = 25; // Cooldown for 25 frames (~0.4s) to avoid rapid jitter
+      }
+    }
+
     function initSpatialVectorGrid() {
       if (spatialVectorGridGroup) scene.remove(spatialVectorGridGroup);
       spatialVectorGridGroup = new THREE.Group();
 
-      const span = 32.0; // scene units (covers -5.5 to +5.5 AU)
+      const span = 32.0; // initial placeholder
       const steps = 22; // 22 x 22 grid = 484 vector arrows
       const dStep = (span * 2) / (steps - 1);
 
@@ -2835,7 +3194,7 @@
             0.25,
             0.12
           );
-          arrow.userData = { gridX: x, gridY: y };
+          arrow.userData = { gridI: i, gridJ: j };
           spatialVectorGridGroup.add(arrow);
         }
       }
@@ -2850,68 +3209,168 @@
       gridFrameCounter++;
       if (gridFrameCounter % 2 !== 0) return;
 
+      const cfg = getCentricFrameConfig(state.activeCentricBody);
+      const anchorBody = state.bodies.find(b => b.name === cfg.bodyName) || state.bodies[0];
+      const scCenter = (anchorBody.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchorBody.pos);
+      const anchorPhysPos = (anchorBody.name === 'Sun') ? [0, 0, 0] : anchorBody.pos;
+
+      const span = cfg.spanScene;
+      const steps = 22;
+      const dStep = (span * 2) / (steps - 1);
       const invScale = 1.0 / (state.sceneScale || 1.0);
-      spatialVectorGridGroup.children.forEach(arrow => {
-        const x = arrow.userData.gridX;
-        const y = arrow.userData.gridY;
-        const physX = x * invScale;
-        const physY = y * invScale;
 
-        const field = computeSpatialFieldAt([physX, physY, 0]);
-        const gMag = field.netMag;
+      const children = spatialVectorGridGroup.children;
+      let idx = 0;
 
-        if (gMag > 1e-12) {
-          const dir = new THREE.Vector3(field.netAccel[0], field.netAccel[1], 0).normalize();
-          arrow.setDirection(dir);
-          const len = Math.min(1.8, Math.max(0.35, 0.4 + Math.log10(1.0 + gMag * 500) * 0.4));
-          arrow.setLength(len, len * 0.35, len * 0.2);
+      for (let i = 0; i < steps; i++) {
+        const relX_sc = -span + i * dStep;
+        for (let j = 0; j < steps; j++) {
+          const relY_sc = -span + j * dStep;
+          const arrow = children[idx++];
+          if (!arrow) break;
 
-          if (gMag > 0.01) {
-            arrow.setColor(new THREE.Color(0xfbbf24));
-          } else if (gMag > 1e-4) {
-            arrow.setColor(new THREE.Color(0x38bdf8));
+          // Set arrow position in scene coordinates anchored to the active centric body
+          arrow.position.set(scCenter.x + relX_sc, scCenter.y + relY_sc, 0.01);
+
+          // Calculate probe physical position
+          let relPhysX, relPhysY;
+          if (state.scaleMode === 'perceptual') {
+            relPhysX = (relX_sc / span) * cfg.halfSpanPhys_m;
+            relPhysY = (relY_sc / span) * cfg.halfSpanPhys_m;
           } else {
-            arrow.setColor(new THREE.Color(0x60a5fa));
+            relPhysX = relX_sc * invScale;
+            relPhysY = relY_sc * invScale;
+          }
+
+          const physPoint = [
+            anchorPhysPos[0] + relPhysX,
+            anchorPhysPos[1] + relPhysY,
+            anchorPhysPos[2]
+          ];
+
+          const field = computeSpatialFieldAt(physPoint);
+          const gMag = field.netMag;
+
+          if (gMag > 1e-12) {
+            const dir = new THREE.Vector3(field.netAccel[0], field.netAccel[1], 0).normalize();
+            arrow.setDirection(dir);
+
+            const maxL = cfg.baseArrowLen * 1.6;
+            const minL = cfg.baseArrowLen * 0.35;
+            const scaledL = cfg.baseArrowLen * (0.5 + Math.log10(1.0 + gMag * cfg.sensitivity) * 0.35);
+            const len = Math.min(maxL, Math.max(minL, scaledL));
+            arrow.setLength(len, len * 0.35, len * 0.2);
+
+            // Adaptive color: primary body color when dominant; saddle/competing color in transition zones
+            if (field.dominantBody && field.dominantBody.name === cfg.bodyName) {
+              arrow.setColor(new THREE.Color(cfg.arrowColor));
+            } else if (field.dominantBody) {
+              // Transition boundary / competing gravitational basin
+              arrow.setColor(new THREE.Color(field.dominantBody.color || 0xfbbf24));
+            } else {
+              arrow.setColor(new THREE.Color(0x38bdf8));
+            }
           }
         }
-      });
+      }
     }
 
     function initEquipotentialContours() {
       if (equipotentialContoursGroup) scene.remove(equipotentialContoursGroup);
       equipotentialContoursGroup = new THREE.Group();
 
-      const contourSpecs = [
-        { bodyName: 'Sun', count: 6, minR: 4, maxR: 35, color: 0xfbbf24, opacity: 0.15 },
-        { bodyName: 'Earth', count: 4, minR: 0.6, maxR: 3.5, color: 0x38bdf8, opacity: 0.22 },
-        { bodyName: 'Jupiter', count: 4, minR: 1.5, maxR: 7.0, color: 0xfb923c, opacity: 0.22 }
-      ];
+      const cfg = getCentricFrameConfig(state.activeCentricBody);
+      const isSunCentric = (cfg.bodyName === 'Sun');
 
-      contourSpecs.forEach(spec => {
-        const bodyIdx = state.bodies.findIndex(b => b.name === spec.bodyName);
+      if (isSunCentric) {
+        // Global solar system equipotential isolines
+        const contourSpecs = [
+          { bodyName: 'Sun', count: 6, minR: 4, maxR: 35, color: 0xfbbf24, opacity: 0.15 },
+          { bodyName: 'Earth', count: 4, minR: 0.6, maxR: 3.5, color: 0x38bdf8, opacity: 0.22 },
+          { bodyName: 'Jupiter', count: 4, minR: 1.5, maxR: 7.0, color: 0xfb923c, opacity: 0.22 }
+        ];
+
+        contourSpecs.forEach(spec => {
+          const bodyIdx = state.bodies.findIndex(b => b.name === spec.bodyName);
+          if (bodyIdx >= 0) {
+            const b = state.bodies[bodyIdx];
+            for (let k = 1; k <= spec.count; k++) {
+              const r = spec.minR + (k / spec.count) * (spec.maxR - spec.minR);
+              const pts = [];
+              for (let a = 0; a <= 64; a++) {
+                const th = (a / 64) * 2 * Math.PI;
+                pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+              }
+              const geo = new THREE.BufferGeometry().setFromPoints(pts);
+              const mat = new THREE.LineBasicMaterial({
+                color: spec.color,
+                transparent: true,
+                opacity: spec.opacity
+              });
+              const line = new THREE.LineLoop(geo, mat);
+              line.position.copy(toSceneCoords(b.pos));
+              line.position.z = -0.01;
+              line.userData = { bodyIndex: bodyIdx };
+              equipotentialContoursGroup.add(line);
+            }
+          }
+        });
+      } else {
+        // High-density concentric equipotential isolines around the active centric body
+        const bodyIdx = state.bodies.findIndex(b => b.name === cfg.bodyName);
         if (bodyIdx >= 0) {
           const b = state.bodies[bodyIdx];
-          for (let k = 1; k <= spec.count; k++) {
-            const r = spec.minR + (k / spec.count) * (spec.maxR - spec.minR);
+          const radii = cfg.contourRadiiScene || [0.5, 1.0, 1.8, 2.5];
+
+          radii.forEach((r, idx) => {
             const pts = [];
             for (let a = 0; a <= 64; a++) {
               const th = (a / 64) * 2 * Math.PI;
               pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
             }
             const geo = new THREE.BufferGeometry().setFromPoints(pts);
+            const opacity = 0.35 - (idx / radii.length) * 0.18;
             const mat = new THREE.LineBasicMaterial({
-              color: spec.color,
+              color: cfg.arrowColor,
               transparent: true,
-              opacity: spec.opacity
+              opacity: Math.max(0.12, opacity)
             });
             const line = new THREE.LineLoop(geo, mat);
             line.position.copy(toSceneCoords(b.pos));
             line.position.z = -0.01;
             line.userData = { bodyIndex: bodyIdx };
             equipotentialContoursGroup.add(line);
+          });
+        }
+
+        // Also add secondary body contours (e.g. Moon if Earth-centric, or Earth if Moon-centric)
+        let secondaryName = (cfg.bodyName === 'Earth') ? 'Moon' : (cfg.bodyName === 'Moon' ? 'Earth' : null);
+        if (secondaryName) {
+          const secIdx = state.bodies.findIndex(b => b.name === secondaryName);
+          if (secIdx >= 0) {
+            const secB = state.bodies[secIdx];
+            const secRadii = (secondaryName === 'Moon') ? [0.2, 0.45, 0.8] : [0.6, 1.2];
+            secRadii.forEach(r => {
+              const pts = [];
+              for (let a = 0; a <= 48; a++) {
+                const th = (a / 48) * 2 * Math.PI;
+                pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0));
+              }
+              const geo = new THREE.BufferGeometry().setFromPoints(pts);
+              const mat = new THREE.LineBasicMaterial({
+                color: new THREE.Color(secB.color),
+                transparent: true,
+                opacity: 0.22
+              });
+              const line = new THREE.LineLoop(geo, mat);
+              line.position.copy(toSceneCoords(secB.pos));
+              line.position.z = -0.01;
+              line.userData = { bodyIndex: secIdx };
+              equipotentialContoursGroup.add(line);
+            });
           }
         }
-      });
+      }
 
       scene.add(equipotentialContoursGroup);
       equipotentialContoursGroup.visible = state.showEquipotentials;
@@ -3505,10 +3964,23 @@
           chip.classList.add('active');
           const bName = chip.dataset.body;
           const special = chip.dataset.special;
+          const centric = chip.dataset.centric;
 
-          if (bName) {
+          if (centric) {
+            state.gravitationalFrameMode = 'manual';
+            setGravitationalCentricBody(centric, true);
+          } else if (chip.id === 'chip-centric-indicator') {
+            // Toggle between auto and manual
+            state.gravitationalFrameMode = (state.gravitationalFrameMode === 'auto') ? 'manual' : 'auto';
+            setGravitationalCentricBody(state.activeCentricBody, false);
+          } else if (bName) {
             const bIdx = state.bodies.findIndex(b => b.name.toLowerCase() === bName.toLowerCase());
-            if (bIdx >= 0) flyToBody(bIdx);
+            if (bIdx >= 0) {
+              flyToBody(bIdx);
+              if (state.gravitationalFrameMode === 'auto') {
+                setGravitationalCentricBody(bName, false);
+              }
+            }
           } else if (special === 'emb') {
             state.specialCameraFocus = 'emb';
             document.getElementById('camera-focus-select').value = 'emb';
@@ -3521,6 +3993,7 @@
             state.specialCameraFocus = null;
             state.cameraFollowIndex = -1;
             document.getElementById('camera-focus-select').value = '-1';
+            setGravitationalCentricBody('Sun', false);
             flyTo({ x: 0, y: 0, z: 0 }, 55, 1200);
           } else if (chip.dataset.spacePreset) {
             state.specialCameraFocus = null;
@@ -3529,6 +4002,21 @@
           }
         });
       });
+
+      // Layer Menu Gravitational Centric Select
+      const selectFrame = document.getElementById('select-gravitational-frame');
+      if (selectFrame) {
+        selectFrame.addEventListener('change', (e) => {
+          const val = e.target.value;
+          if (val === 'auto') {
+            state.gravitationalFrameMode = 'auto';
+            setGravitationalCentricBody(state.activeCentricBody, false);
+          } else {
+            state.gravitationalFrameMode = 'manual';
+            setGravitationalCentricBody(val, true);
+          }
+        });
+      }
     }
 
     function setViewMode(mode) {
@@ -3588,13 +4076,31 @@
     function updateGmapStatusBar() {
       const bar = document.getElementById('gmap-status-coords');
       const tText = document.getElementById('gmap-status-time');
+      const fText = document.getElementById('gmap-status-frame');
       if (!bar || !tText || state.bodies.length === 0) return;
-      const sel = state.bodies[state.selectedBodyIndex];
-      if (sel) {
-        const xAU = (sel.pos[0] / AU_M).toFixed(3);
-        const yAU = (sel.pos[1] / AU_M).toFixed(3);
-        const zAU = (sel.pos[2] / AU_M).toFixed(3);
-        bar.innerText = `Focus: ${sel.name} • (${xAU}, ${yAU}, ${zAU}) AU`;
+
+      const cfg = getCentricFrameConfig(state.activeCentricBody);
+      if (fText) {
+        const modePrefix = state.gravitationalFrameMode === 'auto' ? 'Auto ' : '';
+        fText.innerText = `Frame: ${modePrefix}${cfg.frameName} (${cfg.bodyName})`;
+        fText.style.color = `#${cfg.arrowColor.toString(16).padStart(6, '0')}`;
+      }
+
+      if (state.activeCentricBody !== 'Sun') {
+        const anchor = state.bodies.find(b => b.name === state.activeCentricBody);
+        if (anchor) {
+          const invScale = 1.0 / (state.sceneScale || 1.0);
+          const dxKm = (controls.target.x * invScale - anchor.pos[0]) / 1e3;
+          const dyKm = (controls.target.y * invScale - anchor.pos[1]) / 1e3;
+          bar.innerText = `${cfg.frameName}: Δr = ${Math.hypot(dxKm, dyKm).toFixed(0)} km [${dxKm.toFixed(0)}, ${dyKm.toFixed(0)}] km`;
+        }
+      } else {
+        const sel = state.bodies[state.selectedBodyIndex];
+        if (sel) {
+          const xAU = (sel.pos[0] / AU_M).toFixed(3);
+          const yAU = (sel.pos[1] / AU_M).toFixed(3);
+          bar.innerText = `Focus: ${sel.name} • (${xAU}, ${yAU}) AU`;
+        }
       }
       tText.innerText = `T + ${(state.time_s / DAY_S).toFixed(2)} d`;
     }
@@ -3995,6 +4501,9 @@
         updateSpaceProbeVisuals();
       }
 
+      // Dynamic Gravitational Centric View update & tracking
+      checkAndUpdateCentricFrame();
+
       // Camera Tracking
       if (state.specialCameraFocus === 'emb') {
         const earth = state.bodies.find(b => b.name === 'Earth');
@@ -4273,6 +4782,12 @@
         selectBody(bIdx);
       } else if (state.presetId === 'inner_solar_system_jupiter') {
         selectBody(2); // Default to Earth
+      }
+
+      if (params.get('centric')) {
+        const cBody = params.get('centric');
+        state.gravitationalFrameMode = 'manual';
+        setGravitationalCentricBody(cBody, true);
       }
 
       // Google Maps View Mode setup
