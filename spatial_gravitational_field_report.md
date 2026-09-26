@@ -238,6 +238,25 @@ flowchart TD
 4. **Proportional Visual Separation in Perceptual Mode**:
    - Resolves the scale disparity where physical cislunar distance ($384,400\text{ km}$) would otherwise render the Moon inside Earth's perceptual sphere ($6,371\text{ km}$). Moon is rendered at $1.153$ scene units from Earth, matching the $3.6\text{ scene} / 1.2\text{M km}$ physical ratio to 100% precision.
 
+### 6.5 Solar Gravity Exclusion in Planet-Centric Modes
+In accordance with user directive:
+> *"each planet centric gravity mode should ignore sun's gravity since it's always major part of the gravity"*
+
+#### Theoretical & Physical Justification
+1. **Einstein's Equivalence Principle & Free-Fall Reference Frames**:
+   A planet orbiting the Sun is in continuous gravitational free fall. Under Einstein's Equivalence Principle and d'Alembert's inertial formulation, the uniform solar gravitational acceleration $\mathbf{g}_\odot(\mathbf{r}_{\text{planet}})$ is exactly counterbalanced by the frame's orbital acceleration. Within the planet's local reference frame, only the **planet's own gravity field**, its moons, and small differential tidal perturbations physically dictate orbital trajectories and potential wells.
+2. **Resolution of Local Gravity Wells & Saddle Equilibria**:
+   Because the Sun's mass ($1.989 \times 10^{30}\text{ kg}$) exerts an overwhelming absolute pull ($5.93\text{ mm/s}^2$ at 1 AU), including the Sun's direct attraction in planet-centric mode pulls and distorts every spatial vector towards the Sun. For example, beyond Earth's Chebotarev radius ($259,313\text{ km}$), the Sun's raw pull exceeds Earth's pull, causing cislunar vectors to bend away from Earth.
+   Excluding the Sun's gravity in planet-centric modes completely eliminates this background distortion:
+   - **Geocentric Mode**: All 484 micro-vectors across the $\pm 1,200,000\text{ km}$ cislunar grid point isotropically inward towards Earth, with a clean transition into the Moon's local well inside $38,400\text{ km}$.
+   - **Selenocentric Mode**: Within $38,400\text{ km}$, arrows converge radially into the Moon. Beyond $38,400\text{ km}$, arrows point towards Earth. The Sun's pull does not bias the lunar field.
+   - **Jovicentric Mode**: Jupiter's massive gravity well ($1.898 \times 10^{27}\text{ kg}$) commands the entire $\pm 32,000,000\text{ km}$ domain without solar truncation.
+
+#### Rust Engine & Visualizer Implementation
+- In [`compute_centric_spatial_field_grid`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/src/nbody/dynamics.rs#L759-L792): When `center_body_name != "Sun"`, the Sun is automatically filtered out from `NBodySystem.bodies`.
+- In [`computeSpatialFieldAt`](file:///Users/tomohiko/work/sbm_visualizer/astronomy_visualizer.html): Defaults `ignoreSun = (state.activeCentricBody !== 'Sun')`, providing pure local planetary fields while maintaining full solar calculations in Heliocentric mode.
+- In UI Telemetry: Status bar displays `[☀️ Sun Gravity Ignored]`, and Space Place Cards highlight local planetary field percentages.
+
 ---
 
 ## 7. Interactive Live Centric URLs

@@ -756,6 +756,9 @@ pub fn compute_spatial_field_grid(
 ///
 /// Pins the center of the sampling bounding box to the target body's position $[x_0, y_0, z_0]$
 /// and spans $[x_0 \pm \text{half\_span\_m}, y_0 \pm \text{half\_span\_m}]$.
+///
+/// In planet-centric gravity modes (non-Heliocentric), the Sun's gravity is ignored to isolate
+/// the planet's local gravity well and satellite interactions from the overwhelming solar monopole pull.
 pub fn compute_centric_spatial_field_grid(
     system: &NBodySystem,
     center_body_name: &str,
@@ -782,11 +785,27 @@ pub fn compute_centric_spatial_field_grid(
     let dx = (x_range[1] - x_range[0]) / ((nx - 1) as f64);
     let dy = (y_range[1] - y_range[0]) / ((ny - 1) as f64);
 
+    let active_system;
+    let sys_ref = if !center_body_name.eq_ignore_ascii_case("Sun") {
+        active_system = NBodySystem {
+            bodies: system
+                .bodies
+                .iter()
+                .filter(|b| !b.name.eq_ignore_ascii_case("Sun"))
+                .cloned()
+                .collect(),
+            ..system.clone()
+        };
+        &active_system
+    } else {
+        system
+    };
+
     for j in 0..ny {
         let y = y_range[0] + (j as f64) * dy;
         for i in 0..nx {
             let x = x_range[0] + (i as f64) * dx;
-            grid.push(compute_spatial_field_point(system, [x, y, cz]));
+            grid.push(compute_spatial_field_point(sys_ref, [x, y, cz]));
         }
     }
 

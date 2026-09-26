@@ -2298,7 +2298,7 @@
     // SPATIAL GRAVITATIONAL FIELD PHYSICS & BASIN TELEMETRY
     // =========================================================
 
-    function computeSpatialFieldAt(physPos) {
+    function computeSpatialFieldAt(physPos, ignoreSun = (state.activeCentricBody && state.activeCentricBody !== 'Sun')) {
       const bodies = state.bodies;
       let netAccel = [0, 0, 0];
       let totalPotential = 0;
@@ -2310,6 +2310,8 @@
 
       for (let j = 0; j < bodies.length; j++) {
         const b = bodies[j];
+        if (ignoreSun && b.name === 'Sun') continue;
+
         const dx = b.pos[0] - physPos[0];
         const dy = b.pos[1] - physPos[1];
         const dz = b.pos[2] - physPos[2];
@@ -2361,13 +2363,14 @@
 
       const netMag = Math.sqrt(netAccel[0]**2 + netAccel[1]**2 + netAccel[2]**2);
       const dominantFraction = scalarSum > 1e-30 ? maxBodyA / scalarSum : 0;
-      const tidal = computeTidalTensorAt(physPos);
+      const tidal = computeTidalTensorAt(physPos, ignoreSun);
 
       return {
         physPos,
         netAccel,
         netMag,
         totalPotential,
+        isSunIgnored: ignoreSun,
         dominantBody: {
           name: dominantBody ? dominantBody.name : 'Deep Space',
           color: dominantBody ? dominantBody.color : '#38bdf8',
@@ -2379,13 +2382,15 @@
       };
     }
 
-    function computeTidalTensorAt(physPos) {
+    function computeTidalTensorAt(physPos, ignoreSun = (state.activeCentricBody && state.activeCentricBody !== 'Sun')) {
       let matrix = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
       const bodies = state.bodies;
       const eps2 = (state.softening_m || 0) ** 2;
 
       for (let j = 0; j < bodies.length; j++) {
         const b = bodies[j];
+        if (ignoreSun && b.name === 'Sun') continue;
+
         const rx = b.pos[0] - physPos[0];
         const ry = b.pos[1] - physPos[1];
         const rz = b.pos[2] - physPos[2];
@@ -2635,7 +2640,8 @@
 
       document.getElementById('place-icon').innerText = '📍';
       document.getElementById('place-title').innerText = `Space Point (${xAU}, ${yAU}) AU`;
-      document.getElementById('place-subtitle').innerText = `Gravitational Basin: ${field.dominantBody.name} Territory • ${(field.dominantBody.fraction * 100).toFixed(1)}% Local Field`;
+      const sunNote = field.isSunIgnored ? ' • ☀️ Sun Gravity Ignored' : '';
+      document.getElementById('place-subtitle').innerText = `Gravitational Basin: ${field.dominantBody.name} Territory • ${(field.dominantBody.fraction * 100).toFixed(1)}% Local Field${sunNote}`;
 
       // Switch to space action buttons
       const planetActions = document.getElementById('planet-actions-row');
@@ -2654,7 +2660,10 @@
         (field.netAccel[2] / field.netMag).toFixed(3)
       ] : [0, 0, 0];
 
+      const frameRow = field.isSunIgnored ? `<tr><td class="label">Gravity Mode</td><td class="val" style="color: #fbbf24;">Centric (${state.activeCentricBody} · Sun Excluded)</td></tr>` : '';
+
       specs.innerHTML = `
+        ${frameRow}
         <tr><td class="label">Coordinates (AU)</td><td class="val">${xAU}, ${yAU}, ${zAU} AU</td></tr>
         <tr><td class="label">Distance to Sun</td><td class="val">${(rSunKm / 1e6).toFixed(2)}M km</td></tr>
         <tr><td class="label">Acceleration |g|</td><td class="val" style="color: #38bdf8; font-weight: 700;">${formatAccel(field.netMag)}</td></tr>
@@ -2938,7 +2947,7 @@
         return {
           bodyName: 'Earth',
           frameName: 'Geocentric',
-          desc: 'Earth Dominance Basin (< 259,000 km Chebotarev Sphere)',
+          desc: 'Earth Dominance Basin (Solar gravity ignored · Cislunar Earth-Moon gravity well)',
           spanScene: 3.6,
           halfSpanPhys_m: 1_200_000e3, // 1.2M km covers Chebotarev (259k km), Moon orbit (384k km), Hill (1.5M km)
           baseArrowLen: 0.22,
@@ -2950,7 +2959,7 @@
         return {
           bodyName: 'Moon',
           frameName: 'Selenocentric',
-          desc: 'Moon Dominance Basin (< 38,400 km Neutral Gravity Boundary)',
+          desc: 'Moon Dominance Basin (Solar gravity ignored · Lunar gravity well)',
           spanScene: 1.4,
           halfSpanPhys_m: 100_000e3,  // 100,000 km covers lunar surface, neutral boundary, and L1
           baseArrowLen: 0.10,
@@ -2962,7 +2971,7 @@
         return {
           bodyName: 'Jupiter',
           frameName: 'Jovicentric',
-          desc: 'Jovian Dominance Basin (< 24.1 Million km Chebotarev Domain)',
+          desc: 'Jovian Dominance Basin (Solar gravity ignored · Jovian system gravity well)',
           spanScene: 7.5,
           halfSpanPhys_m: 32_000_000e3, // 32M km
           baseArrowLen: 0.38,
@@ -2974,7 +2983,7 @@
         return {
           bodyName: 'Venus',
           frameName: 'Cytherocentric',
-          desc: 'Venus Dominance Basin (< 169,000 km Chebotarev Sphere)',
+          desc: 'Venus Dominance Basin (Solar gravity ignored · Venusian gravity well)',
           spanScene: 2.8,
           halfSpanPhys_m: 600_000e3,
           baseArrowLen: 0.18,
@@ -2986,7 +2995,7 @@
         return {
           bodyName: 'Mars',
           frameName: 'Areocentric',
-          desc: 'Mars Dominance Basin (< 129,000 km Chebotarev Sphere)',
+          desc: 'Mars Dominance Basin (Solar gravity ignored · Martian gravity well)',
           spanScene: 2.5,
           halfSpanPhys_m: 500_000e3,
           baseArrowLen: 0.16,
@@ -3116,7 +3125,7 @@
       const invScale = 1.0 / (state.sceneScale || 1.0);
       const targetPhys = [targetPos.x * invScale, targetPos.y * invScale, targetPos.z * invScale];
 
-      const fieldAtTarget = computeSpatialFieldAt(targetPhys);
+      const fieldAtTarget = computeSpatialFieldAt(targetPhys, false);
       const dominantName = fieldAtTarget.dominantBody ? fieldAtTarget.dominantBody.name : 'Sun';
 
       // Check distance from camera to each planet in scene units
@@ -4082,7 +4091,8 @@
       const cfg = getCentricFrameConfig(state.activeCentricBody);
       if (fText) {
         const modePrefix = state.gravitationalFrameMode === 'auto' ? 'Auto ' : '';
-        fText.innerText = `Frame: ${modePrefix}${cfg.frameName} (${cfg.bodyName})`;
+        const sunNote = (state.activeCentricBody !== 'Sun') ? ' [☀️ Sun Gravity Ignored]' : '';
+        fText.innerText = `Frame: ${modePrefix}${cfg.frameName} (${cfg.bodyName})${sunNote}`;
         fText.style.color = `#${cfg.arrowColor.toString(16).padStart(6, '0')}`;
       }
 

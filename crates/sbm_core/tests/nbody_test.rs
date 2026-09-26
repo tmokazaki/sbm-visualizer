@@ -653,30 +653,56 @@ fn test_centric_spatial_field_grid_earth() {
     assert_eq!(frame, GravitationalCentricFrame::Geocentric);
 
     let system = create_preset(PresetId::InnerSolarSystemJupiter);
-    // Earth-centric grid spanning ±150,000 km (corner distance 212,132 km < 259,313 km Chebotarev radius)
-    let half_span_m = 150_000_000.0;
+    // Earth-centric grid spanning ±200,000 km
+    let half_span_m = 200_000_000.0;
     // 4x4 resolution avoids exact center point (r=0) singularity
     let grid = compute_centric_spatial_field_grid(&system, "Earth", half_span_m, 4).unwrap();
 
     assert_eq!(grid.len(), 16);
     for pt in &grid {
-        assert_eq!(pt.dominant_body_name, "Earth", "All points within 150,000 km (diagonal 212k km) must be in Earth dominance basin");
-        assert!(pt.dominant_body_fraction > 0.50, "Earth must account for > 50% of gravitational pull");
+        assert_eq!(pt.dominant_body_name, "Earth", "With Sun gravity ignored, Earth dominates its local domain");
+        assert!(pt.dominant_body_fraction > 0.95, "Earth must account for > 95% of local planetary pull away from Moon");
+        // Verify Sun is not in contributions list
+        assert!(
+            pt.contributions.iter().all(|c| !c.body_name.eq_ignore_ascii_case("Sun")),
+            "Sun must be excluded from planet-centric gravity field contributions"
+        );
     }
 }
 
 #[test]
 fn test_centric_spatial_field_grid_moon() {
     let system = create_preset(PresetId::InnerSolarSystemJupiter);
-    // Moon-centric grid spanning ±15,000 km (corner distance 21,213 km << 28,745 km Moon-Sun Chebotarev radius)
-    let half_span_m = 15_000_000.0;
+    // Moon-centric grid spanning ±25,000 km (within 38,400 km neutral boundary with Earth)
+    let half_span_m = 25_000_000.0;
     // 4x4 resolution avoids r=0 singularity
     let grid = compute_centric_spatial_field_grid(&system, "Moon", half_span_m, 4).unwrap();
 
     assert_eq!(grid.len(), 16);
     for pt in &grid {
-        assert_eq!(pt.dominant_body_name, "Moon", "All points within 15,000 km (diagonal 21.2k km) must be in Moon dominance basin");
-        assert!(pt.dominant_body_fraction > 0.50, "Moon must account for > 50% of gravitational pull");
+        assert_eq!(pt.dominant_body_name, "Moon", "All points within 25,000 km must be in Moon dominance basin");
+        assert!(pt.dominant_body_fraction > 0.50, "Moon must account for > 50% of local gravitational pull against Earth");
+        assert!(
+            pt.contributions.iter().all(|c| !c.body_name.eq_ignore_ascii_case("Sun")),
+            "Sun must be excluded from Selenocentric gravity field contributions"
+        );
+    }
+}
+
+#[test]
+fn test_centric_spatial_field_grid_heliocentric_includes_sun() {
+    let system = create_preset(PresetId::InnerSolarSystemJupiter);
+    // Heliocentric grid spanning ±1 AU around Sun
+    let half_span_m = 149_597_870_700.0;
+    let grid = compute_centric_spatial_field_grid(&system, "Sun", half_span_m, 4).unwrap();
+
+    assert_eq!(grid.len(), 16);
+    for pt in &grid {
+        assert_eq!(pt.dominant_body_name, "Sun", "Sun dominates heliocentric grid points");
+        assert!(
+            pt.contributions.iter().any(|c| c.body_name.eq_ignore_ascii_case("Sun")),
+            "Sun must be included in Heliocentric gravity field contributions"
+        );
     }
 }
 
