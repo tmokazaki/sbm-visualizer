@@ -348,3 +348,27 @@ pub struct CentricTestParticle {
     pub orbital_radius_m: f64,
 }
 
+/// Illumination and eclipse condition of a spacecraft relative to an occulting central body and the Sun.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EclipseState {
+    /// Spacecraft is in direct line-of-sight of the entire solar disk (full illumination).
+    #[default]
+    Sunlit,
+    /// Spacecraft is in the penumbral shadow (partial solar eclipse).
+    Penumbra,
+    /// Spacecraft is completely inside the umbral shadow cone (total solar eclipse).
+    Umbra,
+}
+
+/// Geometric telemetry describing the shadow cone and eclipse boundaries.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ShadowConeGeometry {
+    /// Apex distance of the umbra cone from the center of the occulting body [m].
+    pub umbra_length_m: f64,
+    /// Half-angle of the umbral convergence cone [rad].
+    pub umbra_half_angle_rad: f64,
+    /// Half-angle of the penumbral divergence cone [rad].
+    pub penumbra_half_angle_rad: f64,
+    /// Unit vector pointing along the shadow axis away from the Sun.
+    pub shadow_axis_unit: [f64; 3],
+}

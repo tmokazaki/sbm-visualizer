@@ -1173,6 +1173,9 @@
       <label class="layer-checkbox-item">
         <input type="checkbox" id="chk-layer-visviva" checked> Vis-Viva Speed Heatmap (&Delta;v)
       </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-shadow-cone" checked> Planetary Shadow Cone (Umbra)
+      </label>
       <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: #34d399;">
         Centric Orbit Particles
       </div>
@@ -1185,12 +1188,18 @@
     </div>
   </div>
 
-  <!-- Vis-Viva Orbit Speed Legend -->
-  <div id="visviva-legend" style="display: none; position: absolute; bottom: 58px; left: 18px; z-index: 900; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 6px 12px; font-family: monospace; font-size: 11px; color: #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.5); pointer-events: none; align-items: center; gap: 8px;">
-    <span style="font-weight: 700; color: #38bdf8;">Vis-Viva Velocity:</span>
-    <span style="color: #818cf8; font-size: 10px;">🔵 Apoapsis (Min)</span>
-    <div style="width: 70px; height: 6px; border-radius: 3px; background: linear-gradient(to right, #6366f1, #0ea5e9, #fbbf24, #ef4444);"></div>
-    <span style="color: #f87171; font-size: 10px;">🔴 Periapsis (Max)</span>
+  <!-- Vis-Viva Orbit Speed & Eclipse Telemetry Legend -->
+  <div id="visviva-legend" style="display: none; position: absolute; bottom: 58px; left: 18px; z-index: 900; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 6px 14px; font-family: monospace; font-size: 11px; color: #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.5); pointer-events: none; align-items: center; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-weight: 700; color: #38bdf8;">Vis-Viva:</span>
+      <span style="color: #818cf8; font-size: 10px;">🔵 Apoapsis</span>
+      <div style="width: 50px; height: 6px; border-radius: 3px; background: linear-gradient(to right, #6366f1, #0ea5e9, #fbbf24, #ef4444);"></div>
+      <span style="color: #f87171; font-size: 10px;">🔴 Periapsis</span>
+    </div>
+    <div style="border-left: 1px solid rgba(255,255,255,0.2); padding-left: 10px; display: flex; align-items: center; gap: 8px;">
+      <span style="color: #fbbf24;" id="hud-sunlit-count">☀️ Sunlit: 0</span>
+      <span style="color: #94a3b8;" id="hud-umbra-count">🌑 Eclipse: 0</span>
+    </div>
   </div>
 
   <!-- Dynamic Metric Scale Bar -->
@@ -1454,6 +1463,10 @@
       spaceProbe: null,
       testParticles: [],
       visVivaColoring: true,
+      showShadowCone: true,
+      sunlitCount: 0,
+      umbraCount: 0,
+      penumbraCount: 0,
       // Gravitational Centric Frame Management
       gravitationalFrameMode: 'auto', // 'auto' | 'manual'
       activeCentricBody: 'Sun',       // 'Sun' | 'Earth' | 'Moon' | 'Jupiter' | 'Venus' | 'Mars'
@@ -1474,6 +1487,7 @@
     let eclipticGrid;
     let primaryBarycenterMesh;
     let gravitationalBasinsGroup;
+    let shadowConeGroup;
     let spatialVectorGridGroup;
     let equipotentialContoursGroup;
     let spaceProbeGroup;
@@ -2275,6 +2289,7 @@
 
       // Initialize Space Field Layers & Objects
       initGravitationalBasins();
+      initShadowCone();
       initSpatialVectorGrid();
       initEquipotentialContours();
       initSpaceProbeObjects();
@@ -3321,9 +3336,31 @@
     }
 
     function updateTestParticleVisuals() {
-      if (state.testParticles.length === 0) return;
+      if (state.testParticles.length === 0) {
+        const hudSunlit = document.getElementById('hud-sunlit-count');
+        if (hudSunlit) hudSunlit.innerText = `☀️ Sunlit: 0`;
+        const hudUmbra = document.getElementById('hud-umbra-count');
+        if (hudUmbra) hudUmbra.innerText = `🌑 Eclipse: 0`;
+        return;
+      }
       const isVisible = (state.showTestParticles !== false);
       const showTrails = (state.showTrails !== false) && isVisible;
+
+      let sunlit = 0, umbra = 0, penumbra = 0;
+      const isCentric = (state.activeCentricBody && state.activeCentricBody !== 'Sun');
+      const sun = state.bodies.find(b => b.name === 'Sun');
+      const activeAnchor = isCentric ? state.bodies.find(b => b.name === state.activeCentricBody) : null;
+
+      let shadowDir = null;
+      let shadowParams = null;
+      if (isCentric && activeAnchor && sun) {
+        const dx = activeAnchor.pos[0] - sun.pos[0];
+        const dy = activeAnchor.pos[1] - sun.pos[1];
+        const dz = activeAnchor.pos[2] - sun.pos[2];
+        const dSun = Math.hypot(dx, dy, dz) || (1.0 * AU_M);
+        shadowDir = new THREE.Vector3(dx / dSun, dy / dSun, dz / dSun).normalize();
+        shadowParams = getShadowConeParams(activeAnchor.name);
+      }
 
       for (let i = 0; i < state.testParticles.length; i++) {
         const tp = state.testParticles[i];
@@ -3349,13 +3386,59 @@
             my = anchorScPos.y + tp.relPos[1] * state.sceneScale;
             mz = anchorScPos.z + tp.relPos[2] * state.sceneScale + 0.005;
           }
+
+          // Evaluate Eclipse State (Sunlit vs Penumbra vs Umbra) in visual scene coordinates
+          if (isCentric && shadowDir && shadowParams) {
+            const pRelScX = mx - anchorScPos.x;
+            const pRelScY = my - anchorScPos.y;
+            const pRelScZ = mz - anchorScPos.z;
+            const xDownSc = pRelScX * shadowDir.x + pRelScY * shadowDir.y + pRelScZ * shadowDir.z;
+
+            if (xDownSc <= 0) {
+              tp.eclipseState = 'sunlit';
+              sunlit++;
+            } else {
+              const perpScX = pRelScX - xDownSc * shadowDir.x;
+              const perpScY = pRelScY - xDownSc * shadowDir.y;
+              const perpScZ = pRelScZ - xDownSc * shadowDir.z;
+              const rhoSc = Math.hypot(perpScX, perpScY, perpScZ);
+
+              const rUmbraSc = (xDownSc < shadowParams.umbraLengthScene)
+                ? shadowParams.rPlanetScene * (1.0 - xDownSc / shadowParams.umbraLengthScene)
+                : 0;
+              const rPenumbraSc = shadowParams.rPlanetScene + xDownSc * 0.020;
+
+              if (rhoSc <= rUmbraSc) {
+                tp.eclipseState = 'umbra';
+                umbra++;
+              } else if (rhoSc <= rPenumbraSc) {
+                tp.eclipseState = 'penumbra';
+                penumbra++;
+              } else {
+                tp.eclipseState = 'sunlit';
+                sunlit++;
+              }
+            }
+          } else {
+            tp.eclipseState = 'sunlit';
+            sunlit++;
+          }
+
           if (tp.mesh) {
             tp.mesh.position.set(mx, my, mz);
-            if (state.visVivaColoring !== false && tp.vMax && tp.vMin !== undefined) {
+            if (tp.eclipseState === 'umbra') {
+              // Deep shadow blue / infrared dot (total solar eclipse)
+              tp.mesh.material.color.setRGB(0.15, 0.22, 0.42);
+            } else if (tp.eclipseState === 'penumbra') {
+              // Twilight amber / partial illumination
+              tp.mesh.material.color.setRGB(0.85, 0.52, 0.15);
+            } else if (state.visVivaColoring !== false && tp.vMax && tp.vMin !== undefined) {
               const vCurrent = Math.hypot(tp.relVel[0], tp.relVel[1], tp.relVel[2]);
               const tauNow = (tp.vMax > tp.vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (vCurrent - tp.vMin) / (tp.vMax - tp.vMin))) : 0.5;
               const [mr, mg, mb] = getVisVivaColorRGB(tauNow);
               tp.mesh.material.color.setRGB(mr, mg, mb);
+            } else {
+              tp.mesh.material.color.set(tp.color);
             }
           }
 
@@ -3430,6 +3513,15 @@
           }
         }
       }
+
+      state.sunlitCount = sunlit;
+      state.umbraCount = umbra;
+      state.penumbraCount = penumbra;
+
+      const hudSunlit = document.getElementById('hud-sunlit-count');
+      if (hudSunlit) hudSunlit.innerText = `☀️ Sunlit: ${sunlit}`;
+      const hudUmbra = document.getElementById('hud-umbra-count');
+      if (hudUmbra) hudUmbra.innerText = `🌑 Eclipse: ${umbra + penumbra}`;
     }
 
     function clearTestParticles() {
@@ -3451,6 +3543,156 @@
       if (state.spaceProbe) {
         openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
       }
+    }
+
+    // --- Planetary Umbra & Penumbra Shadow Cone (Solar Eclipse Geometry) ---
+    function getShadowConeParams(anchorName) {
+      const cfg = getCentricFrameConfig(anchorName);
+      const span = cfg.spanScene || 3.6;
+      const halfSpan = cfg.halfSpanPhys_m || 1_200_000e3;
+
+      let rPlanetScene = 0.28;
+      let umbraLengthScene = 4.14;
+      if (anchorName === 'Earth') {
+        rPlanetScene = (state.scaleMode === 'perceptual') ? 0.28 : (6371e3 * state.sceneScale);
+        umbraLengthScene = (state.scaleMode === 'perceptual') ? (1.38e9 / halfSpan) * span : (1.38e9 * state.sceneScale);
+      } else if (anchorName === 'Moon') {
+        rPlanetScene = (state.scaleMode === 'perceptual') ? 0.09 : (1737e3 * state.sceneScale);
+        umbraLengthScene = (state.scaleMode === 'perceptual') ? (374e6 / halfSpan) * span : (374e6 * state.sceneScale);
+      } else if (anchorName === 'Jupiter') {
+        rPlanetScene = (state.scaleMode === 'perceptual') ? 0.55 : (69911e3 * state.sceneScale);
+        umbraLengthScene = (state.scaleMode === 'perceptual') ? 14.0 : (86.8e9 * state.sceneScale);
+      } else {
+        rPlanetScene = 0.25;
+        umbraLengthScene = 4.0;
+      }
+      return { rPlanetScene, umbraLengthScene, span, halfSpan };
+    }
+
+    function initShadowCone() {
+      if (shadowConeGroup) scene.remove(shadowConeGroup);
+      shadowConeGroup = new THREE.Group();
+      shadowConeGroup.name = "shadowConeGroup";
+
+      const anchorName = state.activeCentricBody || 'Earth';
+      if (anchorName === 'Sun') {
+        shadowConeGroup.visible = false;
+        scene.add(shadowConeGroup);
+        return;
+      }
+
+      const { rPlanetScene, umbraLengthScene } = getShadowConeParams(anchorName);
+      const coneHeight = Math.max(1.0, umbraLengthScene);
+
+      // 1. Umbra Core Cone (tapers from planet radius down to apex)
+      const umbraGeo = new THREE.ConeGeometry(rPlanetScene, coneHeight, 32, 1, true);
+      umbraGeo.translate(0, coneHeight / 2, 0);
+
+      const umbraMat = new THREE.MeshBasicMaterial({
+        color: 0x071529,
+        transparent: true,
+        opacity: 0.32,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      const umbraMesh = new THREE.Mesh(umbraGeo, umbraMat);
+      umbraMesh.name = "umbraConeMesh";
+      shadowConeGroup.add(umbraMesh);
+
+      // 2. Umbra Outer Wireframe Boundary Rim
+      const umbraRimGeo = new THREE.ConeGeometry(rPlanetScene * 1.008, coneHeight, 16, 1, true);
+      umbraRimGeo.translate(0, coneHeight / 2, 0);
+      const umbraRimMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false
+      });
+      const umbraRimMesh = new THREE.Mesh(umbraRimGeo, umbraRimMat);
+      umbraRimMesh.name = "umbraRimMesh";
+      shadowConeGroup.add(umbraRimMesh);
+
+      // 3. Distance Cross-Section Range Rings along Umbra Cone (at 25%, 50%, 75% height)
+      const ringFractions = [0.25, 0.50, 0.75];
+      ringFractions.forEach(frac => {
+        const ringY = frac * coneHeight;
+        const ringR = rPlanetScene * (1.0 - frac);
+        const ringPts = [];
+        const segs = 32;
+        for (let s = 0; s <= segs; s++) {
+          const phi = (s / segs) * 2 * Math.PI;
+          ringPts.push(new THREE.Vector3(ringR * Math.cos(phi), ringY, ringR * Math.sin(phi)));
+        }
+        const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPts);
+        const ringMat = new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.22,
+          depthWrite: false
+        });
+        const ringLine = new THREE.Line(ringGeo, ringMat);
+        ringLine.name = `shadowConeRing_${frac}`;
+        shadowConeGroup.add(ringLine);
+      });
+
+      // 4. Solar Ray Beam Vector (pointing directly towards the Sun, i.e. -Y in local space)
+      const rayLen = rPlanetScene * 4.5;
+      const rayPoints = [
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, -rayLen, 0)
+      ];
+      const rayGeo = new THREE.BufferGeometry().setFromPoints(rayPoints);
+      const rayMat = new THREE.LineBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.85
+      });
+      const solarRayLine = new THREE.Line(rayGeo, rayMat);
+      solarRayLine.name = "solarRayLine";
+      shadowConeGroup.add(solarRayLine);
+
+      // Arrowhead pointing towards Sun
+      const arrowGeo = new THREE.ConeGeometry(rPlanetScene * 0.18, rPlanetScene * 0.38, 12);
+      arrowGeo.translate(0, -rayLen, 0);
+      arrowGeo.rotateX(Math.PI);
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+      const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+      shadowConeGroup.add(arrowMesh);
+
+      scene.add(shadowConeGroup);
+      shadowConeGroup.visible = (state.showShadowCone !== false) && (anchorName !== 'Sun');
+      updateShadowCone();
+    }
+
+    function updateShadowCone() {
+      if (!shadowConeGroup) return;
+      const anchorName = state.activeCentricBody || 'Earth';
+      if (anchorName === 'Sun' || state.showShadowCone === false) {
+        shadowConeGroup.visible = false;
+        return;
+      }
+
+      const anchor = state.bodies.find(b => b.name === anchorName);
+      const sun = state.bodies.find(b => b.name === 'Sun');
+      if (!anchor || !sun) {
+        shadowConeGroup.visible = false;
+        return;
+      }
+
+      shadowConeGroup.visible = true;
+      const anchorScPos = (anchor.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchor.pos);
+      shadowConeGroup.position.copy(anchorScPos);
+
+      // Vector from Sun to Anchor: this is the shadow axis
+      const dx = anchor.pos[0] - sun.pos[0];
+      const dy = anchor.pos[1] - sun.pos[1];
+      const dz = anchor.pos[2] - sun.pos[2];
+      const d = Math.hypot(dx, dy, dz) || 1.0;
+      const shadowDir = new THREE.Vector3(dx / d, dy / d, dz / d).normalize();
+
+      // Orient shadowConeGroup so its local +Y axis aligns with shadowDir
+      shadowConeGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), shadowDir);
     }
 
     function initGravitationalBasins() {
@@ -3696,6 +3938,9 @@
 
       // 6. Reinitialize high-resolution spatial vector grid for this centric frame
       initSpatialVectorGrid(cfg.gridSteps);
+
+      // 6b. Reinitialize shadow cone for this centric frame
+      initShadowCone();
 
       // 7. Filter visibility of unindependent external objects
       updateCentricVisibility();
@@ -5275,6 +5520,7 @@
 
       // Update Space Field Visual Layers
       updateGravitationalBasins();
+      updateShadowCone();
       updateSpatialVectorGrid();
       updateEquipotentialContours();
       if (state.spaceProbe) {
@@ -5902,6 +6148,14 @@
         chkVisViva.addEventListener('change', (e) => {
           state.visVivaColoring = e.target.checked;
           applyVisVivaColoring();
+        });
+      }
+
+      const chkShadow = document.getElementById('chk-layer-shadow-cone');
+      if (chkShadow) {
+        chkShadow.addEventListener('change', (e) => {
+          state.showShadowCone = e.target.checked;
+          if (shadowConeGroup) shadowConeGroup.visible = state.showShadowCone && (state.activeCentricBody !== 'Sun');
         });
       }
 

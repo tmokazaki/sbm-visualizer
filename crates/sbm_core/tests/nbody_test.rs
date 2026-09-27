@@ -884,5 +884,69 @@ fn test_vis_viva_orbital_speed_and_normalized_kinetic() {
     assert_eq!(sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, -1.0, a_gto, e_gto), 0.5);
 }
 
+#[test]
+fn test_shadow_cone_geometry_and_eclipse_evaluation() {
+    let r_earth = 6_371_000.0;
+    let r_sun = 696_340_000.0;
+    let au = sbm_core::nbody::ASTRONOMICAL_UNIT_M;
+
+    let earth_pos = [au, 0.0, 0.0];
+    let sun_pos = [0.0, 0.0, 0.0];
+
+    let geom = sbm_core::nbody::compute_shadow_cone_geometry(earth_pos, r_earth, sun_pos, r_sun)
+        .expect("Compute shadow cone geometry");
+
+    // Shadow axis points away from Sun (+X axis)
+    assert!((geom.shadow_axis_unit[0] - 1.0).abs() < 1e-6);
+    assert!(geom.shadow_axis_unit[1].abs() < 1e-6);
+    assert!(geom.shadow_axis_unit[2].abs() < 1e-6);
+
+    // Umbra apex length ~ 1.38 million km
+    let umbra_len_km = geom.umbra_length_m / 1e3;
+    assert!(
+        umbra_len_km > 1_350_000.0 && umbra_len_km < 1_420_000.0,
+        "Earth umbra length should be ~1.38M km: got {:.1} km",
+        umbra_len_km
+    );
+
+    // 1. Dayside test particle (facing Sun)
+    let dayside_pos = [-7_000_000.0, 0.0, 0.0];
+    assert_eq!(
+        sbm_core::nbody::evaluate_eclipse_state(dayside_pos, r_earth, &geom),
+        sbm_core::nbody::EclipseState::Sunlit,
+        "Dayside position must be Sunlit"
+    );
+
+    // 2. Nightside LEO test particle (behind Earth, inside cylindrical umbra)
+    let nightside_leo_pos = [7_000_000.0, 0.0, 0.0];
+    assert_eq!(
+        sbm_core::nbody::evaluate_eclipse_state(nightside_leo_pos, r_earth, &geom),
+        sbm_core::nbody::EclipseState::Umbra,
+        "Nightside LEO position must be in total Umbra eclipse"
+    );
+
+    // 3. Wide orbital position outside penumbra cone
+    let wide_pos = [7_000_000.0, 25_000_000.0, 0.0];
+    assert_eq!(
+        sbm_core::nbody::evaluate_eclipse_state(wide_pos, r_earth, &geom),
+        sbm_core::nbody::EclipseState::Sunlit,
+        "Position outside shadow cone must be Sunlit"
+    );
+
+    // 4. Penumbral boundary zone test
+    // Downstream distance x = 50,000 km
+    let x_test = 50_000_000.0;
+    let r_u = r_earth * (1.0 - x_test / geom.umbra_length_m);
+    let r_p = r_earth + x_test * geom.penumbra_half_angle_rad.tan();
+    let rho_mid = (r_u + r_p) * 0.5;
+    let penumbra_pos = [x_test, rho_mid, 0.0];
+
+    assert_eq!(
+        sbm_core::nbody::evaluate_eclipse_state(penumbra_pos, r_earth, &geom),
+        sbm_core::nbody::EclipseState::Penumbra,
+        "Intermediate boundary position must be in Penumbra"
+    );
+}
+
 
 
