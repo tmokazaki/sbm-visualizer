@@ -236,25 +236,34 @@ python3 -m unittest tests/test_autoorbit_reproduction.py
 
 ---
 
-## Scientific Reference Papers
+## Scientific Reference Papers & Verification Matrix
 
-All foundational papers have been downloaded to the [`papers/`](file:///Users/tomohiko/work/sbm_visualizer/papers/) directory and verified via automated reproduction test suites:
+> For the exhaustive, formula-by-formula verification matrix mapping every equation, tolerance bound, and automated test suite, see [**`docs/physics_verification_and_literature_matrix.md`**](docs/physics_verification_and_literature_matrix.md).
 
-### Celestial Mechanics & Symplectic Astronomy
-1. **Yoshida, H. (1990)**: *Construction of higher order symplectic integrators*, Physics Letters A, 150(5–7), pp. 262–268 ([DOI: 10.1016/0375-9601(90)90092-3](https://doi.org/10.1016/0375-9601(90)90092-3)) — Verified in `crates/sbm_core/tests/nbody_test.rs`.
-2. **Aarseth, S. J. (1999)**: *From NBODY1 to NBODY6: The Growth of an Industry*, PASP, 111(765), pp. 1333–1346; Makino & Aarseth (1992) — Verified in analytical jerk & Hermite 4th order integrator.
-3. **Einstein, A. (1915) / Will, C. M. (2014)**: *The Confrontation between General Relativity and Experiment*, Living Rev. Relativ., 17(4) — Verified in 1PN post-Newtonian Mercury perihelion advance test.
-4. **Laplace, P.-S. (1784) / Murray & Dermott (1999)**: *Solar System Dynamics*, Cambridge Univ. Press — Verified in Galilean moon 4:2:1 Laplace resonance libration ($\phi_L = 180.00^\circ$).
-5. **Chenciner, A., & Montgomery, R. (2000)**: *A remarkable periodic solution of the three-body problem in the case of equal masses*, Annals of Mathematics, 152(3), pp. 881–901 — Verified in Figure-8 zero-momentum choreographic conservation.
-6. **Standish, E. M. (1995) / Folkner et al. (2014)**: *JPL Planetary and Lunar Ephemerides (DE403/DE430)*, NASA JPL — Verified in Solar System J2000 barycentric state vectors and orbital periods.
-7. **Burrau, C. (1913) / Szebehely & Peters (1967)**: *A New Family of Periodic Orbits in the Restricted Three-Body Problem*, Astronomical Journal — Verified in Pythagorean three-body benchmark.
+All foundational papers have been verified via automated reproduction test suites:
+
+### Celestial Mechanics, Symplectic Astronomy & Gravitational Fields
+1. **Yoshida, H. (1990)**: *Construction of higher order symplectic integrators*, Physics Letters A, 150(5–7), pp. 262–268 ([DOI: 10.1016/0375-9601(90)90092-3](https://doi.org/10.1016/0375-9601(90)90092-3)) — Verified in `test_yoshida4_energy_conservation_figure8` and `test_yoshida6_precision_higher_than_yoshida4`.
+2. **Aarseth, S. J. (1999) & Makino, J. (1992)**: *Hermite Integrators with Ahmad-Cohen Scheme*, PASJ 44, pp. 141–151; PASP 111, pp. 1333–1346 — Verified in `test_leapfrog_and_hermite4_steps`.
+3. **Einstein, A., Infeld, L., & Hoffmann, B. (1938) / Will, C. M. (2014)**: *The Confrontation between General Relativity and Experiment*, Living Rev. Relativ., 17(4) — Verified in `test_relativistic_mercury_precession_computation`.
+4. **Chebotarev, G. A. (1964)**: *Gravitational Spheres of the Major Planets, Moon and Sun*, Soviet Astronomy, 7(5), pp. 618–622 — **Reproduced Table 1** in `test_chebotarev_1964_gravitational_spheres_reproduction`.
+5. **Domingos, P. D., Winter, O. C., & Yokoyama, T. (2006)**: *Stable orbits for satellites of extrasolar planets*, MNRAS, 373(3), pp. 1227–1234 ([DOI: 10.1111/j.1365-2966.2006.11104.x](https://doi.org/10.1111/j.1365-2966.2006.11104.x)) — Verified in `test_domingos_2006_hill_sphere_satellite_stability`.
+6. **Poisson, E., & Will, C. M. (2014) / arXiv:1608.03366**: *Gravity: Newtonian, Post-Newtonian, Relativistic*, Cambridge Univ. Press — Verified in `test_tidal_tensor_trace_free_and_eigenvalues_arxiv_1608_03366`.
+7. **Curtis, H. D. (2014) & Vallado, D. A. (2013)**: *Orbital Mechanics for Engineering Students*, Elsevier; *Fundamentals of Astrodynamics* — Verified in `test_vis_viva_orbital_speed_and_normalized_kinetic` and `test_osculating_elements_circular_and_inclined`.
+8. **Meeus, J. (1998) & Seidelmann, P. K. (1992)**: *Astronomical Algorithms*, Willmann-Bell; *Explanatory Supplement* — Verified in `test_shadow_cone_geometry_and_eclipse_evaluation`.
+9. **Laplace, P.-S. (1799) & Peale, S. J. (1976)**: *Orbital resonances in the solar system*, Ann. Rev. Astron. Astrophys., 14, pp. 215–246 — Verified in `test_laplace_resonance_4_2_1`.
+10. **Lagrange, J.-L. (1772)**: *Essai sur le problème des trois corps*, Prix de l'Acad. R. Sci. Paris — Verified in `test_sun_jupiter_trojan_lagrange_angles`.
+11. **Chenciner, A., & Montgomery, R. (2000)**: *A remarkable periodic solution of the three-body problem in the case of equal masses*, Annals of Mathematics, 152(3), pp. 881–901 — Verified in Figure-8 zero-momentum choreographic conservation.
+12. **Standish, E. M. (1995) / Folkner et al. (2014)**: *JPL Planetary and Lunar Ephemerides (DE403/DE430)*, NASA JPL — Verified in `test_jpl_solar_system_earth_orbital_period_and_radius`.
+13. **Burrau, C. (1913) / Szebehely & Peters (1967)**: *A New Family of Periodic Orbits in the Restricted Three-Body Problem*, Astronomical Journal — Verified in Pythagorean three-body benchmark.
 
 ### Astrodynamics, Trajectory Optimization & Debris Modeling
-8. **Short, Haapala, Bosanac (2020)**: *STK Astrogator CR3BP & Low-Energy Transfers*, AAS 20-459 ([`papers/2020_AAS_ShoHaaBos.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2020_AAS_ShoHaaBos.pdf)) — Verified in `crates/sbm_core/tests/cr3bp_test.rs`.
-9. **Mao, Szmuk, Açıkmeşe (2016)**: *Successive Convexification of Non-Convex Optimal Control Problems with State Constraints*, arXiv:1608.05133 ([`papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf)) — Verified in `crates/sbm_core/src/scvx/drag_benchmark.rs`.
-10. **Malyuta et al. (2021)**: *Advances in Trajectory Optimization for Aerospace Systems: A Tutorial on Successive Convexification*, IEEE CSM, arXiv:2106.09125 ([`papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf)).
-11. **Szmuk & Açıkmeşe (2018)**: *Successive Convexification for 6-DoF Mars Powered Descent*, arXiv:1804.00767 ([`papers/2018_arXiv_Szmuk_Acikmese_Mars_6DoF_SCvx.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2018_arXiv_Szmuk_Acikmese_Mars_6DoF_SCvx.pdf)).
-12. **Zhang et al. (2026)**: *AutoOrbit: Physics-Informed Satellite Orbit Prediction*, ACM KDD 2026 ([`papers/3770855.3818960.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/3770855.3818960.pdf)) — Verified in `tests/autoorbit_test.rs`.
+14. **Short, Haapala, Bosanac (2020)**: *STK Astrogator CR3BP & Low-Energy Transfers*, AAS 20-459 ([`papers/2020_AAS_ShoHaaBos.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2020_AAS_ShoHaaBos.pdf)) — Verified in `crates/sbm_core/tests/cr3bp_test.rs`.
+15. **Mao, Szmuk, Açıkmeşe (2016)**: *Successive Convexification of Non-Convex Optimal Control Problems with State Constraints*, arXiv:1608.05133 ([`papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2016_arXiv_Mao_Szmuk_Acikmese_SCvx.pdf)) — Verified in `crates/sbm_core/src/scvx/drag_benchmark.rs`.
+16. **Malyuta et al. (2021)**: *Advances in Trajectory Optimization for Aerospace Systems: A Tutorial on Successive Convexification*, IEEE CSM, arXiv:2106.09125 ([`papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/2021_arXiv_Malyuta_SCvx_Tutorial.pdf)).
+17. **Clohessy, W. H., & Wiltshire, R. S. (1960)**: *Terminal Guidance System for Satellite Rendezvous*, Journal of the Aerospace Sciences, 27(9), pp. 653–658 — Verified in `crates/sbm_core/tests/rpo_test.rs`.
+18. **Johnson, N. L., Krisko, P. H., Liou, J.-C., & Anz-Meador, P. D. (2001)**: *NASA's new breakup model of EVOLVE 4.0*, Adv. Space Res., 28(9), pp. 1377–1384 ([DOI: 10.1016/S0273-1177(01)00423-5](https://doi.org/10.1016/S0273-1177(01)00423-5)) — Verified in `crates/sbm_core/tests/library_api_test.rs`.
+19. **Zhang et al. (2026)**: *AutoOrbit: Physics-Informed Satellite Orbit Prediction*, ACM KDD 2026 ([`papers/3770855.3818960.pdf`](file:///Users/tomohiko/work/sbm_visualizer/papers/3770855.3818960.pdf)) — Verified in `tests/autoorbit_test.rs`.
 
 ---
 
