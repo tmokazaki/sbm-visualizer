@@ -1,4 +1,12 @@
 //! Relative centric test particle acceleration and swarm generation.
+//!
+//! # Academic Literature Grounding
+//! - **Non-Inertial Reference Frames & d'Alembert Reflex Perturbations**:
+//!   - Danby, J. M. A. (1988). *Fundamentals of Celestial Mechanics*, 2nd ed., Willmann-Bell, Chapter 11.
+//!   - Roy, A. E. (2005). *Orbital Motion*, 4th ed., Institute of Physics Publishing, Chapter 5.
+//! - **Equations of Motion**:
+//!   $$\ddot{\mathbf{r}} = -\frac{\mu_0 \mathbf{r}}{\|\mathbf{r}\|^3} + \sum_{k \neq 0} \mu_k \left[ \frac{\mathbf{r}_k - \mathbf{r}}{\|\mathbf{r}_k - \mathbf{r}\|^3} - \frac{\mathbf{r}_k}{\|\mathbf{r}_k\|^3} \right]$$
+//!   where the second term represents direct perturbation and the third term is the d'Alembert reflex acceleration of the central body.
 
 use core::f64::consts::PI;
 use crate::nbody::dynamics::field::is_body_relevant_to_centric;
@@ -7,7 +15,7 @@ use crate::nbody::types::{
 };
 
 /// Evaluates the net gravitational acceleration acting on a test particle in the non-inertial
-/// reference frame centered on the active centric body.
+/// reference frame centered on the active centric body following Danby (1988) and Roy (2005).
 pub fn compute_centric_particle_acceleration(
     system: &NBodySystem,
     center_body_name: &str,

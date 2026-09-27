@@ -1,4 +1,20 @@
 //! Osculating Keplerian orbital mechanics, Vis-Viva energy, and orbital resonance metrics.
+//!
+//! # Academic Literature Grounding
+//! - **Osculating Keplerian Elements**:
+//!   - Curtis, H. D. (2014). *Orbital Mechanics for Engineering Students*, 3rd ed., Elsevier Aerospace Engineering Series.
+//!   - Vallado, D. A. (2013). *Fundamentals of Astrodynamics and Applications*, 4th ed., Microcosm Press.
+//! - **Vis-Viva Equation**:
+//!   - Leibniz, G. W. (1695). *Specimen Dynamicum*.
+//!   - Euler, L. (1744). *Methodus Inveniendi Lineas Curvas Maximi Minimive Proprietate Gaudentes*.
+//!     $v^2 = \mu \left(\frac{2}{r} - \frac{1}{a}\right)$.
+//! - **Laplace Orbital Resonance (4:2:1)**:
+//!   - Laplace, P.-S. (1799). *Traité de Mécanique Céleste*, Tome II, Livre VIII.
+//!   - Peale, S. J. (1976). "Orbital resonances in the solar system".
+//!     *Annual Review of Astronomy and Astrophysics*, 14(1), pp. 215–246.
+//! - **Trojan Asteroid Librations (L4/L5 Equilateral Equilibrium)**:
+//!   - Lagrange, J.-L. (1772). "Essai sur le problème des trois corps".
+//!     *Prix de l'Académie Royale des Sciences de Paris*, Tome IX.
 
 use core::f64::consts::PI;
 use crate::nbody::types::{
@@ -7,7 +23,8 @@ use crate::nbody::types::{
 };
 
 /// Converts Cartesian state vectors $[x, y, z, v_x, v_y, v_z]$ relative to a primary body
-/// into classical osculating Keplerian orbital elements $(a, e, i, \Omega, \omega, \nu)$.
+/// into classical osculating Keplerian orbital elements $(a, e, i, \Omega, \omega, \nu)$
+/// following Curtis (2014) Algorithm 4.1 and Vallado (2013) Algorithm 9.
 pub fn extract_osculating_elements(
     body: &CelestialBody,
     primary: &CelestialBody,

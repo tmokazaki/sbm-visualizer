@@ -1,4 +1,16 @@
 //! High-precision gravitational dynamics, relativistic post-Newtonian equations, and conservation laws.
+//!
+//! # Academic Literature Grounding
+//! - **1PN General Relativity & Post-Newtonian Dynamics**:
+//!   - Einstein, A., Infeld, L., & Hoffmann, B. (1938). "The Gravitational Equations and the Problem of Motion".
+//!     *Annals of Mathematics*, 39(1), pp. 65–100.
+//!   - Will, C. M. (2014). "The Confrontation between General Relativity and Experiment".
+//!     *Living Reviews in Relativity*, 17(4), Section 3.1.
+//! - **Symplectic Integration & Conservation Invariants**:
+//!   - Yoshida, H. (1990). "Construction of higher order symplectic integrators".
+//!     *Physics Letters A*, 150(5–7), pp. 262–268. DOI: [10.1016/0375-9601(90)90092-3](https://doi.org/10.1016/0375-9601(90)90092-3).
+//!   - Makino, J., & Aarseth, S. J. (1992). "A Polynomial Approximation for N-body Simulations: Hermite Scheme".
+//!     *Publications of the Astronomical Society of Japan (PASJ)*, 44, pp. 141–151.
 
 use crate::nbody::types::{
     CelestialBody, ConservationMetrics, NBodySystem, PairwiseForce, SPEED_OF_LIGHT,
@@ -6,8 +18,10 @@ use crate::nbody::types::{
 
 /// Computes Cartesian gravitational acceleration vectors for all bodies in the system.
 ///
-/// Includes pairwise Newtonian interactions and optional 1PN General Relativistic
-/// post-Newtonian corrections.
+/// Includes pairwise Newtonian interactions and 1PN General Relativistic post-Newtonian
+/// corrections based on the Einstein-Infeld-Hoffmann (EIH) formulation (Einstein et al. 1938; Will 2014):
+///
+/// $$\mathbf{a}_{i,\text{1PN}} = \sum_{j \neq i} \frac{G M_j}{c^2 r_{ij}^3} \left[ \left( \frac{4 G M_j}{r_{ij}} - v_i^2 \right) \mathbf{r}_{ij} + 4 (\mathbf{r}_{ij} \cdot \mathbf{v}_i) \mathbf{v}_i \right]$$
 pub fn compute_accelerations(
     bodies: &[CelestialBody],
     g: f64,

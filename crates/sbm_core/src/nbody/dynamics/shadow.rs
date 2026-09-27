@@ -1,8 +1,18 @@
 //! Planetary shadow cone geometry (umbra and penumbra) and solar eclipse state evaluation.
+//!
+//! # Academic Literature Grounding
+//! - **Solar Eclipse & Shadow Cone Analytical Geometry**:
+//!   - Meeus, J. (1998). *Astronomical Algorithms*, 2nd ed., Willmann-Bell, Chapter 54 "Eclipses".
+//!   - Seidelmann, P. K. (Ed.) (1992). *Explanatory Supplement to the Astronomical Almanac*,
+//!     University Science Books, Chapter 8.
+//! - **Geometrical Formulations**:
+//!   - Umbra core length: $L_u = \frac{R_p \cdot D_{\text{Sun}}}{R_{\text{Sun}} - R_p}$
+//!   - Penumbra cone vertex distance: $L_p = \frac{R_p \cdot D_{\text{Sun}}}{R_{\text{Sun}} + R_p}$
 
 use crate::nbody::types::{EclipseState, ShadowConeGeometry};
 
-/// Computes the conical shadow geometry (umbra and penumbra cones) for an occulting body illuminated by the Sun.
+/// Computes the conical shadow geometry (umbra and penumbra cones) for an occulting body illuminated by the Sun
+/// following the analytical eclipse geometry of Meeus (1998) and Seidelmann (1992).
 pub fn compute_shadow_cone_geometry(
     body_pos_m: [f64; 3],
     body_radius_m: f64,

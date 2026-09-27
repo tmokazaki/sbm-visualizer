@@ -1,4 +1,15 @@
 //! Spatial gravitational field evaluation, dominance basins, and boundary spheres.
+//!
+//! # Academic Literature Grounding
+//! - **Gravitational Spheres of Influence & Basins of Dominance**:
+//!   - Chebotarev, G. A. (1964). "Gravitational Spheres of the Major Planets, Moon and Sun".
+//!     *Soviet Astronomy*, 7(5), pp. 618–622.
+//!   - Laplace, P.-S. (1799). *Traité de Mécanique Céleste*, Tome II, Livre VIII.
+//!   - Hill, G. W. (1878). "Researches in the Lunar Theory". *American Journal of Mathematics*, 1(1), pp. 5–26.
+//! - **Empirical Satellite Stability Boundaries**:
+//!   - Domingos, P. D., Winter, O. C., & Yokoyama, T. (2006). "Stable orbits for satellites of extrasolar planets".
+//!     *Monthly Notices of the Royal Astronomical Society (MNRAS)*, 373(3), pp. 1227–1234.
+//!     DOI: [10.1111/j.1365-2966.2006.11104.x](https://doi.org/10.1111/j.1365-2966.2006.11104.x).
 
 use crate::nbody::dynamics::tidal::compute_tidal_tensor;
 use crate::nbody::types::{
@@ -6,10 +17,10 @@ use crate::nbody::types::{
 };
 
 /// Computes the planetary gravitational domains of dominance:
-/// - Sphere of Attraction ($r_a = a \sqrt{m/M_\odot}$)
-/// - Laplace Sphere of Influence ($r_s = a (m/M_\odot)^{2/5}$)
-/// - Hill Sphere ($r_H = a(1-e) \sqrt[3]{m/(3M_\odot)}$)
-/// - Domingos et al. (2006) Critical Satellite Stability Radius ($r_{\text{crit}} \approx 0.4895 r_H$).
+/// - Sphere of Attraction ($r_a = a \sqrt{m/M_\odot}$, Chebotarev 1964)
+/// - Laplace Sphere of Influence ($r_s = a (m/M_\odot)^{2/5}$, Laplace 1799; Chebotarev 1964)
+/// - Hill Sphere ($r_H = a(1-e) \sqrt[3]{m/(3M_\odot)}$, Hill 1878)
+/// - Critical Satellite Stability Radius ($r_{\text{crit}} \approx 0.4895 r_H$, Domingos et al. 2006).
 pub fn compute_gravitational_spheres(
     body_mass_kg: f64,
     primary_mass_kg: f64,

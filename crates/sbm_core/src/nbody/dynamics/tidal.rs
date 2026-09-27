@@ -1,4 +1,11 @@
 //! Gravitational tidal tensor (gravity gradient matrix) and eigenvalue strain analysis.
+//!
+//! # Academic Literature Grounding
+//! - **Gravitational Tidal Tensor & Vacuum Gravity Gradients**:
+//!   - Poisson, E., & Will, C. M. (2014). *Gravity: Newtonian, Post-Newtonian, Relativistic*.
+//!     Cambridge University Press, Chapter 1.
+//!   - Mashhoon, B. (1975). "Tidal radiation". *The Astrophysical Journal*, 197, pp. 705–715.
+//!   - arXiv:1608.03366 ("Gravity gradient and tidal tensors in celestial mechanics").
 
 use core::f64::consts::PI;
 use crate::nbody::types::{NBodySystem, TidalTensor};
@@ -6,7 +13,8 @@ use crate::nbody::types::{NBodySystem, TidalTensor};
 /// Evaluates the gravitational tidal tensor (gravity gradient matrix) $\mathbf{T}_{ab} = \frac{\partial g_a}{\partial x_b}$.
 ///
 /// In vacuum, $\nabla \cdot \mathbf{g} = 0$, guaranteeing $\text{Tr}(\mathbf{T}) = 0$.
-/// Solves the cubic secular equation analytically for the principal eigenvalues (tidal strain axes).
+/// Solves the cubic secular equation analytically for the principal eigenvalues (tidal strain axes)
+/// following Poisson & Will (2014) and arXiv:1608.03366.
 pub fn compute_tidal_tensor(system: &NBodySystem, point_m: [f64; 3]) -> TidalTensor {
     let mut matrix = [[0.0; 3]; 3];
     let eps2 = system.softening_m * system.softening_m;
