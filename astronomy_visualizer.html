@@ -1170,6 +1170,9 @@
       <label class="layer-checkbox-item">
         <input type="checkbox" id="chk-layer-test-particles" checked> Free-Fall Geodesic Streams
       </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-visviva" checked> Vis-Viva Speed Heatmap (&Delta;v)
+      </label>
       <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: #34d399;">
         Centric Orbit Particles
       </div>
@@ -1180,6 +1183,14 @@
         <button id="btn-clear-particles-menu" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(248,113,113,0.2); border: 1px solid #f87171; color: #fff; border-radius: 4px; cursor: pointer;">🧹 Clear All</button>
       </div>
     </div>
+  </div>
+
+  <!-- Vis-Viva Orbit Speed Legend -->
+  <div id="visviva-legend" style="display: none; position: absolute; bottom: 58px; left: 18px; z-index: 900; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 6px 12px; font-family: monospace; font-size: 11px; color: #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.5); pointer-events: none; align-items: center; gap: 8px;">
+    <span style="font-weight: 700; color: #38bdf8;">Vis-Viva Velocity:</span>
+    <span style="color: #818cf8; font-size: 10px;">🔵 Apoapsis (Min)</span>
+    <div style="width: 70px; height: 6px; border-radius: 3px; background: linear-gradient(to right, #6366f1, #0ea5e9, #fbbf24, #ef4444);"></div>
+    <span style="color: #f87171; font-size: 10px;">🔴 Periapsis (Max)</span>
   </div>
 
   <!-- Dynamic Metric Scale Bar -->
@@ -1442,6 +1453,7 @@
       showTestParticles: true,
       spaceProbe: null,
       testParticles: [],
+      visVivaColoring: true,
       // Gravitational Centric Frame Management
       gravitationalFrameMode: 'auto', // 'auto' | 'manual'
       activeCentricBody: 'Sun',       // 'Sun' | 'Earth' | 'Moon' | 'Jupiter' | 'Venus' | 'Mars'
@@ -2843,6 +2855,73 @@
       }
     }
 
+    // --- Vis-Viva Speed & Kinetic Energy Color Mapping (Kepler's 2nd Law) ---
+    function getVisVivaColorRGB(tau) {
+      const t = Math.max(0.0, Math.min(1.0, tau));
+      let r, g, b;
+      if (t < 0.333) {
+        const f = t / 0.333;
+        // Deep Indigo/Violet [0.39, 0.40, 0.95] -> Electric Cyan [0.06, 0.75, 0.98]
+        r = 0.39 + (0.06 - 0.39) * f;
+        g = 0.40 + (0.75 - 0.40) * f;
+        b = 0.95 + (0.98 - 0.95) * f;
+      } else if (t < 0.666) {
+        const f = (t - 0.333) / 0.333;
+        // Electric Cyan [0.06, 0.75, 0.98] -> Luminous Gold/Amber [0.98, 0.75, 0.14]
+        r = 0.06 + (0.98 - 0.06) * f;
+        g = 0.75 + (0.75 - 0.75) * f;
+        b = 0.98 + (0.14 - 0.98) * f;
+      } else {
+        const f = (t - 0.666) / 0.334;
+        // Luminous Gold/Amber [0.98, 0.75, 0.14] -> Blazing Red-Orange [1.00, 0.22, 0.18]
+        r = 0.98 + (1.00 - 0.98) * f;
+        g = 0.75 + (0.22 - 0.75) * f;
+        b = 0.14 + (0.18 - 0.14) * f;
+      }
+      return [r, g, b];
+    }
+
+    function applyVisVivaColoring() {
+      const isVV = (state.visVivaColoring !== false);
+      const vvLegend = document.getElementById('visviva-legend');
+      if (vvLegend) {
+        vvLegend.style.display = (isVV && state.testParticles.length > 0 && state.showTestParticles !== false) ? 'flex' : 'none';
+      }
+
+      for (let i = 0; i < state.testParticles.length; i++) {
+        const tp = state.testParticles[i];
+        if (tp.trailGeo && tp.trailGeo.attributes.color) {
+          const colArr = tp.trailGeo.attributes.color.array;
+          const len = tp.trailRel ? tp.trailRel.length : 0;
+          const palCol = new THREE.Color(tp.color);
+
+          for (let k = 0; k < len; k++) {
+            if (isVV && tp.visVivaColors && k * 3 + 2 < tp.visVivaColors.length) {
+              colArr[k * 3] = tp.visVivaColors[k * 3];
+              colArr[k * 3 + 1] = tp.visVivaColors[k * 3 + 1];
+              colArr[k * 3 + 2] = tp.visVivaColors[k * 3 + 2];
+            } else {
+              colArr[k * 3] = palCol.r;
+              colArr[k * 3 + 1] = palCol.g;
+              colArr[k * 3 + 2] = palCol.b;
+            }
+          }
+          tp.trailGeo.attributes.color.needsUpdate = true;
+        }
+
+        if (tp.mesh) {
+          if (isVV && tp.vMax && tp.vMin !== undefined) {
+            const vCurrent = Math.hypot(tp.relVel[0], tp.relVel[1], tp.relVel[2]);
+            const tauNow = (tp.vMax > tp.vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (vCurrent - tp.vMin) / (tp.vMax - tp.vMin))) : 0.5;
+            const [mr, mg, mb] = getVisVivaColorRGB(tauNow);
+            tp.mesh.material.color.setRGB(mr, mg, mb);
+          } else {
+            tp.mesh.material.color.set(tp.color);
+          }
+        }
+      }
+    }
+
     function generateCentricParticles(preset = 'swarm', count = 300) {
       clearTestParticles();
 
@@ -2962,32 +3041,13 @@
           vz = (preset === 'rings') ? 0.0 : (rnd() - 0.5) * speed * 0.10;
         }
 
-        // Visual representation
-        const sphereRadius = (anchorName === 'Moon') ? 0.012 : 0.018;
-        const sphereGeo = new THREE.SphereGeometry(sphereRadius, 12, 12);
-        const sphereMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
-        const mesh = new THREE.Mesh(sphereGeo, sphereMat);
-
-        const maxTrail = 800;
-        const trailGeo = new THREE.BufferGeometry();
-        const trailMat = new THREE.LineBasicMaterial({
-          color: new THREE.Color(colorHex),
-          transparent: true,
-          opacity: 0.76,
-          depthWrite: false
-        });
-        const trailPositions = new Float32Array(maxTrail * 3);
-        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-        const trailLine = new THREE.Line(trailGeo, trailMat);
-        trailLine.frustumCulled = false;
-        trailLine.renderOrder = 10;
-
-        scene.add(mesh);
-        scene.add(trailLine);
-
-        // Pre-populate exact 360° closed-form Keplerian orbit ellipse (180 points)
-        const initialTrail = [];
+        // Pre-compute orbital energy and Vis-Viva extreme velocities
         const rInit = Math.hypot(rx, ry, rz);
+        const vInit = Math.hypot(vx, vy, vz);
+        const specificEnergy = (0.5 * vInit * vInit) - (mu / rInit);
+        let sma = (Math.abs(specificEnergy) > 1e-12) ? -mu / (2.0 * specificEnergy) : rInit;
+        if (sma <= 0) sma = rInit;
+
         // Specific angular momentum h = r x v
         const hx = ry * vz - rz * vy;
         const hy = rz * vx - rx * vz;
@@ -3003,6 +3063,39 @@
         const ey = vxh_y / mu - ry / rInit;
         const ez = vxh_z / mu - rz / rInit;
         const eccVal = Math.min(0.98, Math.hypot(ex, ey, ez));
+
+        const r_peri_val = sma * (1.0 - eccVal);
+        const r_apo_val = sma * (1.0 + eccVal);
+        const v_peri_calc = (r_peri_val > 0) ? Math.sqrt(Math.max(0, mu * (2.0 / r_peri_val - 1.0 / sma))) : vInit;
+        const v_apo_calc = (r_apo_val > 0) ? Math.sqrt(Math.max(0, mu * (2.0 / r_apo_val - 1.0 / sma))) : vInit;
+        const vMin = Math.min(v_peri_calc, v_apo_calc);
+        const vMax = Math.max(v_peri_calc, v_apo_calc);
+
+        // Visual representation
+        const sphereRadius = (anchorName === 'Moon') ? 0.012 : 0.018;
+        const sphereGeo = new THREE.SphereGeometry(sphereRadius, 12, 12);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
+        const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+
+        const maxTrail = 800;
+        const trailGeo = new THREE.BufferGeometry();
+        const trailPositions = new Float32Array(maxTrail * 3);
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+        const trailColors = new Float32Array(maxTrail * 3);
+        trailGeo.setAttribute('color', new THREE.BufferAttribute(trailColors, 3));
+
+        const trailMat = new THREE.LineBasicMaterial({
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.82,
+          depthWrite: false
+        });
+        const trailLine = new THREE.Line(trailGeo, trailMat);
+        trailLine.frustumCulled = false;
+        trailLine.renderOrder = 10;
+
+        scene.add(mesh);
+        scene.add(trailLine);
 
         // Periapsis unit vector P and orbital normal W
         let Px, Py, Pz;
@@ -3020,6 +3113,10 @@
         // Semi-latus rectum p = h^2 / mu
         const p_param = (h * h) / mu;
         const ellipseSteps = 180;
+        const initialTrail = [];
+        const visVivaColors = new Float32Array(maxTrail * 3);
+        const paletteColors = new Float32Array(maxTrail * 3);
+        const baseColor = new THREE.Color(colorHex);
 
         for (let step = 0; step < ellipseSteps; step++) {
           const nu = (step / ellipseSteps) * 2.0 * Math.PI;
@@ -3031,10 +3128,50 @@
           const py = r_nu * (cosNu * Py + sinNu * Qy);
           const pz = r_nu * (cosNu * Pz + sinNu * Qz);
           initialTrail.push([px, py, pz]);
+
+          const v_point = Math.sqrt(Math.max(0, mu * (2.0 / r_nu - 1.0 / sma)));
+          const tau = (vMax > vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (v_point - vMin) / (vMax - vMin))) : 0.5;
+          const [cr, cg, cb] = getVisVivaColorRGB(tau);
+
+          visVivaColors[step * 3] = cr;
+          visVivaColors[step * 3 + 1] = cg;
+          visVivaColors[step * 3 + 2] = cb;
+
+          paletteColors[step * 3] = baseColor.r;
+          paletteColors[step * 3 + 1] = baseColor.g;
+          paletteColors[step * 3 + 2] = baseColor.b;
         }
         // Ensure seamless loop closure
         if (initialTrail.length > 0) {
           initialTrail.push([initialTrail[0][0], initialTrail[0][1], initialTrail[0][2]]);
+          const idxClose = ellipseSteps;
+          visVivaColors[idxClose * 3] = visVivaColors[0];
+          visVivaColors[idxClose * 3 + 1] = visVivaColors[1];
+          visVivaColors[idxClose * 3 + 2] = visVivaColors[2];
+
+          paletteColors[idxClose * 3] = paletteColors[0];
+          paletteColors[idxClose * 3 + 1] = paletteColors[1];
+          paletteColors[idxClose * 3 + 2] = paletteColors[2];
+        }
+
+        const isVVInit = (state.visVivaColoring !== false);
+        for (let k = 0; k < initialTrail.length; k++) {
+          if (isVVInit) {
+            trailColors[k * 3] = visVivaColors[k * 3];
+            trailColors[k * 3 + 1] = visVivaColors[k * 3 + 1];
+            trailColors[k * 3 + 2] = visVivaColors[k * 3 + 2];
+          } else {
+            trailColors[k * 3] = paletteColors[k * 3];
+            trailColors[k * 3 + 1] = paletteColors[k * 3 + 1];
+            trailColors[k * 3 + 2] = paletteColors[k * 3 + 2];
+          }
+        }
+        trailGeo.attributes.color.needsUpdate = true;
+
+        if (isVVInit) {
+          const tauNow = (vMax > vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (vInit - vMin) / (vMax - vMin))) : 0.5;
+          const [mr, mg, mb] = getVisVivaColorRGB(tauNow);
+          mesh.material.color.setRGB(mr, mg, mb);
         }
 
         const tp = {
@@ -3048,7 +3185,13 @@
           color: colorHex,
           mesh: mesh,
           trailLine: trailLine,
-          trailGeo: trailGeo
+          trailGeo: trailGeo,
+          visVivaColors: visVivaColors,
+          paletteColors: paletteColors,
+          vMin: vMin,
+          vMax: vMax,
+          sma: sma,
+          ecc: eccVal
         };
 
         const scPos = getParticleScenePos(tp);
@@ -3059,6 +3202,11 @@
 
       // Immediately synchronize particle visuals so orbits appear instantly
       updateTestParticleVisuals();
+
+      const vvLegend = document.getElementById('visviva-legend');
+      if (vvLegend) {
+        vvLegend.style.display = (state.visVivaColoring !== false && state.showTestParticles !== false) ? 'flex' : 'none';
+      }
 
       if (state.spaceProbe) {
         openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
@@ -3201,14 +3349,25 @@
             my = anchorScPos.y + tp.relPos[1] * state.sceneScale;
             mz = anchorScPos.z + tp.relPos[2] * state.sceneScale + 0.005;
           }
-          if (tp.mesh) tp.mesh.position.set(mx, my, mz);
+          if (tp.mesh) {
+            tp.mesh.position.set(mx, my, mz);
+            if (state.visVivaColoring !== false && tp.vMax && tp.vMin !== undefined) {
+              const vCurrent = Math.hypot(tp.relVel[0], tp.relVel[1], tp.relVel[2]);
+              const tauNow = (tp.vMax > tp.vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (vCurrent - tp.vMin) / (tp.vMax - tp.vMin))) : 0.5;
+              const [mr, mg, mb] = getVisVivaColorRGB(tauNow);
+              tp.mesh.material.color.setRGB(mr, mg, mb);
+            }
+          }
 
           tp.trailRel.push([tp.relPos[0], tp.relPos[1], tp.relPos[2]]);
           if (tp.trailRel.length > tp.maxTrail) tp.trailRel.shift();
 
           if (showTrails && tp.trailGeo) {
             const posAttr = tp.trailGeo.attributes.position.array;
+            const colorAttr = (tp.trailGeo.attributes.color) ? tp.trailGeo.attributes.color.array : null;
             const len = tp.trailRel.length;
+            const isVV = (state.visVivaColoring !== false);
+
             for (let k = 0; k < len; k++) {
               const rk = tp.trailRel[k];
               let sx, sy, sz;
@@ -3225,6 +3384,28 @@
               posAttr[k * 3 + 1] = sy;
               posAttr[k * 3 + 2] = sz;
             }
+
+            // If trail extended beyond initial ellipse, ensure newly appended vertices get colored
+            if (colorAttr && len > 0) {
+              const lastIdx = len - 1;
+              if (isVV && tp.vMax && tp.vMin !== undefined) {
+                const rLast = Math.hypot(tp.relPos[0], tp.relPos[1], tp.relPos[2]);
+                const muAnchor = G_STANDARD * anchor.mass;
+                const vPoint = Math.sqrt(Math.max(0, muAnchor * (2.0 / rLast - 1.0 / (tp.sma || rLast))));
+                const tauLast = (tp.vMax > tp.vMin + 1e-4) ? Math.max(0.0, Math.min(1.0, (vPoint - tp.vMin) / (tp.vMax - tp.vMin))) : 0.5;
+                const [cr, cg, cb] = getVisVivaColorRGB(tauLast);
+                colorAttr[lastIdx * 3] = cr;
+                colorAttr[lastIdx * 3 + 1] = cg;
+                colorAttr[lastIdx * 3 + 2] = cb;
+              } else {
+                const bCol = new THREE.Color(tp.color);
+                colorAttr[lastIdx * 3] = bCol.r;
+                colorAttr[lastIdx * 3 + 1] = bCol.g;
+                colorAttr[lastIdx * 3 + 2] = bCol.b;
+              }
+              tp.trailGeo.attributes.color.needsUpdate = true;
+            }
+
             tp.trailGeo.setDrawRange(0, len);
             tp.trailGeo.attributes.position.needsUpdate = true;
           }
@@ -3265,6 +3446,8 @@
         }
       });
       state.testParticles = [];
+      const vvLegend = document.getElementById('visviva-legend');
+      if (vvLegend) vvLegend.style.display = 'none';
       if (state.spaceProbe) {
         openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
       }
@@ -5707,6 +5890,18 @@
             if (tp.mesh) tp.mesh.visible = state.showTestParticles;
             if (tp.trailLine) tp.trailLine.visible = state.showTestParticles;
           });
+          const vvLegend = document.getElementById('visviva-legend');
+          if (vvLegend) {
+            vvLegend.style.display = (state.visVivaColoring !== false && state.testParticles.length > 0 && state.showTestParticles !== false) ? 'flex' : 'none';
+          }
+        });
+      }
+
+      const chkVisViva = document.getElementById('chk-layer-visviva');
+      if (chkVisViva) {
+        chkVisViva.addEventListener('change', (e) => {
+          state.visVivaColoring = e.target.checked;
+          applyVisVivaColoring();
         });
       }
 

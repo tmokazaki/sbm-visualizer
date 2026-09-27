@@ -844,5 +844,45 @@ fn test_compute_centric_particle_acceleration() {
     assert!(err.is_err(), "Invalid body name must return Err");
 }
 
+#[test]
+fn test_vis_viva_orbital_speed_and_normalized_kinetic() {
+    let mu_earth = sbm_core::nbody::G_STANDARD * 5.9722e24;
+
+    // 1. Circular LEO Orbit (r = a = 7,000 km, e = 0.0)
+    let r_leo = 7_000_000.0;
+    let v_leo = sbm_core::nbody::compute_vis_viva_speed(mu_earth, r_leo, r_leo);
+    let expected_v_leo = (mu_earth / r_leo).sqrt();
+    assert!((v_leo - expected_v_leo).abs() < 1e-4, "LEO circular speed must match sqrt(mu/r): got {:.2}", v_leo);
+
+    let tau_circular = sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, r_leo, r_leo, 0.0);
+    assert_eq!(tau_circular, 0.5, "Circular orbit normalized kinetic parameter must default to 0.5");
+
+    // 2. Highly Eccentric Geostationary Transfer Orbit (GTO)
+    // Periapsis: 6,678 km (300 km alt), Apoapsis: 42,164 km (GEO alt)
+    let r_p = 6_678_000.0;
+    let r_a = 42_164_000.0;
+    let a_gto = (r_p + r_a) / 2.0;
+    let e_gto = (r_a - r_p) / (r_a + r_p);
+
+    let v_peri = sbm_core::nbody::compute_vis_viva_speed(mu_earth, r_p, a_gto);
+    let v_apo = sbm_core::nbody::compute_vis_viva_speed(mu_earth, r_a, a_gto);
+    assert!(v_peri > v_apo, "Periapsis speed ({:.1} m/s) must exceed apoapsis speed ({:.1} m/s)", v_peri, v_apo);
+    assert!(v_peri > 10_000.0 && v_peri < 11_000.0, "GTO periapsis speed ~10.2 km/s: got {:.1}", v_peri);
+    assert!(v_apo > 1_500.0 && v_apo < 2_000.0, "GTO apoapsis speed ~1.6 km/s: got {:.1}", v_apo);
+
+    let tau_peri = sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, r_p, a_gto, e_gto);
+    let tau_apo = sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, r_a, a_gto, e_gto);
+    let tau_mid = sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, a_gto, a_gto, e_gto);
+
+    assert!((tau_peri - 1.0).abs() < 1e-6, "Periapsis tau must equal 1.0 (fastest/hot): got {:.4}", tau_peri);
+    assert!(tau_apo < 1e-6, "Apoapsis tau must equal 0.0 (slowest/cool): got {:.4}", tau_apo);
+    assert!(tau_mid > 0.1 && tau_mid < 0.9, "Midpoint tau must be strictly bounded between 0 and 1: got {:.4}", tau_mid);
+
+    // 3. Edge Cases
+    assert_eq!(sbm_core::nbody::compute_vis_viva_speed(mu_earth, 0.0, a_gto), 0.0);
+    assert_eq!(sbm_core::nbody::compute_vis_viva_speed(mu_earth, r_p, -1.0), 0.0);
+    assert_eq!(sbm_core::nbody::compute_vis_viva_normalized_kinetic(mu_earth, -1.0, a_gto, e_gto), 0.5);
+}
+
 
 

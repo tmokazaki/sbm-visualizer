@@ -995,4 +995,44 @@ pub fn generate_centric_test_particles(
     Ok(particles)
 }
 
+/// Computes Vis-Viva orbital speed for a given radial distance $r$, semi-major axis $a$,
+/// and standard gravitational parameter $\mu = G M$:
+/// $$ v(r) = \sqrt{\mu \left(\frac{2}{r} - \frac{1}{a}\right)} $$
+pub fn compute_vis_viva_speed(mu: f64, r: f64, a: f64) -> f64 {
+    if r <= 0.0 || a <= 0.0 || mu <= 0.0 {
+        return 0.0;
+    }
+    let term = 2.0 / r - 1.0 / a;
+    if term <= 0.0 {
+        0.0
+    } else {
+        (mu * term).sqrt()
+    }
+}
 
+/// Evaluates normalized Vis-Viva kinetic parameter $\tau \in [0.0, 1.0]$ across an orbit's
+/// periapsis-to-apoapsis velocity domain:
+/// $$ \tau = \frac{v(r) - v_{\min}}{v_{\max} - v_{\min}} $$
+/// where $\tau = 1.0$ at periapsis (maximum velocity) and $\tau = 0.0$ at apoapsis (minimum velocity).
+pub fn compute_vis_viva_normalized_kinetic(mu: f64, r: f64, a: f64, e: f64) -> f64 {
+    if r <= 0.0 || a <= 0.0 || mu <= 0.0 {
+        return 0.5;
+    }
+    let e_clamped = e.clamp(0.0, 0.999);
+    if e_clamped < 1e-5 {
+        return 0.5;
+    }
+
+    let r_p = a * (1.0 - e_clamped);
+    let r_a = a * (1.0 + e_clamped);
+
+    let v_min = compute_vis_viva_speed(mu, r_a, a);
+    let v_max = compute_vis_viva_speed(mu, r_p, a);
+
+    if (v_max - v_min).abs() < 1e-9 {
+        return 0.5;
+    }
+
+    let v_r = compute_vis_viva_speed(mu, r, a);
+    ((v_r - v_min) / (v_max - v_min)).clamp(0.0, 1.0)
+}
