@@ -66,6 +66,7 @@
 pub mod autoorbit;
 pub mod breakup;
 pub mod cr3bp;
+pub mod nbody;
 pub mod prelude;
 pub mod rpo;
 pub mod scvx;

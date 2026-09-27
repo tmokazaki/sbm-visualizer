@@ -2,6 +2,7 @@
 members = [
     "crates/sbm_core",
     "crates/sbm_server",
+    "crates/sbm_wasm",
     "engine_cli",
 ]
 resolver = "2"
