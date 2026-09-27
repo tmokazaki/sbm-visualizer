@@ -1028,6 +1028,26 @@
       </button>
     </div>
 
+    <!-- Place Action Buttons (Tracked Satellite / Orbit Mode) -->
+    <div class="place-card-actions" id="satellite-actions-row" style="display: none;">
+      <button class="place-action-btn" id="btn-sat-track" title="Lock camera to follow this satellite">
+        <span class="icon">🎯</span>
+        <span>Track</span>
+      </button>
+      <button class="place-action-btn" id="btn-sat-isolate" title="Dim other orbits to isolate this trajectory">
+        <span class="icon">👁️</span>
+        <span>Isolate</span>
+      </button>
+      <button class="place-action-btn" id="btn-sat-focus" title="Fly camera to satellite position">
+        <span class="icon">🚀</span>
+        <span>Fly To</span>
+      </button>
+      <button class="place-action-btn" id="btn-sat-release" title="Release tracking & return to full swarm view">
+        <span class="icon">✕</span>
+        <span>Release</span>
+      </button>
+    </div>
+
     <!-- Place Facts & Astronomy Telemetry -->
     <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;" id="place-specs-heading">
       Celestial Specifications
@@ -1062,6 +1082,9 @@
       </button>
     </div>
   </div>
+
+  <!-- Interactive Orbit Satellite Hover Tooltip HUD -->
+  <div id="satellite-hover-hud" style="display: none; position: fixed; pointer-events: none; z-index: 1200; background: rgba(15, 23, 42, 0.94); border: 1px solid #38bdf8; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.6); backdrop-filter: blur(8px); white-space: nowrap;"></div>
 
   <!-- Surface View Banner -->
   <div id="gmap-surface-banner">
@@ -1467,6 +1490,11 @@
       sunlitCount: 0,
       umbraCount: 0,
       penumbraCount: 0,
+      // Interactive Orbit Satellite Inspector & Tracking
+      selectedSatelliteId: null,
+      isTrackingSatellite: false,
+      isolateSelectedOrbit: false,
+      hoveredSatelliteId: null,
       // Gravitational Centric Frame Management
       gravitationalFrameMode: 'auto', // 'auto' | 'manual'
       activeCentricBody: 'Sun',       // 'Sun' | 'Earth' | 'Moon' | 'Jupiter' | 'Venus' | 'Mars'
@@ -2290,6 +2318,7 @@
       // Initialize Space Field Layers & Objects
       initGravitationalBasins();
       initShadowCone();
+      initSatelliteReticle();
       initSpatialVectorGrid();
       initEquipotentialContours();
       initSpaceProbeObjects();
@@ -3191,6 +3220,8 @@
 
         const tp = {
           id: `cp_${i}_${Date.now()}`,
+          index: i + 1,
+          name: `SAT-${String(i + 1).padStart(3, '0')}`,
           isCentricRel: true,
           anchorBodyName: anchor.name,
           relPos: [rx, ry, rz],
@@ -3206,8 +3237,16 @@
           vMin: vMin,
           vMax: vMax,
           sma: sma,
-          ecc: eccVal
+          ecc: eccVal,
+          incDeg: Math.acos(Math.min(1.0, Math.max(-1.0, hz / h))) * (180 / Math.PI),
+          periapsisRadius_m: sma * (1.0 - eccVal),
+          apoapsisRadius_m: sma * (1.0 + eccVal),
+          orbitalPeriod_s: (sma > 0) ? (2.0 * Math.PI * Math.sqrt(Math.pow(sma, 3) / mu)) : Infinity,
+          periapsisPos: initialTrail[0] || [rx, ry, rz],
+          apoapsisPos: initialTrail[Math.floor(ellipseSteps / 2)] || [rx, ry, rz]
         };
+
+        mesh.userData = { isTestParticle: true, particleId: tp.id };
 
         const scPos = getParticleScenePos(tp);
         mesh.position.copy(scPos);
@@ -3442,6 +3481,25 @@
             }
           }
 
+          // Orbit isolation opacity & scale
+          if (state.isolateSelectedOrbit && state.selectedSatelliteId) {
+            const isSel = (tp.id === state.selectedSatelliteId);
+            if (tp.trailLine && tp.trailLine.material) {
+              tp.trailLine.material.opacity = isSel ? 1.0 : 0.08;
+            }
+            if (tp.mesh) {
+              tp.mesh.scale.setScalar(isSel ? 1.8 : 0.6);
+            }
+          } else {
+            const isSel = (tp.id === state.selectedSatelliteId);
+            if (tp.trailLine && tp.trailLine.material) {
+              tp.trailLine.material.opacity = isSel ? 1.0 : 0.82;
+            }
+            if (tp.mesh) {
+              tp.mesh.scale.setScalar(isSel ? 1.6 : 1.0);
+            }
+          }
+
           tp.trailRel.push([tp.relPos[0], tp.relPos[1], tp.relPos[2]]);
           if (tp.trailRel.length > tp.maxTrail) tp.trailRel.shift();
 
@@ -3522,6 +3580,17 @@
       if (hudSunlit) hudSunlit.innerText = `☀️ Sunlit: ${sunlit}`;
       const hudUmbra = document.getElementById('hud-umbra-count');
       if (hudUmbra) hudUmbra.innerText = `🌑 Eclipse: ${umbra + penumbra}`;
+
+      // Live update satellite inspector and targeting reticle
+      if (state.selectedSatelliteId) {
+        const selTp = state.testParticles.find(p => p.id === state.selectedSatelliteId);
+        if (selTp) {
+          updateSatelliteTelemetry(selTp);
+        } else {
+          deselectSatellite();
+        }
+      }
+      updateSatelliteReticle();
     }
 
     function clearTestParticles() {
@@ -3537,6 +3606,7 @@
           if (tp.trailLine.material) tp.trailLine.material.dispose();
         }
       });
+      deselectSatellite();
       state.testParticles = [];
       const vvLegend = document.getElementById('visviva-legend');
       if (vvLegend) vvLegend.style.display = 'none';
@@ -3693,6 +3763,268 @@
 
       // Orient shadowConeGroup so its local +Y axis aligns with shadowDir
       shadowConeGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), shadowDir);
+    }
+
+    // --- Interactive Orbit Inspector & Satellite Tracking ---
+    let satelliteReticleGroup = null;
+    let periapsisMarkerMesh = null;
+    let apoapsisMarkerMesh = null;
+
+    function initSatelliteReticle() {
+      if (satelliteReticleGroup) scene.remove(satelliteReticleGroup);
+      satelliteReticleGroup = new THREE.Group();
+      satelliteReticleGroup.name = "satelliteReticleGroup";
+
+      // 1. Outer Ring
+      const ringRadius = 0.048;
+      const ringGeo = new THREE.RingGeometry(ringRadius * 0.85, ringRadius, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      satelliteReticleGroup.add(ringMesh);
+
+      // 2. Corner Ticks
+      const tickGeo = new THREE.BufferGeometry();
+      const tickLen = ringRadius * 0.45;
+      const tickPts = [
+        new THREE.Vector3(0, ringRadius, 0), new THREE.Vector3(0, ringRadius + tickLen, 0),
+        new THREE.Vector3(0, -ringRadius, 0), new THREE.Vector3(0, -ringRadius - tickLen, 0),
+        new THREE.Vector3(ringRadius, 0, 0), new THREE.Vector3(ringRadius + tickLen, 0, 0),
+        new THREE.Vector3(-ringRadius, 0, 0), new THREE.Vector3(-ringRadius - tickLen, 0, 0),
+      ];
+      tickGeo.setFromPoints(tickPts);
+      const tickMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9 });
+      const ticks = new THREE.LineSegments(tickGeo, tickMat);
+      satelliteReticleGroup.add(ticks);
+
+      // 3. Periapsis Marker (P - Red) with aerospace marker ring
+      if (periapsisMarkerMesh) scene.remove(periapsisMarkerMesh);
+      periapsisMarkerMesh = new THREE.Group();
+      periapsisMarkerMesh.name = "periapsisMarker";
+      const pDot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xef4444 })
+      );
+      const pRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.048, 0.058, 32),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      periapsisMarkerMesh.add(pDot);
+      periapsisMarkerMesh.add(pRing);
+      periapsisMarkerMesh.visible = false;
+      scene.add(periapsisMarkerMesh);
+
+      // 4. Apoapsis Marker (A - Blue) with aerospace marker ring
+      if (apoapsisMarkerMesh) scene.remove(apoapsisMarkerMesh);
+      apoapsisMarkerMesh = new THREE.Group();
+      apoapsisMarkerMesh.name = "apoapsisMarker";
+      const aDot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0x3b82f6 })
+      );
+      const aRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.048, 0.058, 32),
+        new THREE.MeshBasicMaterial({ color: 0x3b82f6, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      apoapsisMarkerMesh.add(aDot);
+      apoapsisMarkerMesh.add(aRing);
+      apoapsisMarkerMesh.visible = false;
+      scene.add(apoapsisMarkerMesh);
+
+      satelliteReticleGroup.visible = false;
+      scene.add(satelliteReticleGroup);
+    }
+
+    function selectSatellite(satId) {
+      const tp = state.testParticles.find(p => p.id === satId);
+      if (!tp) return;
+
+      state.selectedSatelliteId = satId;
+      state.isTrackingSatellite = true;
+
+      if (!satelliteReticleGroup) initSatelliteReticle();
+      satelliteReticleGroup.visible = true;
+
+      openSatelliteInspector(tp);
+    }
+
+    function deselectSatellite() {
+      state.selectedSatelliteId = null;
+      state.isTrackingSatellite = false;
+      state.isolateSelectedOrbit = false;
+
+      if (satelliteReticleGroup) satelliteReticleGroup.visible = false;
+      if (periapsisMarkerMesh) periapsisMarkerMesh.visible = false;
+      if (apoapsisMarkerMesh) apoapsisMarkerMesh.visible = false;
+
+      // Restore all trail opacities
+      state.testParticles.forEach(p => {
+        if (p.trailLine && p.trailLine.material) {
+          p.trailLine.material.opacity = 0.82;
+        }
+        if (p.mesh) {
+          p.mesh.scale.setScalar(1.0);
+        }
+      });
+
+      const card = document.getElementById('gmap-place-card');
+      if (card && card.dataset.isSatellite === 'true') {
+        card.style.display = 'none';
+        card.dataset.isSatellite = 'false';
+      }
+    }
+
+    function openSatelliteInspector(tp) {
+      const card = document.getElementById('gmap-place-card');
+      if (!card) return;
+
+      card.dataset.isSatellite = 'true';
+      card.dataset.isSpacePoint = 'false';
+
+      // Hide planet & space action rows, show satellite action row
+      const planetActions = document.getElementById('planet-actions-row');
+      const spaceActions = document.getElementById('space-actions-row');
+      const satActions = document.getElementById('satellite-actions-row');
+      if (planetActions) planetActions.style.display = 'none';
+      if (spaceActions) spaceActions.style.display = 'none';
+      if (satActions) satActions.style.display = 'grid';
+
+      const tidalCard = document.getElementById('place-tidal-card');
+      if (tidalCard) tidalCard.style.display = 'none';
+      const tugCard = document.getElementById('place-tug-card');
+      if (tugCard) tugCard.style.display = 'none';
+
+      document.getElementById('place-icon').innerText = '🛰️';
+      document.getElementById('place-title').innerText = `${tp.name} (${tp.anchorBodyName} Centric)`;
+
+      const heading = document.getElementById('place-specs-heading');
+      if (heading) heading.innerText = 'Orbital Mechanics & Telemetry';
+
+      updateSatelliteTelemetry(tp);
+      card.style.display = 'block';
+    }
+
+    function updateSatelliteTelemetry(tp) {
+      if (!tp) return;
+      const card = document.getElementById('gmap-place-card');
+      if (!card || card.dataset.isSatellite !== 'true' || card.style.display === 'none') return;
+
+      const anchor = state.bodies.find(b => b.name === tp.anchorBodyName) || state.bodies[0];
+      const anchorRadiusKm = (anchor.radius || 6371);
+      const rNowKm = Math.hypot(tp.relPos[0], tp.relPos[1], tp.relPos[2]) / 1e3;
+      const altNowKm = Math.max(0, rNowKm - anchorRadiusKm);
+      const vNowKmS = Math.hypot(tp.relVel[0], tp.relVel[1], tp.relVel[2]) / 1e3;
+
+      const smaKm = (tp.sma || 0) / 1e3;
+      const hpKm = Math.max(0, (tp.periapsisRadius_m || 0) / 1e3 - anchorRadiusKm);
+      const haKm = Math.max(0, (tp.apoapsisRadius_m || 0) / 1e3 - anchorRadiusKm);
+      const ecc = (tp.ecc !== undefined) ? tp.ecc.toFixed(4) : "0.0000";
+      const inc = (tp.incDeg !== undefined) ? tp.incDeg.toFixed(1) + "°" : "0.0°";
+
+      let periodStr = "N/A";
+      if (tp.orbitalPeriod_s && isFinite(tp.orbitalPeriod_s)) {
+        const sec = tp.orbitalPeriod_s;
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = Math.floor(sec % 60);
+        periodStr = `${h}h ${m}m ${s}s`;
+      }
+
+      // Illumination status badge & styling
+      let eclipseHtml = `<span style="color: #facc15; font-weight: 700;">☀️ Sunlit (1,361 W/m²)</span>`;
+      let subtitleText = `Direct Sunlight &bull; Nominal Solar Power`;
+      if (tp.eclipseState === 'umbra') {
+        eclipseHtml = `<span style="color: #60a5fa; font-weight: 700;">🌑 Total Umbral Eclipse (0 W/m²)</span>`;
+        subtitleText = `Occulted by ${tp.anchorBodyName} &bull; Battery Discharge`;
+      } else if (tp.eclipseState === 'penumbra') {
+        eclipseHtml = `<span style="color: #fb923c; font-weight: 700;">🌗 Penumbral Twilight (Partial)</span>`;
+        subtitleText = `Penumbral Fringe &bull; Partial Solar Obscuration`;
+      }
+      document.getElementById('place-subtitle').innerHTML = subtitleText;
+
+      const specs = document.getElementById('place-specs-table');
+      if (specs) {
+        specs.innerHTML = `
+          <tr><td class="label">Illumination State</td><td class="val">${eclipseHtml}</td></tr>
+          <tr><td class="label">Current Altitude</td><td class="val" style="color: #38bdf8; font-weight: 700;">${altNowKm.toLocaleString(undefined, {maximumFractionDigits: 1})} km</td></tr>
+          <tr><td class="label">Orbital Speed (v)</td><td class="val" style="color: #f43f5e; font-weight: 700;">${vNowKmS.toFixed(2)} km/s</td></tr>
+          <tr><td class="label">Semi-Major Axis (a)</td><td class="val">${smaKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</td></tr>
+          <tr><td class="label">Eccentricity (e)</td><td class="val">${ecc}</td></tr>
+          <tr><td class="label">Inclination (i)</td><td class="val">${inc}</td></tr>
+          <tr><td class="label">Periapsis Altitude (hp)</td><td class="val" style="color: #ef4444;">${hpKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</td></tr>
+          <tr><td class="label">Apoapsis Altitude (ha)</td><td class="val" style="color: #3b82f6;">${haKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</td></tr>
+          <tr><td class="label">Orbital Period (T)</td><td class="val">${periodStr}</td></tr>
+        `;
+      }
+
+      // Update button active state
+      const btnTrack = document.getElementById('btn-sat-track');
+      if (btnTrack) btnTrack.classList.toggle('active', state.isTrackingSatellite);
+      const btnIsolate = document.getElementById('btn-sat-isolate');
+      if (btnIsolate) btnIsolate.classList.toggle('active', state.isolateSelectedOrbit);
+    }
+
+    function updateSatelliteReticle() {
+      if (!satelliteReticleGroup || !state.selectedSatelliteId) {
+        if (satelliteReticleGroup) satelliteReticleGroup.visible = false;
+        if (periapsisMarkerMesh) periapsisMarkerMesh.visible = false;
+        if (apoapsisMarkerMesh) apoapsisMarkerMesh.visible = false;
+        return;
+      }
+
+      const tp = state.testParticles.find(p => p.id === state.selectedSatelliteId);
+      if (!tp || !tp.mesh) {
+        deselectSatellite();
+        return;
+      }
+
+      satelliteReticleGroup.visible = true;
+      satelliteReticleGroup.position.copy(tp.mesh.position);
+      if (camera) {
+        satelliteReticleGroup.quaternion.copy(camera.quaternion);
+        satelliteReticleGroup.rotateZ(0.015);
+      }
+
+      // Synchronize Periapsis & Apoapsis 3D markers with anchor body
+      if (tp.isCentricRel && periapsisMarkerMesh && apoapsisMarkerMesh) {
+        const anchor = state.bodies.find(b => b.name === tp.anchorBodyName) || state.bodies[0];
+        const anchorScPos = (anchor.name === 'Sun') ? new THREE.Vector3(0, 0, 0) : toSceneCoords(anchor.pos);
+        const cfg = getCentricFrameConfig(tp.anchorBodyName);
+        const span = cfg.spanScene || 3.6;
+        const halfSpan = cfg.halfSpanPhys_m || 1_200_000e3;
+
+        function getScPosFromRel(pRel) {
+          if (state.scaleMode === 'perceptual') {
+            return new THREE.Vector3(
+              anchorScPos.x + (pRel[0] / halfSpan) * span,
+              anchorScPos.y + (pRel[1] / halfSpan) * span,
+              anchorScPos.z + (pRel[2] / halfSpan) * span + 0.005
+            );
+          } else {
+            return new THREE.Vector3(
+              anchorScPos.x + pRel[0] * state.sceneScale,
+              anchorScPos.y + pRel[1] * state.sceneScale,
+              anchorScPos.z + pRel[2] * state.sceneScale + 0.005
+            );
+          }
+        }
+
+        if (tp.periapsisPos) {
+          periapsisMarkerMesh.position.copy(getScPosFromRel(tp.periapsisPos));
+          periapsisMarkerMesh.visible = true;
+          if (camera) periapsisMarkerMesh.quaternion.copy(camera.quaternion);
+        }
+        if (tp.apoapsisPos) {
+          apoapsisMarkerMesh.position.copy(getScPosFromRel(tp.apoapsisPos));
+          apoapsisMarkerMesh.visible = true;
+          if (camera) apoapsisMarkerMesh.quaternion.copy(camera.quaternion);
+        }
+      }
     }
 
     function initGravitationalBasins() {
@@ -4455,21 +4787,72 @@
           const hud = document.getElementById('spatial-probe-cursor-hud');
           if (hud) hud.style.display = 'none';
           if (spaceProbeReticleMesh) spaceProbeReticleMesh.visible = false;
+          const satHud = document.getElementById('satellite-hover-hud');
+          if (satHud) satHud.style.display = 'none';
           return;
         }
 
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-        if (camera && state.showSpaceProbe) {
-          raycaster.setFromCamera(mouse, camera);
-          const hit = raycaster.ray.intersectPlane(eclipticPlane, planeIntersect);
-          if (hit) {
-            updateCursorReticleAndHUD(planeIntersect);
-          } else {
-            const hud = document.getElementById('spatial-probe-cursor-hud');
-            if (hud) hud.style.display = 'none';
-            if (spaceProbeReticleMesh) spaceProbeReticleMesh.visible = false;
+        // 1. Check test particles for cursor hover proximity (within 18 screen pixels)
+        let nearestSat = null;
+        let minDistPx = 18;
+        if (state.testParticles && state.testParticles.length > 0 && camera) {
+          const w = window.innerWidth, h = window.innerHeight;
+          for (let i = 0; i < state.testParticles.length; i++) {
+            const tp = state.testParticles[i];
+            if (!tp.mesh || !tp.mesh.visible) continue;
+            const wp = tp.mesh.position.clone().project(camera);
+            if (wp.z > 1.0) continue; // Behind camera
+            const sx = ((wp.x + 1) * w) / 2;
+            const sy = ((-wp.y + 1) * h) / 2;
+            const dPx = Math.hypot(e.clientX - sx, e.clientY - sy);
+            if (dPx < minDistPx) {
+              minDistPx = dPx;
+              nearestSat = tp;
+            }
+          }
+        }
+
+        const satHud = document.getElementById('satellite-hover-hud');
+        if (nearestSat && satHud) {
+          state.hoveredSatelliteId = nearestSat.id;
+          document.body.style.cursor = 'pointer';
+          satHud.style.display = 'block';
+          satHud.style.left = `${e.clientX + 14}px`;
+          satHud.style.top = `${e.clientY - 12}px`;
+
+          const anchor = state.bodies.find(b => b.name === nearestSat.anchorBodyName) || state.bodies[0];
+          const anchorR = (anchor.radius || 6371);
+          const rNowKm = Math.hypot(nearestSat.relPos[0], nearestSat.relPos[1], nearestSat.relPos[2]) / 1e3;
+          const altKm = Math.max(0, rNowKm - anchorR);
+          const vKmS = Math.hypot(nearestSat.relVel[0], nearestSat.relVel[1], nearestSat.relVel[2]) / 1e3;
+
+          let eclText = '<span style="color: #facc15;">☀️ Sunlit</span>';
+          if (nearestSat.eclipseState === 'umbra') eclText = '<span style="color: #60a5fa;">🌑 Umbra Eclipse</span>';
+          else if (nearestSat.eclipseState === 'penumbra') eclText = '<span style="color: #fb923c;">🌗 Penumbra Twilight</span>';
+
+          satHud.innerHTML = `
+            <div style="font-weight: 700; color: #38bdf8; margin-bottom: 2px;">🛰️ ${nearestSat.name} (${nearestSat.anchorBodyName})</div>
+            <div style="color: #cbd5e1; font-size: 10px;">Alt: <strong>${altKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</strong> &bull; ${vKmS.toFixed(2)} km/s</div>
+            <div style="font-size: 10px; margin-top: 1px;">Status: ${eclText}</div>
+          `;
+        } else {
+          state.hoveredSatelliteId = null;
+          if (satHud) satHud.style.display = 'none';
+          document.body.style.cursor = 'default';
+
+          if (camera && state.showSpaceProbe) {
+            raycaster.setFromCamera(mouse, camera);
+            const hit = raycaster.ray.intersectPlane(eclipticPlane, planeIntersect);
+            if (hit) {
+              updateCursorReticleAndHUD(planeIntersect);
+            } else {
+              const hud = document.getElementById('spatial-probe-cursor-hud');
+              if (hud) hud.style.display = 'none';
+              if (spaceProbeReticleMesh) spaceProbeReticleMesh.visible = false;
+            }
           }
         }
       });
@@ -4489,6 +4872,31 @@
 
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        // 1. Test satellite click proximity (within 20 pixels)
+        let clickedSat = null;
+        let minClickDist = 20;
+        if (state.testParticles && state.testParticles.length > 0 && camera) {
+          const w = window.innerWidth, h = window.innerHeight;
+          for (let i = 0; i < state.testParticles.length; i++) {
+            const tp = state.testParticles[i];
+            if (!tp.mesh || !tp.mesh.visible) continue;
+            const wp = tp.mesh.position.clone().project(camera);
+            if (wp.z > 1.0) continue;
+            const sx = ((wp.x + 1) * w) / 2;
+            const sy = ((-wp.y + 1) * h) / 2;
+            const dPx = Math.hypot(e.clientX - sx, e.clientY - sy);
+            if (dPx < minClickDist) {
+              minClickDist = dPx;
+              clickedSat = tp;
+            }
+          }
+        }
+
+        if (clickedSat) {
+          selectSatellite(clickedSat.id);
+          return;
+        }
 
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(bodyMeshes.filter(m => m.visible));
@@ -5027,7 +5435,10 @@
           toggleBtn.innerText = '🗺️ Google Maps View';
           toggleBtn.classList.add('active');
         }
-        if (state.spaceProbe) {
+        if (state.selectedSatelliteId) {
+          const tp = state.testParticles.find(p => p.id === state.selectedSatelliteId);
+          if (tp) openSatelliteInspector(tp);
+        } else if (state.spaceProbe) {
           openSpacePlaceCard(computeSpatialFieldAt(state.spaceProbe.physPos));
         } else {
           openPlaceCard(state.selectedBodyIndex);
@@ -5544,6 +5955,11 @@
           ]);
           controls.target.lerp(embPos, 0.1);
         }
+      } else if (state.isTrackingSatellite && state.selectedSatelliteId) {
+        const tp = state.testParticles.find(p => p.id === state.selectedSatelliteId);
+        if (tp && tp.mesh) {
+          controls.target.lerp(tp.mesh.position, 0.08);
+        }
       } else if (state.cameraFollowIndex >= 0 && state.cameraFollowIndex < bodyMeshes.length) {
         const targetPos = bodyMeshes[state.cameraFollowIndex].position;
         controls.target.lerp(targetPos, 0.08);
@@ -5850,6 +6266,19 @@
       }
       setViewMode(state.viewMode);
 
+      if (params.get('sat')) {
+        const satIdx = parseInt(params.get('sat'));
+        if (satIdx > 0 && satIdx <= state.testParticles.length) {
+          selectSatellite(state.testParticles[satIdx - 1].id);
+          if (params.get('isolate') === '1') {
+            state.isolateSelectedOrbit = true;
+            const btnIso = document.getElementById('btn-sat-isolate');
+            if (btnIso) btnIso.classList.add('active');
+            updateTestParticleVisuals();
+          }
+        }
+      }
+
       // Toggle View Mode (Google Maps vs Full Cockpit)
       const toggleViewBtn = document.getElementById('btn-toggle-view-mode');
       if (toggleViewBtn) {
@@ -5948,7 +6377,11 @@
       const placeCloseBtn = document.getElementById('btn-place-close');
       if (placeCloseBtn) {
         placeCloseBtn.addEventListener('click', () => {
-          document.getElementById('gmap-place-card').style.display = 'none';
+          if (state.selectedSatelliteId) {
+            deselectSatellite();
+          } else {
+            document.getElementById('gmap-place-card').style.display = 'none';
+          }
         });
       }
 
@@ -6095,6 +6528,40 @@
         btnSpaceClear.addEventListener('click', clearSpaceProbe);
       }
 
+      // Satellite Action Buttons (Track, Isolate, Fly To, Release)
+      const btnSatTrack = document.getElementById('btn-sat-track');
+      if (btnSatTrack) {
+        btnSatTrack.addEventListener('click', () => {
+          state.isTrackingSatellite = !state.isTrackingSatellite;
+          btnSatTrack.classList.toggle('active', state.isTrackingSatellite);
+        });
+      }
+
+      const btnSatIsolate = document.getElementById('btn-sat-isolate');
+      if (btnSatIsolate) {
+        btnSatIsolate.addEventListener('click', () => {
+          state.isolateSelectedOrbit = !state.isolateSelectedOrbit;
+          btnSatIsolate.classList.toggle('active', state.isolateSelectedOrbit);
+          updateTestParticleVisuals();
+        });
+      }
+
+      const btnSatFocus = document.getElementById('btn-sat-focus');
+      if (btnSatFocus) {
+        btnSatFocus.addEventListener('click', () => {
+          if (!state.selectedSatelliteId) return;
+          const tp = state.testParticles.find(p => p.id === state.selectedSatelliteId);
+          if (tp && tp.mesh) {
+            flyTo(tp.mesh.position, 1.2, 1000);
+          }
+        });
+      }
+
+      const btnSatRelease = document.getElementById('btn-sat-release');
+      if (btnSatRelease) {
+        btnSatRelease.addEventListener('click', deselectSatellite);
+      }
+
       // Space Field Layer Checkboxes
       const chkBasins = document.getElementById('chk-layer-basins');
       if (chkBasins) {
@@ -6179,9 +6646,6 @@
 
       // Initialize search omnibox
       initGmapSearch();
-
-      // Apply initial view mode
-      setViewMode(state.viewMode);
 
       updateForceVectorsAndTethers();
       updateTugOfWarHUD();

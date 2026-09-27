@@ -948,5 +948,79 @@ fn test_shadow_cone_geometry_and_eclipse_evaluation() {
     );
 }
 
+#[test]
+fn test_satellite_orbital_telemetry_computation() {
+    let m_earth = 5.9722e24;
+    let r_earth = 6_371_000.0;
+    let mu = sbm_core::nbody::G_STANDARD * m_earth;
+    let earth = sbm_core::nbody::CelestialBody::new(
+        3,
+        "Earth",
+        m_earth,
+        r_earth / 1e3,
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        "#38bdf8",
+    );
+
+    // 1. Geostationary circular orbit (GEO)
+    let r_geo = 42_164_000.0;
+    let v_geo = (mu / r_geo).sqrt();
+
+    let rel_pos_geo = [r_geo, 0.0, 0.0];
+    let rel_vel_geo = [0.0, v_geo, 0.0];
+
+    let tel_geo = sbm_core::nbody::compute_satellite_orbital_telemetry(
+        1,
+        "GEO-Sat-1",
+        &earth,
+        rel_pos_geo,
+        rel_vel_geo,
+        sbm_core::nbody::EclipseState::Sunlit,
+    );
+
+    assert_eq!(tel_geo.name, "GEO-Sat-1");
+    assert_eq!(tel_geo.anchor_body, "Earth");
+    assert!((tel_geo.semi_major_axis_m - r_geo).abs() < 100.0, "SMA should be ~42,164 km");
+    assert!(tel_geo.eccentricity < 1e-4, "GEO eccentricity should be ~0");
+    assert!(tel_geo.inclination_deg < 1e-4, "Equatorial GEO inclination should be ~0 deg");
+
+    let expected_alt_geo = r_geo - r_earth;
+    assert!((tel_geo.current_altitude_m - expected_alt_geo).abs() < 1.0);
+    assert!((tel_geo.periapsis_altitude_m - expected_alt_geo).abs() < 100.0);
+    assert!((tel_geo.apoapsis_altitude_m - expected_alt_geo).abs() < 100.0);
+
+    // Period ~ 86,164 s (1 sidereal day)
+    let period_hours = tel_geo.orbital_period_s / 3600.0;
+    assert!((period_hours - 23.93).abs() < 0.1, "GEO period should be ~23.93 hours, got {:.2} h", period_hours);
+    assert_eq!(tel_geo.eclipse_state, sbm_core::nbody::EclipseState::Sunlit);
+
+    // 2. Inclined Eccentric Orbit (Molniya-like: i = 63.4 deg, e ~ 0.7)
+    let r_peri = 6_371_000.0 + 500_000.0; // 500 km perigee
+    let a_molniya = 26_600_000.0;
+    let e_molniya = 1.0 - (r_peri / a_molniya);
+    let v_peri = (mu * (2.0 / r_peri - 1.0 / a_molniya)).sqrt();
+
+    let inc_rad = 63.4_f64.to_radians();
+    let rel_pos_ecc = [r_peri, 0.0, 0.0];
+    let rel_vel_ecc = [0.0, v_peri * inc_rad.cos(), v_peri * inc_rad.sin()];
+
+    let tel_ecc = sbm_core::nbody::compute_satellite_orbital_telemetry(
+        2,
+        "Molniya-Sat-2",
+        &earth,
+        rel_pos_ecc,
+        rel_vel_ecc,
+        sbm_core::nbody::EclipseState::Umbra,
+    );
+
+    assert!((tel_ecc.semi_major_axis_m - a_molniya).abs() < 100.0);
+    assert!((tel_ecc.eccentricity - e_molniya).abs() < 1e-4);
+    assert!((tel_ecc.inclination_deg - 63.4).abs() < 0.2);
+    assert!((tel_ecc.periapsis_altitude_m - 500_000.0).abs() < 100.0);
+    assert_eq!(tel_ecc.eclipse_state, sbm_core::nbody::EclipseState::Umbra);
+}
+
+
 
 

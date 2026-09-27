@@ -372,3 +372,38 @@ pub struct ShadowConeGeometry {
     /// Unit vector pointing along the shadow axis away from the Sun.
     pub shadow_axis_unit: [f64; 3],
 }
+
+/// Comprehensive orbital and eclipse telemetry for a tracked satellite or test particle.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SatelliteOrbitalTelemetry {
+    /// Unique identifier
+    pub id: u64,
+    /// Human-readable label (e.g. "SAT-042", "Orbiter 1")
+    pub name: String,
+    /// Centric anchor body name (e.g. "Earth")
+    pub anchor_body: String,
+    /// Semi-major axis $a$ [m]
+    pub semi_major_axis_m: f64,
+    /// Orbital eccentricity $e$
+    pub eccentricity: f64,
+    /// Orbital inclination $i$ in degrees
+    pub inclination_deg: f64,
+    /// Periapsis radius from central body center [m]
+    pub periapsis_radius_m: f64,
+    /// Apoapsis radius from central body center [m]
+    pub apoapsis_radius_m: f64,
+    /// Periapsis altitude above central body surface [m]
+    pub periapsis_altitude_m: f64,
+    /// Apoapsis altitude above central body surface [m]
+    pub apoapsis_altitude_m: f64,
+    /// Current radial distance from central body center [m]
+    pub current_radius_m: f64,
+    /// Current altitude above central body surface [m]
+    pub current_altitude_m: f64,
+    /// Current orbital speed relative to central body [m/s]
+    pub current_speed_m_s: f64,
+    /// Orbital period [s]
+    pub orbital_period_s: f64,
+    /// Realtime illumination condition
+    pub eclipse_state: EclipseState,
+}

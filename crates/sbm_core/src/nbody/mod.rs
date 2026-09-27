@@ -18,6 +18,7 @@ pub use dynamics::{
     compute_tidal_tensor, compute_trojan_libration_deg, compute_vis_viva_normalized_kinetic,
     compute_vis_viva_speed, evaluate_eclipse_state, extract_osculating_elements,
     generate_centric_test_particles, is_body_relevant_to_centric,
+    compute_satellite_orbital_telemetry,
 };
 pub use integrator::{
     propagate_trajectory, step_dormand_prince853, step_hermite4, step_leapfrog, step_system,
@@ -27,7 +28,8 @@ pub use presets::{create_inner_solar_system_jupiter, create_preset, PresetId};
 pub use types::{
     BodyFieldContribution, CelestialBody, CentricTestParticle, ConservationMetrics,
     EclipseState, GravitationalCentricFrame, GravitationalSphereRadii, IntegratorType, NBodySystem,
-    OsculatingElements, PairwiseForce, ResonanceMetrics, ShadowConeGeometry, SpatialFieldPoint,
-    TidalTensor, ASTRONOMICAL_UNIT_M, G_STANDARD, JULIAN_DAY_S, JULIAN_YEAR_S, SPEED_OF_LIGHT,
+    OsculatingElements, PairwiseForce, ResonanceMetrics, SatelliteOrbitalTelemetry,
+    ShadowConeGeometry, SpatialFieldPoint, TidalTensor, ASTRONOMICAL_UNIT_M, G_STANDARD,
+    JULIAN_DAY_S, JULIAN_YEAR_S, SPEED_OF_LIGHT,
 };
 

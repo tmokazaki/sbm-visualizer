@@ -4,8 +4,8 @@ use core::f64::consts::PI;
 use crate::nbody::types::{
     BodyFieldContribution, CelestialBody, CentricTestParticle, ConservationMetrics,
     EclipseState, GravitationalSphereRadii, NBodySystem, OsculatingElements, PairwiseForce,
-    ResonanceMetrics, ShadowConeGeometry, SpatialFieldPoint, TidalTensor, ASTRONOMICAL_UNIT_M,
-    G_STANDARD, SPEED_OF_LIGHT,
+    ResonanceMetrics, SatelliteOrbitalTelemetry, ShadowConeGeometry, SpatialFieldPoint, TidalTensor,
+    ASTRONOMICAL_UNIT_M, G_STANDARD, SPEED_OF_LIGHT,
 };
 
 /// Computes Cartesian gravitational acceleration vectors for all bodies in the system.
@@ -1107,5 +1107,77 @@ pub fn evaluate_eclipse_state(
     }
 
     EclipseState::Sunlit
+}
+
+/// Computes comprehensive orbital elements and eclipse telemetry for a tracked satellite or test particle.
+pub fn compute_satellite_orbital_telemetry(
+    id: u64,
+    name: &str,
+    anchor: &CelestialBody,
+    rel_pos_m: [f64; 3],
+    rel_vel_m_s: [f64; 3],
+    eclipse_state: EclipseState,
+) -> SatelliteOrbitalTelemetry {
+    let anchor_radius_m = anchor.radius_km * 1e3;
+    let anchor_mass_kg = anchor.mass_kg;
+    let anchor_name = &anchor.name;
+    let r_mag = (rel_pos_m[0] * rel_pos_m[0] + rel_pos_m[1] * rel_pos_m[1] + rel_pos_m[2] * rel_pos_m[2]).sqrt().max(1.0);
+    let v_mag = (rel_vel_m_s[0] * rel_vel_m_s[0] + rel_vel_m_s[1] * rel_vel_m_s[1] + rel_vel_m_s[2] * rel_vel_m_s[2]).sqrt();
+    let mu = G_STANDARD * anchor_mass_kg;
+
+    let specific_energy = 0.5 * v_mag * v_mag - mu / r_mag;
+    let semi_major_axis_m = if specific_energy.abs() > 1e-12 {
+        -mu / (2.0 * specific_energy)
+    } else {
+        r_mag
+    };
+
+    // Specific angular momentum h = r x v
+    let hx = rel_pos_m[1] * rel_vel_m_s[2] - rel_pos_m[2] * rel_vel_m_s[1];
+    let hy = rel_pos_m[2] * rel_vel_m_s[0] - rel_pos_m[0] * rel_vel_m_s[2];
+    let hz = rel_pos_m[0] * rel_vel_m_s[1] - rel_pos_m[1] * rel_vel_m_s[0];
+    let h_mag = (hx * hx + hy * hy + hz * hz).sqrt().max(1e-12);
+
+    // Eccentricity vector e = (v x h) / mu - r / |r|
+    let vxh_x = rel_vel_m_s[1] * hz - rel_vel_m_s[2] * hy;
+    let vxh_y = rel_vel_m_s[2] * hx - rel_vel_m_s[0] * hz;
+    let vxh_z = rel_vel_m_s[0] * hy - rel_vel_m_s[1] * hx;
+
+    let ex = vxh_x / mu - rel_pos_m[0] / r_mag;
+    let ey = vxh_y / mu - rel_pos_m[1] / r_mag;
+    let ez = vxh_z / mu - rel_pos_m[2] / r_mag;
+    let eccentricity = (ex * ex + ey * ey + ez * ez).sqrt();
+
+    let inc_deg = (hz / h_mag).clamp(-1.0, 1.0).acos().to_degrees();
+
+    let periapsis_radius_m = semi_major_axis_m * (1.0 - eccentricity);
+    let apoapsis_radius_m = semi_major_axis_m * (1.0 + eccentricity);
+    let periapsis_altitude_m = periapsis_radius_m - anchor_radius_m;
+    let apoapsis_altitude_m = apoapsis_radius_m - anchor_radius_m;
+    let current_altitude_m = r_mag - anchor_radius_m;
+
+    let orbital_period_s = if semi_major_axis_m > 0.0 {
+        2.0 * PI * (semi_major_axis_m.powi(3) / mu).sqrt()
+    } else {
+        f64::INFINITY
+    };
+
+    SatelliteOrbitalTelemetry {
+        id,
+        name: name.to_string(),
+        anchor_body: anchor_name.to_string(),
+        semi_major_axis_m,
+        eccentricity,
+        inclination_deg: inc_deg,
+        periapsis_radius_m,
+        apoapsis_radius_m,
+        periapsis_altitude_m,
+        apoapsis_altitude_m,
+        current_radius_m: r_mag,
+        current_altitude_m,
+        current_speed_m_s: v_mag,
+        orbital_period_s,
+        eclipse_state,
+    }
 }
 
