@@ -1,0 +1,20 @@
+{
+  "name": "sbm_wasm",
+  "type": "module",
+  "collaborators": [
+    "Antigravity Engineering Team"
+  ],
+  "description": "WebAssembly high-performance astrodynamics & physics calculation engine",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "files": [
+    "sbm_wasm_bg.wasm",
+    "sbm_wasm.js",
+    "sbm_wasm.d.ts"
+  ],
+  "main": "sbm_wasm.js",
+  "types": "sbm_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

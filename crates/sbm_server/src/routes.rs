@@ -57,6 +57,18 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
             "/libs",
             tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "libs")),
         )
+        .nest_service(
+            "/pkg",
+            tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "pkg")),
+        )
+        .nest_service(
+            "/js",
+            tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "js")),
+        )
+        .nest_service(
+            "/css",
+            tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "css")),
+        )
         .layer(cors)
         .with_state(state)
 }

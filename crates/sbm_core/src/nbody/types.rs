@@ -1,4 +1,4 @@
-//! Data structures and core telemetry types for high-precision N-body gravitational dynamics.
+use serde::{Deserialize, Serialize};
 
 /// Standard CODATA 2018 Newtonian gravitational constant $G$ in $\text{m}^3 \text{kg}^{-1} \text{s}^{-2}$.
 pub const G_STANDARD: f64 = 6.67430e-11;
@@ -16,7 +16,7 @@ pub const JULIAN_YEAR_S: f64 = 31557600.0;
 pub const JULIAN_DAY_S: f64 = 86400.0;
 
 /// Represents an individual celestial body in an N-body system.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CelestialBody {
     /// Unique identifier for the body.
     pub id: usize,
@@ -77,7 +77,7 @@ impl CelestialBody {
 }
 
 /// Numerical integrator algorithm selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum IntegratorType {
     /// 4th-Order Symplectic Integrator (Yoshida 1990).
     /// Preserves phase space volume and bounded energy errors without secular drift.
@@ -98,7 +98,7 @@ pub enum IntegratorType {
 }
 
 /// Conservation laws and Hamiltonian invariants metrics.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConservationMetrics {
     /// Total system kinetic energy $T = \sum \frac{1}{2} m_i v_i^2$ in Joules.
     pub kinetic_energy_j: f64,
@@ -125,7 +125,7 @@ pub struct ConservationMetrics {
 }
 
 /// Classical Keplerian orbital elements extracted from Cartesian state vectors.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OsculatingElements {
     /// Semi-major axis $a$ in meters.
     pub semi_major_axis_m: f64,
@@ -150,7 +150,7 @@ pub struct OsculatingElements {
 }
 
 /// Resonance tracking metrics for multi-body orbital resonances.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResonanceMetrics {
     /// Identifier or name of the resonance (e.g., "Laplace 4:2:1", "Jupiter-Trojan L4").
     pub name: String,
@@ -163,7 +163,7 @@ pub struct ResonanceMetrics {
 }
 
 /// High-precision N-body gravitational system simulation container.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NBodySystem {
     /// List of celestial bodies in the system.
     pub bodies: Vec<CelestialBody>,
@@ -219,7 +219,7 @@ impl Default for NBodySystem {
 }
 
 /// Breakdown of pairwise gravitational force from a source body acting on a target body.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PairwiseForce {
     /// Source body identifier.
     pub source_id: usize,
@@ -238,7 +238,7 @@ pub struct PairwiseForce {
 /// In vacuum, $\nabla \cdot \mathbf{g} = 0$, so $\text{Tr}(\mathbf{T}) = 0$.
 /// The eigenvalues satisfy $\lambda_1 > 0$ (stretching along radial line)
 /// and $\lambda_2, \lambda_3 < 0$ (orthogonal compression).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TidalTensor {
     /// $3 \times 3$ symmetric tidal gradient matrix in $\text{s}^{-2}$.
     pub matrix: [[f64; 3]; 3],
@@ -255,7 +255,7 @@ pub struct TidalTensor {
 /// References:
 /// - Chebotarev, G. A. (1964), *Soviet Astronomy*, 7(5), pp. 618–622.
 /// - Domingos, Winter, & Yokoyama (2006), *MNRAS*, 373(3), pp. 1227–1234.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GravitationalSphereRadii {
     /// Sphere of attraction radius $r_a = a \sqrt{\frac{m}{M_\odot}}$ in meters.
     pub sphere_of_attraction_m: f64,
@@ -269,7 +269,7 @@ pub struct GravitationalSphereRadii {
 }
 
 /// Individual celestial body's gravitational field contribution at an arbitrary spatial point.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BodyFieldContribution {
     /// Identifier of the source celestial body.
     pub body_id: usize,
@@ -292,7 +292,7 @@ pub struct BodyFieldContribution {
 /// Comprehensive physical state of the gravitational field at an arbitrary spatial coordinate $\mathbf{r} = (x, y, z)$.
 ///
 /// Enables spatial probe telemetry and domain fragmentation into Gravitational Dominance Basins.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpatialFieldPoint {
     /// Cartesian position of the probe point $[x, y, z]$ in meters.
     pub position_m: [f64; 3],
@@ -315,7 +315,7 @@ pub struct SpatialFieldPoint {
 }
 
 /// Centric frame of reference defined by the major gravitational body.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GravitationalCentricFrame {
     /// Heliocentric: centered on the Sun.
     Heliocentric,
@@ -334,7 +334,7 @@ pub enum GravitationalCentricFrame {
 }
 
 /// A massless test particle (orbital tracer / probe) moving in a centric reference frame.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CentricTestParticle {
     /// Unique identifier
     pub id: u64,
@@ -349,7 +349,7 @@ pub struct CentricTestParticle {
 }
 
 /// Illumination and eclipse condition of a spacecraft relative to an occulting central body and the Sun.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum EclipseState {
     /// Spacecraft is in direct line-of-sight of the entire solar disk (full illumination).
     #[default]
@@ -361,7 +361,7 @@ pub enum EclipseState {
 }
 
 /// Geometric telemetry describing the shadow cone and eclipse boundaries.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShadowConeGeometry {
     /// Apex distance of the umbra cone from the center of the occulting body [m].
     pub umbra_length_m: f64,
@@ -374,7 +374,7 @@ pub struct ShadowConeGeometry {
 }
 
 /// Comprehensive orbital and eclipse telemetry for a tracked satellite or test particle.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SatelliteOrbitalTelemetry {
     /// Unique identifier
     pub id: u64,
