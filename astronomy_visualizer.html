@@ -970,7 +970,7 @@
       <div class="gmap-chip" data-space-preset="jupiter_basin"><span>📍</span> Jupiter Basin Edge (24M km)</div>
       <div class="gmap-chip" data-special="emb"><span>⚖️</span> EMB</div>
       <div class="gmap-chip" data-special="overview"><span>🔭</span> 10 AU View</div>
-      <div class="gmap-chip" id="chip-generate-orbits" style="border-color: #34d399; background: rgba(52, 211, 153, 0.2);"><span>✨</span> Centric Orbits (30)</div>
+      <div class="gmap-chip" id="chip-generate-orbits" style="border-color: #34d399; background: rgba(52, 211, 153, 0.2);"><span>✨</span> Centric Orbits (300)</div>
       <div class="gmap-chip" id="chip-clear-orbits" style="border-color: #f87171; background: rgba(248, 113, 113, 0.15);"><span>🧹</span> Clear Orbits</div>
     </div>
   </div>
@@ -1174,9 +1174,9 @@
         Centric Orbit Particles
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
-        <button id="btn-gen-particles-swarm" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(56,189,248,0.2); border: 1px solid #38bdf8; color: #fff; border-radius: 4px; cursor: pointer;">✨ Swarm (30)</button>
-        <button id="btn-gen-particles-rings" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(251,191,36,0.2); border: 1px solid #fbbf24; color: #fff; border-radius: 4px; cursor: pointer;">🪐 Rings (30)</button>
-        <button id="btn-gen-particles-cislunar" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(52,211,153,0.2); border: 1px solid #34d399; color: #fff; border-radius: 4px; cursor: pointer;">🛰️ Cislunar (15)</button>
+        <button id="btn-gen-particles-swarm" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(56,189,248,0.2); border: 1px solid #38bdf8; color: #fff; border-radius: 4px; cursor: pointer;">✨ Swarm (300)</button>
+        <button id="btn-gen-particles-rings" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(251,191,36,0.2); border: 1px solid #fbbf24; color: #fff; border-radius: 4px; cursor: pointer;">🪐 Rings (100)</button>
+        <button id="btn-gen-particles-cislunar" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(52,211,153,0.2); border: 1px solid #34d399; color: #fff; border-radius: 4px; cursor: pointer;">🛰️ Cislunar (50)</button>
         <button id="btn-clear-particles-menu" class="gmap-action-btn-sm" style="font-size: 10px; padding: 5px; background: rgba(248,113,113,0.2); border: 1px solid #f87171; color: #fff; border-radius: 4px; cursor: pointer;">🧹 Clear All</button>
       </div>
     </div>
@@ -2843,7 +2843,7 @@
       }
     }
 
-    function generateCentricParticles(preset = 'swarm', count = 30) {
+    function generateCentricParticles(preset = 'swarm', count = 300) {
       clearTestParticles();
 
       const anchorName = state.activeCentricBody || 'Earth';
@@ -2963,7 +2963,7 @@
         }
 
         // Visual representation
-        const sphereRadius = (anchorName === 'Moon') ? 0.016 : 0.024;
+        const sphereRadius = (anchorName === 'Moon') ? 0.012 : 0.018;
         const sphereGeo = new THREE.SphereGeometry(sphereRadius, 12, 12);
         const sphereMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
         const mesh = new THREE.Mesh(sphereGeo, sphereMat);
@@ -2973,7 +2973,7 @@
         const trailMat = new THREE.LineBasicMaterial({
           color: new THREE.Color(colorHex),
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.76,
           depthWrite: false
         });
         const trailPositions = new Float32Array(maxTrail * 3);
@@ -4547,7 +4547,7 @@
             state.cameraFollowIndex = -1;
             handleSpacePointPreset(chip.dataset.spacePreset);
           } else if (chip.id === 'chip-generate-orbits') {
-            generateCentricParticles('swarm', 30);
+            generateCentricParticles('swarm', 300);
           } else if (chip.id === 'chip-clear-orbits') {
             clearTestParticles();
           }
@@ -5399,10 +5399,16 @@
       if (params.get('particles')) {
         const pVal = params.get('particles');
         let preset = 'swarm';
-        let count = 30;
-        if (pVal === 'cislunar') preset = 'cislunar';
-        else if (pVal === 'rings') preset = 'rings';
-        else if (!isNaN(parseInt(pVal))) count = parseInt(pVal);
+        let count = 300;
+        if (pVal === 'cislunar') {
+          preset = 'cislunar';
+          count = 50;
+        } else if (pVal === 'rings') {
+          preset = 'rings';
+          count = 100;
+        } else if (!isNaN(parseInt(pVal))) {
+          count = parseInt(pVal);
+        }
         generateCentricParticles(preset, count);
       }
 
@@ -5707,15 +5713,15 @@
       // Centric Orbit Particle Buttons in Layers Menu
       const btnSwarm = document.getElementById('btn-gen-particles-swarm');
       if (btnSwarm) {
-        btnSwarm.addEventListener('click', () => generateCentricParticles('swarm', 30));
+        btnSwarm.addEventListener('click', () => generateCentricParticles('swarm', 300));
       }
       const btnRings = document.getElementById('btn-gen-particles-rings');
       if (btnRings) {
-        btnRings.addEventListener('click', () => generateCentricParticles('rings', 30));
+        btnRings.addEventListener('click', () => generateCentricParticles('rings', 100));
       }
       const btnCislunar = document.getElementById('btn-gen-particles-cislunar');
       if (btnCislunar) {
-        btnCislunar.addEventListener('click', () => generateCentricParticles('cislunar', 15));
+        btnCislunar.addEventListener('click', () => generateCentricParticles('cislunar', 50));
       }
       const btnClearMenu = document.getElementById('btn-clear-particles-menu');
       if (btnClearMenu) {
