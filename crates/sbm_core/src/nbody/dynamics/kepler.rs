@@ -358,5 +358,6 @@ pub fn compute_satellite_orbital_telemetry(
         current_speed_m_s: v_mag,
         orbital_period_s,
         eclipse_state,
+        acceleration: None,
     }
 }

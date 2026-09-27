@@ -128,8 +128,12 @@ pub struct WasmCentricSwarmEngine {
     anchor_name: String,
     anchor_mass_kg: f64,
     anchor_radius_m: f64,
+    anchor_r_eq_m: f64,
+    anchor_j2: f64,
+    perturbation_mode: u8,
     particles: Vec<SwarmParticle>,
 }
+
 
 #[wasm_bindgen]
 impl WasmCentricSwarmEngine {
@@ -144,6 +148,11 @@ impl WasmCentricSwarmEngine {
             "Mars" => (6.417e23, 3389e3),
             _ => (1.989e30, 696340e3), // Sun
         };
+
+        let (j2_r_eq, j2_val) = sbm_core::nbody::get_body_j2_parameters(anchor_name);
+        let anchor_r_eq_m = if j2_r_eq > 0.0 { j2_r_eq } else { anchor_radius_m };
+        let anchor_j2 = j2_val;
+        let perturbation_mode = 2; // Default to FullPerturbed (3rd-Body + J2)
 
         let mu = G_STANDARD * anchor_mass_kg;
         let (r_min, r_max, base_ecc_min, base_ecc_max) = if anchor_name == "Earth" {
@@ -284,15 +293,58 @@ impl WasmCentricSwarmEngine {
             anchor_name: anchor_name.to_string(),
             anchor_mass_kg,
             anchor_radius_m,
+            anchor_r_eq_m,
+            anchor_j2,
+            perturbation_mode,
             particles,
         })
     }
 
+    /// Sets the active perturbation model:
+    /// 0 = TwoBody (pure Keplerian)
+    /// 1 = ThirdBody (central + lunisolar/planetary third-body tidal & reflex)
+    /// 2 = FullPerturbed (central + third-body + J2 oblateness)
+    pub fn set_perturbation_mode(&mut self, mode: u8) {
+        self.perturbation_mode = mode.min(2);
+    }
+
+    /// Gets the active perturbation mode.
+    pub fn get_perturbation_mode(&self) -> u8 {
+        self.perturbation_mode
+    }
+
     /// Numerically integrates all particles in the non-inertial relative centric frame.
-    pub fn step(&mut self, dt: f64, sub_steps: usize) {
+    ///
+    /// Supports pure two-body, lunisolar third-body, and oblate J2 zonal gravitational perturbations.
+    pub fn step(&mut self, dt: f64, sub_steps: usize, perturbers_flat: &[f64]) {
         let mu = G_STANDARD * self.anchor_mass_kg;
         let sub_dt = dt / (sub_steps.max(1) as f64);
         let n_sub = sub_steps.max(1);
+
+        // Pre-parse perturbers and compute indirect d'Alembert reflex accelerations
+        let mut perturbers = Vec::new();
+        let mut a_ind = [0.0, 0.0, 0.0];
+        if self.perturbation_mode >= 1 && perturbers_flat.len() >= 4 {
+            let num_p = perturbers_flat.len() / 4;
+            for k in 0..num_p {
+                let px = perturbers_flat[k * 4];
+                let py = perturbers_flat[k * 4 + 1];
+                let pz = perturbers_flat[k * 4 + 2];
+                let pm = perturbers_flat[k * 4 + 3];
+                let dist2 = px * px + py * py + pz * pz;
+                let dist = dist2.sqrt();
+                if dist > 1e3 && pm > 0.0 {
+                    let mu_k = G_STANDARD * pm;
+                    let factor_ind = -mu_k / (dist2 * dist);
+                    a_ind[0] += factor_ind * px;
+                    a_ind[1] += factor_ind * py;
+                    a_ind[2] += factor_ind * pz;
+                    perturbers.push((px, py, pz, mu_k));
+                }
+            }
+        }
+
+        let do_j2 = self.perturbation_mode == 2 && self.anchor_j2.abs() > 1e-15 && self.anchor_r_eq_m > 0.0;
 
         for _ in 0..n_sub {
             for p in &mut self.particles {
@@ -303,11 +355,40 @@ impl WasmCentricSwarmEngine {
                 let r = r2.sqrt().max(1.0);
                 let r3 = r2 * r;
 
-                // Central two-body acceleration
+                // 1. Central two-body acceleration
                 let factor = -mu / r3;
-                let ax = factor * rx;
-                let ay = factor * ry;
-                let az = factor * rz;
+                let mut ax = factor * rx;
+                let mut ay = factor * ry;
+                let mut az = factor * rz;
+
+                // 2. Oblate zonal J2 perturbation
+                if do_j2 {
+                    let a_j2 = sbm_core::nbody::compute_j2_acceleration(
+                        p.rel_pos, mu, self.anchor_r_eq_m, self.anchor_j2,
+                    );
+                    ax += a_j2[0];
+                    ay += a_j2[1];
+                    az += a_j2[2];
+                }
+
+                // 3. Third-body perturbations (direct + indirect reflex)
+                if !perturbers.is_empty() {
+                    ax += a_ind[0];
+                    ay += a_ind[1];
+                    az += a_ind[2];
+
+                    for &(px, py, pz, mu_k) in &perturbers {
+                        let delta_x = px - rx;
+                        let delta_y = py - ry;
+                        let delta_z = pz - rz;
+                        let delta2 = delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
+                        let delta = delta2.sqrt().max(1.0);
+                        let f_dir = mu_k / (delta2 * delta);
+                        ax += f_dir * delta_x;
+                        ay += f_dir * delta_y;
+                        az += f_dir * delta_z;
+                    }
+                }
 
                 // Symplectic integration step
                 p.rel_vel[0] += ax * sub_dt;
@@ -320,6 +401,7 @@ impl WasmCentricSwarmEngine {
             }
         }
     }
+
 
     /// Returns flat array of particle relative positions: [x0, y0, z0, x1, y1, z1, ...].
     pub fn get_positions_flat(&self) -> Float64Array {
@@ -390,12 +472,13 @@ impl WasmCentricSwarmEngine {
         js_sys::Int32Array::from(states.as_slice())
     }
 
-    /// Computes full satellite telemetry (Kepler elements, altitude, speed, period, eclipse).
+    /// Computes full satellite telemetry (Kepler elements, altitude, speed, period, eclipse, acceleration breakdown).
     pub fn get_satellite_telemetry(
         &self,
         index: usize,
         sun_rel_pos: &[f64],
         sun_radius_m: f64,
+        perturbers_flat: &[f64],
     ) -> Result<JsValue, JsValue> {
         if index >= self.particles.len() {
             return Err(JsValue::from_str("Particle index out of bounds"));
@@ -427,7 +510,7 @@ impl WasmCentricSwarmEngine {
             EclipseState::Sunlit
         };
 
-        let tel = sbm_core::nbody::compute_satellite_orbital_telemetry(
+        let mut tel = sbm_core::nbody::compute_satellite_orbital_telemetry(
             p.id,
             &p.name,
             &anchor_body,
@@ -436,8 +519,103 @@ impl WasmCentricSwarmEngine {
             eclipse_state,
         );
 
+        // Compute instantaneous acceleration breakdown
+        let mu = G_STANDARD * self.anchor_mass_kg;
+        let r2 = p.rel_pos[0] * p.rel_pos[0] + p.rel_pos[1] * p.rel_pos[1] + p.rel_pos[2] * p.rel_pos[2];
+        let a_central_mag = if r2 > 1.0 { mu / r2 } else { 0.0 };
+
+        let (a_j2_vec, a_j2_mag) = if self.perturbation_mode == 2 && self.anchor_j2.abs() > 1e-15 && self.anchor_r_eq_m > 0.0 {
+            let vec = sbm_core::nbody::compute_j2_acceleration(
+                p.rel_pos, mu, self.anchor_r_eq_m, self.anchor_j2,
+            );
+            let mag = (vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]).sqrt();
+            (vec, mag)
+        } else {
+            ([0.0, 0.0, 0.0], 0.0)
+        };
+
+        let mut a_3rd_vec = [0.0, 0.0, 0.0];
+        let mut max_perturber_pull = 0.0;
+        let mut dominant_perturber_name = "None".to_string();
+
+        if self.perturbation_mode >= 1 && perturbers_flat.len() >= 4 {
+            let num_p = perturbers_flat.len() / 4;
+            for k in 0..num_p {
+                let px = perturbers_flat[k * 4];
+                let py = perturbers_flat[k * 4 + 1];
+                let pz = perturbers_flat[k * 4 + 2];
+                let pm = perturbers_flat[k * 4 + 3];
+                let dist2 = px * px + py * py + pz * pz;
+                let dist = dist2.sqrt();
+                if dist > 1e3 && pm > 0.0 {
+                    let mu_k = G_STANDARD * pm;
+                    // Indirect d'Alembert reflex
+                    let f_ind = -mu_k / (dist2 * dist);
+                    let ind_x = f_ind * px;
+                    let ind_y = f_ind * py;
+                    let ind_z = f_ind * pz;
+
+                    // Direct
+                    let dx = px - p.rel_pos[0];
+                    let dy = py - p.rel_pos[1];
+                    let dz = pz - p.rel_pos[2];
+                    let d2 = dx * dx + dy * dy + dz * dz;
+                    let d = d2.sqrt().max(1.0);
+                    let f_dir = mu_k / (d2 * d);
+                    let dir_x = f_dir * dx;
+                    let dir_y = f_dir * dy;
+                    let dir_z = f_dir * dz;
+
+                    let net_k_x = dir_x + ind_x;
+                    let net_k_y = dir_y + ind_y;
+                    let net_k_z = dir_z + ind_z;
+                    let pull = (net_k_x * net_k_x + net_k_y * net_k_y + net_k_z * net_k_z).sqrt();
+
+                    if pull > max_perturber_pull {
+                        max_perturber_pull = pull;
+                        dominant_perturber_name = if pm > 1e29 {
+                            "Sun".to_string()
+                        } else if pm > 1e26 {
+                            "Jupiter".to_string()
+                        } else if pm > 5e24 {
+                            "Earth".to_string()
+                        } else if pm > 5e22 {
+                            "Moon".to_string()
+                        } else if pm > 5e23 {
+                            "Mars".to_string()
+                        } else {
+                            "Third Body".to_string()
+                        };
+                    }
+
+                    a_3rd_vec[0] += net_k_x;
+                    a_3rd_vec[1] += net_k_y;
+                    a_3rd_vec[2] += net_k_z;
+                }
+            }
+        }
+
+        let a_third_body_mag = (a_3rd_vec[0] * a_3rd_vec[0] + a_3rd_vec[1] * a_3rd_vec[1] + a_3rd_vec[2] * a_3rd_vec[2]).sqrt();
+        let r = r2.sqrt().max(1.0);
+        let a_central_vec = [-mu / (r2 * r) * p.rel_pos[0], -mu / (r2 * r) * p.rel_pos[1], -mu / (r2 * r) * p.rel_pos[2]];
+        let a_tot_vec = [
+            a_central_vec[0] + a_j2_vec[0] + a_3rd_vec[0],
+            a_central_vec[1] + a_j2_vec[1] + a_3rd_vec[1],
+            a_central_vec[2] + a_j2_vec[2] + a_3rd_vec[2],
+        ];
+        let a_total_mag = (a_tot_vec[0] * a_tot_vec[0] + a_tot_vec[1] * a_tot_vec[1] + a_tot_vec[2] * a_tot_vec[2]).sqrt();
+
+        tel.acceleration = Some(sbm_core::nbody::ParticleAccelerationBreakdown {
+            a_central_mps2: a_central_mag,
+            a_j2_mps2: a_j2_mag,
+            a_third_body_mps2: a_third_body_mag,
+            a_total_mps2: a_total_mag,
+            dominant_perturber_name,
+        });
+
         serde_wasm_bindgen::to_value(&tel).map_err(|e| JsValue::from_str(&e.to_string()))
     }
+
 
     /// Returns the particle count in the swarm.
     pub fn particle_count(&self) -> usize {

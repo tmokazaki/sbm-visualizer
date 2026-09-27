@@ -40,7 +40,7 @@ export function flyTo(camera, controls, targetPos, targetDist = 12, durationMs =
   flightAnimation = requestAnimationFrame(step);
 }
 
-export function openSatelliteInspector(tp, wasmSwarmEngine, sunRelPos, sunRadiusM) {
+export function openSatelliteInspector(tp, wasmSwarmEngine, sunRelPos, sunRadiusM, perturbersFlat) {
   const card = document.getElementById('gmap-place-card');
   if (!card) return;
 
@@ -65,11 +65,11 @@ export function openSatelliteInspector(tp, wasmSwarmEngine, sunRelPos, sunRadius
   const heading = document.getElementById('place-specs-heading');
   if (heading) heading.innerText = 'Orbital Mechanics & Telemetry (Rust / WASM)';
 
-  updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sunRadiusM);
+  updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sunRadiusM, perturbersFlat);
   card.style.display = 'block';
 }
 
-export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sunRadiusM) {
+export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sunRadiusM, perturbersFlat) {
   const card = document.getElementById('gmap-place-card');
   if (!card || card.dataset.isSatellite !== 'true' || card.style.display === 'none' || !tp) return;
 
@@ -77,17 +77,18 @@ export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sun
   if (wasmSwarmEngine && wasmSwarmEngine.get_satellite_telemetry) {
     try {
       const sunRel = sunRelPos ? new Float64Array(sunRelPos) : new Float64Array([0, AU_M, 0]);
-      telem = wasmSwarmEngine.get_satellite_telemetry(tp.index || 0, sunRel, sunRadiusM || 696340e3);
+      const pertFlat = perturbersFlat || new Float64Array(0);
+      telem = wasmSwarmEngine.get_satellite_telemetry(tp.index || 0, sunRel, sunRadiusM || 696340e3, pertFlat);
     } catch (_) {}
   }
 
-  const altKm = telem ? telem.altitude_km : 420;
-  const speedKmS = telem ? telem.speed_km_s : 7.66;
-  const smaKm = telem ? telem.semi_major_axis_km : 6791;
+  const altKm = telem ? (telem.current_altitude_m / 1e3) : 420;
+  const speedKmS = telem ? (telem.current_speed_m_s / 1e3) : 7.66;
+  const smaKm = telem ? (telem.semi_major_axis_m / 1e3) : 6791;
   const ecc = telem ? telem.eccentricity.toFixed(4) : '0.0012';
   const inc = telem ? telem.inclination_deg.toFixed(1) + '°' : '51.6°';
-  const hpKm = telem ? telem.periapsis_alt_km : 415;
-  const haKm = telem ? telem.apoapsis_alt_km : 425;
+  const hpKm = telem ? (telem.periapsis_altitude_m / 1e3) : 415;
+  const haKm = telem ? (telem.apoapsis_altitude_m / 1e3) : 425;
   const eclState = telem ? telem.eclipse_state : (tp.eclipseState || 'sunlit');
 
   let periodStr = 'N/A';
@@ -110,6 +111,28 @@ export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sun
   }
   document.getElementById('place-subtitle').innerHTML = subtitleText;
 
+  let accelRows = '';
+  if (telem && telem.acceleration) {
+    const acc = telem.acceleration;
+    const formatAccel = (val) => {
+      if (val >= 1.0) return `${val.toFixed(3)} m/s²`;
+      if (val >= 1e-3) return `${(val * 1e3).toFixed(2)} mm/s²`;
+      return `${(val * 1e6).toFixed(2)} µm/s²`;
+    };
+
+    const g0Str = formatAccel(acc.a_central_mps2);
+    const j2Str = formatAccel(acc.a_j2_mps2);
+    const thirdStr = `${formatAccel(acc.a_third_body_mps2)} (${acc.dominant_perturber_name})`;
+    const totStr = formatAccel(acc.a_total_mps2);
+
+    accelRows = `
+      <tr><td class="label" style="color: #c084fc; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">Central Gravity (g₀)</td><td class="val" style="color: #c084fc; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">${g0Str}</td></tr>
+      <tr><td class="label" style="color: #38bdf8;">J₂ Oblateness Perturbation</td><td class="val" style="color: #38bdf8;">${j2Str}</td></tr>
+      <tr><td class="label" style="color: #f59e0b;">3rd-Body Perturbation</td><td class="val" style="color: #f59e0b;">${thirdStr}</td></tr>
+      <tr><td class="label" style="color: #34d399; font-weight: 700;">Net Acceleration (a_net)</td><td class="val" style="color: #34d399; font-weight: 700;">${totStr}</td></tr>
+    `;
+  }
+
   const specs = document.getElementById('place-specs-table');
   if (specs) {
     specs.innerHTML = `
@@ -122,9 +145,11 @@ export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sun
       <tr><td class="label">Periapsis Altitude (hp)</td><td class="val" style="color: #ef4444;">${hpKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</td></tr>
       <tr><td class="label">Apoapsis Altitude (ha)</td><td class="val" style="color: #3b82f6;">${haKm.toLocaleString(undefined, {maximumFractionDigits: 0})} km</td></tr>
       <tr><td class="label">Orbital Period (T)</td><td class="val">${periodStr}</td></tr>
+      ${accelRows}
     `;
   }
 }
+
 
 export function openBodyPlaceCard(body, state) {
   const card = document.getElementById('gmap-place-card');
@@ -211,6 +236,14 @@ export function setupUIInteractions(state, callbacks) {
       if (callbacks.onClearOrbits) callbacks.onClearOrbits();
     });
   }
+
+  const chipPerturb = document.getElementById('chip-perturbation-mode');
+  if (chipPerturb) {
+    chipPerturb.addEventListener('click', () => {
+      if (callbacks.onCyclePerturbationMode) callbacks.onCyclePerturbationMode();
+    });
+  }
+
 
   // Satellite Inspector Actions
   const btnTrack = document.getElementById('btn-sat-track');

@@ -373,6 +373,37 @@ pub struct ShadowConeGeometry {
     pub shadow_axis_unit: [f64; 3],
 }
 
+/// Gravitational perturbation model applied to centric test particles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum CentricPerturbationMode {
+    /// Pure two-body unperturbed central gravitational acceleration:
+    /// $\ddot{\mathbf{r}} = -\frac{\mu_0 \mathbf{r}}{\|\mathbf{r}\|^3}$
+    TwoBody,
+    /// Central two-body plus third-body tidal and d'Alembert reflex accelerations (Lunisolar / Planetary)
+    /// following Danby (1988) and Roy (2005):
+    /// $\ddot{\mathbf{r}} = -\frac{\mu_0 \mathbf{r}}{\|\mathbf{r}\|^3} + \sum_{k \neq 0} \mu_k \left[ \frac{\mathbf{r}_k - \mathbf{r}}{\|\mathbf{r}_k - \mathbf{r}\|^3} - \frac{\mathbf{r}_k}{\|\mathbf{r}_k\|^3} \right]$
+    ThirdBody,
+    /// Full perturbation model including two-body, third-body (Lunisolar / Planetary), and central body
+    /// oblate zonal harmonic $J_2$ gravity gradient (Kaula 1966; Kozai 1959; Vallado 2013).
+    #[default]
+    FullPerturbed,
+}
+
+/// Instantaneous acceleration components acting on a centric satellite.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct ParticleAccelerationBreakdown {
+    /// Magnitude of primary central two-body gravitational acceleration $\|\mathbf{a}_{\text{two-body}}\|$ [m/s^2].
+    pub a_central_mps2: f64,
+    /// Magnitude of central body $J_2$ oblateness zonal harmonic perturbation $\|\mathbf{a}_{J2}\|$ [m/s^2].
+    pub a_j2_mps2: f64,
+    /// Magnitude of third-body tidal and reflex perturbations $\|\mathbf{a}_{\text{third-body}}\|$ [m/s^2].
+    pub a_third_body_mps2: f64,
+    /// Total net gravitational acceleration magnitude $\|\mathbf{a}_{\text{net}}\|$ [m/s^2].
+    pub a_total_mps2: f64,
+    /// Name of the primary third-body perturber (e.g. "Moon", "Sun", or "None").
+    pub dominant_perturber_name: String,
+}
+
 /// Comprehensive orbital and eclipse telemetry for a tracked satellite or test particle.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SatelliteOrbitalTelemetry {
@@ -406,4 +437,7 @@ pub struct SatelliteOrbitalTelemetry {
     pub orbital_period_s: f64,
     /// Realtime illumination condition
     pub eclipse_state: EclipseState,
+    /// Instantaneous acceleration components breakdown
+    pub acceleration: Option<ParticleAccelerationBreakdown>,
 }
+

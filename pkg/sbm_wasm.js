@@ -36,6 +36,14 @@ export class WasmCentricSwarmEngine {
         return ret;
     }
     /**
+     * Gets the active perturbation mode.
+     * @returns {number}
+     */
+    get_perturbation_mode() {
+        const ret = wasm.wasmcentricswarmengine_get_perturbation_mode(this.__wbg_ptr);
+        return ret;
+    }
+    /**
      * Returns flat array of particle relative positions: [x0, y0, z0, x1, y1, z1, ...].
      * @returns {Float64Array}
      */
@@ -44,16 +52,19 @@ export class WasmCentricSwarmEngine {
         return ret;
     }
     /**
-     * Computes full satellite telemetry (Kepler elements, altitude, speed, period, eclipse).
+     * Computes full satellite telemetry (Kepler elements, altitude, speed, period, eclipse, acceleration breakdown).
      * @param {number} index
      * @param {Float64Array} sun_rel_pos
      * @param {number} sun_radius_m
+     * @param {Float64Array} perturbers_flat
      * @returns {any}
      */
-    get_satellite_telemetry(index, sun_rel_pos, sun_radius_m) {
+    get_satellite_telemetry(index, sun_rel_pos, sun_radius_m, perturbers_flat) {
         const ptr0 = passArrayF64ToWasm0(sun_rel_pos, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmcentricswarmengine_get_satellite_telemetry(this.__wbg_ptr, index, ptr0, len0, sun_radius_m);
+        const ptr1 = passArrayF64ToWasm0(perturbers_flat, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmcentricswarmengine_get_satellite_telemetry(this.__wbg_ptr, index, ptr0, len0, sun_radius_m, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -95,12 +106,27 @@ export class WasmCentricSwarmEngine {
         return ret >>> 0;
     }
     /**
+     * Sets the active perturbation model:
+     * 0 = TwoBody (pure Keplerian)
+     * 1 = ThirdBody (central + lunisolar/planetary third-body tidal & reflex)
+     * 2 = FullPerturbed (central + third-body + J2 oblateness)
+     * @param {number} mode
+     */
+    set_perturbation_mode(mode) {
+        wasm.wasmcentricswarmengine_set_perturbation_mode(this.__wbg_ptr, mode);
+    }
+    /**
      * Numerically integrates all particles in the non-inertial relative centric frame.
+     *
+     * Supports pure two-body, lunisolar third-body, and oblate J2 zonal gravitational perturbations.
      * @param {number} dt
      * @param {number} sub_steps
+     * @param {Float64Array} perturbers_flat
      */
-    step(dt, sub_steps) {
-        wasm.wasmcentricswarmengine_step(this.__wbg_ptr, dt, sub_steps);
+    step(dt, sub_steps, perturbers_flat) {
+        const ptr0 = passArrayF64ToWasm0(perturbers_flat, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmcentricswarmengine_step(this.__wbg_ptr, dt, sub_steps, ptr0, len0);
     }
 }
 if (Symbol.dispose) WasmCentricSwarmEngine.prototype[Symbol.dispose] = WasmCentricSwarmEngine.prototype.free;

@@ -146,8 +146,9 @@ export function spawnSwarm(scene, anchorName, preset, count, state) {
 export function stepSwarm(dt, subSteps, state, toSceneCoords) {
   if (!activeSwarmEngine || swarmParticleObjects.length === 0) return;
 
-  // 1. Advance Swarm in WebAssembly
-  activeSwarmEngine.step(dt, subSteps);
+  // 1. Advance Swarm in WebAssembly with Lunisolar & J2 Perturbations
+  const perturbersFlat = getCentricPerturbersFlat(state);
+  activeSwarmEngine.step(dt, subSteps, perturbersFlat);
 
   // 2. Fetch Flat State Buffers from WebAssembly Memory
   const posFlat = activeSwarmEngine.get_positions_flat();
@@ -157,6 +158,7 @@ export function stepSwarm(dt, subSteps, state, toSceneCoords) {
   const sun = state.bodies.find(b => b.name === 'Sun');
   const anchor = state.bodies.find(b => b.name === state.activeCentricBody);
   let eclipseStates = null;
+
   if (sun && anchor) {
     const sunRel = new Float64Array([
       sun.pos[0] - anchor.pos[0],
@@ -234,3 +236,42 @@ export function stepSwarm(dt, subSteps, state, toSceneCoords) {
 export function getActiveSwarmEngine() {
   return activeSwarmEngine;
 }
+
+export function setSwarmPerturbationMode(mode) {
+  if (activeSwarmEngine && activeSwarmEngine.set_perturbation_mode) {
+    activeSwarmEngine.set_perturbation_mode(mode);
+  }
+}
+
+export function getSwarmPerturbationMode() {
+  if (activeSwarmEngine && activeSwarmEngine.get_perturbation_mode) {
+    return activeSwarmEngine.get_perturbation_mode();
+  }
+  return 2;
+}
+
+export function getCentricPerturbersFlat(state) {
+  const anchor = state.bodies.find(b => b.name === state.activeCentricBody);
+  if (!anchor) return new Float64Array(0);
+
+  const isHelio = anchor.name === 'Sun';
+  const perturbers = [];
+  for (const b of state.bodies) {
+    if (b.name === anchor.name) continue;
+    if (!isHelio) {
+      const isRelevant = b.name === 'Sun' ||
+        (anchor.name === 'Earth' && b.name === 'Moon') ||
+        (anchor.name === 'Moon' && b.name === 'Earth') ||
+        (anchor.name === 'Jupiter' && ['Io', 'Europa', 'Ganymede', 'Callisto'].includes(b.name));
+      if (!isRelevant) continue;
+    }
+    perturbers.push(
+      b.pos[0] - anchor.pos[0],
+      b.pos[1] - anchor.pos[1],
+      b.pos[2] - anchor.pos[2],
+      b.mass
+    );
+  }
+  return new Float64Array(perturbers);
+}
+

@@ -158,27 +158,67 @@ $$\langle \phi_L \rangle = 180^\circ$$
 
 ---
 
-## 8. Verification Protocol & Test Results
+## 8. Centric Non-Inertial Reference Frames, $J_2$ Oblateness, & Lunisolar Perturbations
+
+In planet-centric coordinates (Geocentric, Selenocentric, Jovicentric), test particles and satellite swarms move in an accelerating non-inertial reference frame centered on the primary body $\mathbf{R}_0$.
+
+### 8.1 Equations of Motion
+Following Danby (1988), Roy (2005), and Kaula (1966), the complete relative equation of motion is:
+$$\ddot{\mathbf{r}} = -\frac{\mu_0 \mathbf{r}}{\|\mathbf{r}\|^3} + \mathbf{a}_{J2}(\mathbf{r}) + \sum_{k \neq 0} \mu_k \left[ \frac{\mathbf{r}_k - \mathbf{r}}{\|\mathbf{r}_k - \mathbf{r}\|^3} - \frac{\mathbf{r}_k}{\|\mathbf{r}_k\|^3} \right]$$
+
+1. **Central Two-Body Pull**: $-\frac{\mu_0 \mathbf{r}}{\|\mathbf{r}\|^3}$.
+2. **Central Body Oblateness ($J_2$)**:
+   The gradient of the second zonal harmonic geopotential:
+   $$a_{J2, x} = -\frac{3}{2} J_2 \frac{\mu_0 R_0^2}{r^5} x \left( 1 - 5 \frac{z^2}{r^2} \right)$$
+   $$a_{J2, y} = -\frac{3}{2} J_2 \frac{\mu_0 R_0^2}{r^5} y \left( 1 - 5 \frac{z^2}{r^2} \right)$$
+   $$a_{J2, z} = -\frac{3}{2} J_2 \frac{\mu_0 R_0^2}{r^5} z \left( 3 - 5 \frac{z^2}{r^2} \right)$$
+   - At LEO ($r \approx 7,000\text{ km}$): $a_{J2} \approx 0.011\text{ m/s}^2$ ($1000\times$ stronger than third-body tidal forces).
+   - At GEO ($r \approx 42,164\text{ km}$): $a_{J2} \approx 8.28 \times 10^{-6}\text{ m/s}^2$.
+3. **Third-Body Direct & d'Alembert Reflex Pull**:
+   - Direct gravitational acceleration from body $k$: $\mu_k \frac{\mathbf{r}_k - \mathbf{r}}{\|\mathbf{r}_k - \mathbf{r}\|^3}$.
+   - Apparent fictitious d'Alembert reflex acceleration from origin acceleration: $-\mu_k \frac{\mathbf{r}_k}{\|\mathbf{r}_k\|^3}$.
+   - At GEO: Lunar tidal perturbation $a_{\leftmoon} \approx 7.2 \times 10^{-6}\text{ m/s}^2$ and Solar tidal perturbation $a_\odot \approx 3.3 \times 10^{-6}\text{ m/s}^2$, reaching direct parity with $J_2$.
+
+---
+
+## 9. Verification Protocol & Test Results
 
 The test suite in [`crates/sbm_core/tests/nbody_test.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/tests/nbody_test.rs) validates all formulations against published benchmarks:
 
 ```
-running 14 tests
+running 30 tests
+test test_centric_particle_j2_acceleration_orders_of_magnitude ... ok
+test test_centric_spatial_field_grid_earth ... ok
+test test_centric_spatial_field_grid_heliocentric_includes_sun ... ok
+test test_centric_spatial_field_grid_moon ... ok
+test test_centric_third_body_lunisolar_perturbations ... ok
 test test_chebotarev_1964_gravitational_spheres_reproduction ... ok
+test test_compute_centric_particle_acceleration ... ok
 test test_domingos_2006_hill_sphere_satellite_stability ... ok
 test test_earth_moon_sun_gravitational_tug_of_war ... ok
+test test_generate_centric_test_particles ... ok
+test test_is_body_relevant_to_centric ... ok
 test test_jpl_solar_system_earth_orbital_period_and_radius ... ok
 test test_laplace_resonance_4_2_1 ... ok
 test test_leapfrog_and_hermite4_steps ... ok
-test test_linear_and_angular_momentum_conservation ... ok
 test test_osculating_elements_circular_and_inclined ... ok
 test test_relativistic_mercury_precession_computation ... ok
+test test_satellite_orbital_telemetry_computation ... ok
+test test_shadow_cone_geometry_and_eclipse_evaluation ... ok
+test test_spatial_dominance_chebotarev_boundary_sun_earth ... ok
+test test_spatial_dominance_earth_moon_neutral_point ... ok
 test test_sun_jupiter_trojan_lagrange_angles ... ok
+test test_spatial_field_grid_sampling ... ok
 test test_tidal_tensor_trace_free_and_eigenvalues_arxiv_1608_03366 ... ok
 test test_trajectory_propagation_output_snapshots ... ok
+test test_vis_viva_orbital_speed_and_normalized_kinetic ... ok
+test test_centric_spatial_field_grid_high_resolution_granularity ... ok
+test test_linear_and_angular_momentum_conservation ... ok
+test test_spatial_field_point_at_1au_matches_solar_gravity ... ok
 test test_yoshida4_energy_conservation_figure8 ... ok
 test test_yoshida6_precision_higher_than_yoshida4 ... ok
 
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 ```
+
 

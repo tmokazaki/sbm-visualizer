@@ -1021,6 +1021,115 @@ fn test_satellite_orbital_telemetry_computation() {
     assert_eq!(tel_ecc.eclipse_state, sbm_core::nbody::EclipseState::Umbra);
 }
 
+#[test]
+fn test_centric_particle_j2_acceleration_orders_of_magnitude() {
+    use sbm_core::nbody::{compute_j2_acceleration, get_body_j2_parameters, G_STANDARD};
+
+    let (r_eq_earth, j2_earth) = get_body_j2_parameters("Earth");
+    assert!((r_eq_earth - 6_378_137.0).abs() < 1.0, "Earth equatorial radius must match WGS84");
+    assert!((j2_earth - 1.08262668e-3).abs() < 1e-8, "Earth J2 must match IERS 2010");
+
+    let m_earth = 5.9722e24;
+    let mu_earth = G_STANDARD * m_earth;
+
+    // 1. LEO Equatorial Satellite (r = 7,000 km, z = 0)
+    let r_leo = 7_000_000.0;
+    let a_j2_leo = compute_j2_acceleration([r_leo, 0.0, 0.0], mu_earth, r_eq_earth, j2_earth);
+    let a_j2_leo_mag = (a_j2_leo[0] * a_j2_leo[0] + a_j2_leo[1] * a_j2_leo[1] + a_j2_leo[2] * a_j2_leo[2]).sqrt();
+
+    // Theoretical magnitude: 1.5 * J2 * mu * R^2 / r^4
+    let expected_j2_leo = 1.5 * j2_earth * mu_earth * (r_eq_earth * r_eq_earth) / r_leo.powi(4);
+    assert!(
+        (a_j2_leo_mag - expected_j2_leo).abs() / expected_j2_leo < 1e-4,
+        "LEO J2 acceleration magnitude should match theory ~{:.4} m/s^2, got {:.4}",
+        expected_j2_leo,
+        a_j2_leo_mag
+    );
+    assert!(
+        a_j2_leo_mag > 0.010 && a_j2_leo_mag < 0.015,
+        "LEO J2 acceleration must be ~0.011 m/s^2 (Kaula 1966; Vallado 2013)"
+    );
+
+    // 2. GEO Equatorial Satellite (r = 42,164 km, z = 0)
+    let r_geo = 42_164_000.0;
+    let a_j2_geo = compute_j2_acceleration([r_geo, 0.0, 0.0], mu_earth, r_eq_earth, j2_earth);
+    let a_j2_geo_mag = (a_j2_geo[0] * a_j2_geo[0] + a_j2_geo[1] * a_j2_geo[1] + a_j2_geo[2] * a_j2_geo[2]).sqrt();
+
+    let expected_j2_geo = 1.5 * j2_earth * mu_earth * (r_eq_earth * r_eq_earth) / r_geo.powi(4);
+    assert!(
+        (a_j2_geo_mag - expected_j2_geo).abs() / expected_j2_geo < 1e-4,
+        "GEO J2 acceleration magnitude should match theory ~{:.3e} m/s^2, got {:.3e}",
+        expected_j2_geo,
+        a_j2_geo_mag
+    );
+    assert!(
+        a_j2_geo_mag > 5e-6 && a_j2_geo_mag < 1.2e-5,
+        "GEO J2 acceleration must be ~8.3e-6 m/s^2 (Vallado 2013, Ch. 9)"
+    );
+}
+
+#[test]
+fn test_centric_third_body_lunisolar_perturbations() {
+    use sbm_core::nbody::{
+        compute_centric_particle_acceleration_with_breakdown, CelestialBody,
+        CentricPerturbationMode, NBodySystem, ASTRONOMICAL_UNIT_M,
+    };
+
+    let mut system = NBodySystem::new();
+    let earth = CelestialBody::new(
+        1, "Earth", 5.9722e24, 6371.0, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], "#38bdf8",
+    );
+    let moon = CelestialBody::new(
+        2, "Moon", 7.3477e22, 1737.4, [384_400_000.0, 0.0, 0.0], [0.0, 1022.0, 0.0], "#94a3b8",
+    );
+    let sun = CelestialBody::new(
+        0, "Sun", 1.98847e30, 696340.0, [0.0, -ASTRONOMICAL_UNIT_M, 0.0], [0.0, 0.0, 0.0], "#fbbf24",
+    );
+    system.add_body(sun);
+    system.add_body(earth);
+    system.add_body(moon);
+
+    // Satellite at GEO (r = 42,164 km) along x-axis towards Moon
+    let rel_pos_geo = [42_164_000.0, 0.0, 0.0];
+
+    // 1. Two-Body Mode: Zero perturbations
+    let (acc_2body, bd_2body) = compute_centric_particle_acceleration_with_breakdown(
+        &system, "Earth", rel_pos_geo, CentricPerturbationMode::TwoBody,
+    ).expect("Two-body acceleration should compute");
+
+    assert!(bd_2body.a_central_mps2 > 0.22 && bd_2body.a_central_mps2 < 0.23, "Central pull at GEO ~ 0.224 m/s^2");
+    assert_eq!(bd_2body.a_j2_mps2, 0.0, "TwoBody mode must have 0 J2 acceleration");
+    assert_eq!(bd_2body.a_third_body_mps2, 0.0, "TwoBody mode must have 0 third-body acceleration");
+    let acc_2body_mag = (acc_2body[0].powi(2) + acc_2body[1].powi(2) + acc_2body[2].powi(2)).sqrt();
+    assert!((acc_2body_mag - bd_2body.a_central_mps2).abs() < 1e-10);
+
+    // 2. Third-Body Mode: Lunar & Solar tidal pull present, zero J2
+    let (_, bd_3rd) = compute_centric_particle_acceleration_with_breakdown(
+        &system, "Earth", rel_pos_geo, CentricPerturbationMode::ThirdBody,
+    ).expect("Third-body acceleration should compute");
+
+    assert_eq!(bd_3rd.a_j2_mps2, 0.0, "ThirdBody mode must have 0 J2 acceleration");
+    assert!(
+        bd_3rd.a_third_body_mps2 > 1e-6 && bd_3rd.a_third_body_mps2 < 2e-5,
+        "GEO third-body perturbation must be ~ 5e-6 to 1.5e-5 m/s^2, got {:.3e}",
+        bd_3rd.a_third_body_mps2
+    );
+    assert_eq!(bd_3rd.dominant_perturber_name, "Moon", "Moon should dominate lunar-aligned GEO orbit");
+
+    // 3. Full Perturbed Mode: Both J2 and Lunisolar present
+    let (acc_full, bd_full) = compute_centric_particle_acceleration_with_breakdown(
+        &system, "Earth", rel_pos_geo, CentricPerturbationMode::FullPerturbed,
+    ).expect("Full perturbed acceleration should compute");
+
+    assert!(bd_full.a_j2_mps2 > 5e-6 && bd_full.a_j2_mps2 < 1.2e-5, "J2 must be active");
+    assert!(bd_full.a_third_body_mps2 > 1e-6, "Third-body must be active");
+    let acc_full_mag = (acc_full[0].powi(2) + acc_full[1].powi(2) + acc_full[2].powi(2)).sqrt();
+    assert!(
+        (acc_full_mag - bd_full.a_total_mps2).abs() < 1e-10,
+        "Total acceleration magnitude must match vector magnitude"
+    );
+}
+
 
 
 

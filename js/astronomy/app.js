@@ -24,8 +24,12 @@ import {
   spawnSwarm,
   stepSwarm,
   clearSwarm,
-  getActiveSwarmEngine
+  getActiveSwarmEngine,
+  setSwarmPerturbationMode,
+  getSwarmPerturbationMode,
+  getCentricPerturbersFlat
 } from './particles.js';
+
 import {
   flyTo,
   openSatelliteInspector,
@@ -188,15 +192,87 @@ export async function initApp() {
     onSelectSatelliteById: (satId) => {
       const sat = state.testParticles.find(p => p.id === satId);
       if (sat) selectSatellite(sat);
+    },
+    onCyclePerturbationMode: () => {
+      const curMode = getSwarmPerturbationMode();
+      // Cycle: 2 (Full) -> 0 (TwoBody) -> 1 (ThirdBody) -> 2 (Full)
+      const nextMode = (curMode + 1) % 3;
+      setSwarmPerturbationMode(nextMode);
+      state.perturbationMode = nextMode;
+
+      const chipText = document.getElementById('perturbation-mode-text');
+      const labels = [
+        'Perturbations: Two-Body (Keplerian)',
+        'Perturbations: Third-Body (Lunisolar)',
+        'Perturbations: Full (3rd-Body + J2)'
+      ];
+      if (chipText) {
+        chipText.innerText = labels[nextMode];
+      }
+
+      const toast = document.getElementById('gravitational-centric-toast');
+      const toastTitle = document.getElementById('centric-toast-title');
+      const toastDesc = document.getElementById('centric-toast-desc');
+      if (toast && toastTitle && toastDesc) {
+        toastTitle.innerText = `PERTURBATION DYNAMICS: ${labels[nextMode].toUpperCase()}`;
+        const descriptions = [
+          'Pure unperturbed central Keplerian two-body gravity (d²r/dt² = -μr/r³)',
+          'Non-inertial direct and d\'Alembert reflex accelerations from Moon & Sun (Danby 1988)',
+          'Full astrodynamics: Central + Lunisolar 3rd-body + Central body J2 oblateness (Kaula 1966)'
+        ];
+        toastDesc.innerText = descriptions[nextMode];
+        toast.style.display = 'flex';
+        clearTimeout(toast.timeoutId);
+        toast.timeoutId = setTimeout(() => {
+          toast.style.display = 'none';
+        }, 4000);
+      }
     }
   });
 
-  // 7. Window Resize Listener
+
+  // 7. Parse URL Query Parameters for Direct Linking / Automated Testing
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('centric')) {
+    setCentricBody(params.get('centric'));
+  }
+  if (params.has('particles')) {
+    const count = parseInt(params.get('particles'), 10) || 300;
+    spawnSwarm(scene, state.activeCentricBody || 'Earth', 'swarm', count, state);
+  }
+  if (params.has('perturb')) {
+    const pMode = parseInt(params.get('perturb'), 10) || 0;
+    setSwarmPerturbationMode(pMode);
+    state.perturbationMode = pMode;
+    const chipText = document.getElementById('perturbation-mode-text');
+    const labels = [
+      'Perturbations: Two-Body (Keplerian)',
+      'Perturbations: Third-Body (Lunisolar)',
+      'Perturbations: Full (3rd-Body + J2)'
+    ];
+    if (chipText && labels[pMode]) chipText.innerText = labels[pMode];
+  }
+  if (params.has('sat')) {
+    const rawSat = params.get('sat');
+    const sat = state.testParticles.find(p => p.id === rawSat || p.id === `sat_${rawSat}` || p.name === `SAT-${String(rawSat).padStart(3, '0')}`);
+    if (sat) {
+      selectSatellite(sat);
+      if (params.get('isolate') === '1') {
+        state.isolateSelectedOrbit = true;
+        const btnIsolate = document.getElementById('btn-sat-isolate');
+        if (btnIsolate) btnIsolate.classList.add('active');
+      }
+    }
+  }
+
+
+  // 8. Window Resize Listener
   window.addEventListener('resize', onWindowResize);
 
-  // 8. Start Animation Loop
+  // 9. Start Animation Loop
   requestAnimationFrame(animate);
 }
+
 
 function loadPreset(presetId) {
   state.presetId = presetId;
@@ -544,8 +620,17 @@ function selectSatellite(tp) {
     sunRel = [sun.pos[0] - anchor.pos[0], sun.pos[1] - anchor.pos[1], sun.pos[2] - anchor.pos[2]];
   }
 
-  openSatelliteInspector(tp, getActiveSwarmEngine(), sunRel, sun ? sun.radius * 1e3 : 696340e3);
+  const perturbersFlat = getCentricPerturbersFlat(state);
+  openSatelliteInspector(tp, getActiveSwarmEngine(), sunRel, sun ? sun.radius * 1e3 : 696340e3, perturbersFlat);
+
+  if (tp.mesh) {
+    controls.target.copy(tp.mesh.position);
+    camera.position.set(tp.mesh.position.x + 0.9, tp.mesh.position.y + 0.6, tp.mesh.position.z + 1.2);
+    controls.update();
+  }
 }
+
+
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -641,9 +726,11 @@ function animate(currentTime) {
       if (sun && anchor) {
         sunRel = [sun.pos[0] - anchor.pos[0], sun.pos[1] - anchor.pos[1], sun.pos[2] - anchor.pos[2]];
       }
-      updateSatelliteInspectorCard(selSat, getActiveSwarmEngine(), sunRel, sun ? sun.radius * 1e3 : 696340e3);
+      const perturbersFlat = getCentricPerturbersFlat(state);
+      updateSatelliteInspectorCard(selSat, getActiveSwarmEngine(), sunRel, sun ? sun.radius * 1e3 : 696340e3, perturbersFlat);
     }
   }
+
 
   // Update HUD
   const hudTime = document.getElementById('hud-time');
