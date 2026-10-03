@@ -12,5 +12,6 @@ path = "src/main.rs"
 
 [dependencies]
 sbm_core = { path = "../crates/sbm_core" }
+sbm_avoidance = { path = "../crates/sbm_avoidance" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
