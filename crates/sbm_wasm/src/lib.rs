@@ -8,7 +8,8 @@ use core::f64::consts::PI;
 use sbm_core::nbody::{
     compute_conservation_metrics, compute_pairwise_forces, compute_shadow_cone_geometry,
     compute_spatial_field_point, compute_vis_viva_speed, create_preset, evaluate_eclipse_state,
-    step_system, CelestialBody, EclipseState, IntegratorType, NBodySystem, PresetId, G_STANDARD,
+    extract_osculating_elements, step_system, CelestialBody, EclipseState, IntegratorType,
+    NBodySystem, PresetId, G_STANDARD,
 };
 
 /// High-performance N-Body gravitational dynamics simulation engine.
@@ -96,6 +97,18 @@ impl WasmNBodyEngine {
     pub fn get_pairwise_forces(&self, focus_index: usize) -> Result<JsValue, JsValue> {
         let forces = compute_pairwise_forces(&self.system, focus_index);
         serde_wasm_bindgen::to_value(&forces)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Evaluates osculating Keplerian orbital elements of body `body_index` relative to `primary_index`.
+    pub fn get_osculating_elements(&self, body_index: usize, primary_index: usize) -> Result<JsValue, JsValue> {
+        if body_index >= self.system.bodies.len() || primary_index >= self.system.bodies.len() {
+            return Ok(JsValue::NULL);
+        }
+        let body = &self.system.bodies[body_index];
+        let primary = &self.system.bodies[primary_index];
+        let elements = extract_osculating_elements(body, primary, self.system.gravitational_constant);
+        serde_wasm_bindgen::to_value(&elements)
             .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 

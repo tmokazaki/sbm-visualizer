@@ -168,6 +168,19 @@ export class WasmNBodyEngine {
         return takeFromExternrefTable0(ret[0]);
     }
     /**
+     * Evaluates osculating Keplerian orbital elements of body `body_index` relative to `primary_index`.
+     * @param {number} body_index
+     * @param {number} primary_index
+     * @returns {any}
+     */
+    get_osculating_elements(body_index, primary_index) {
+        const ret = wasm.wasmnbodyengine_get_osculating_elements(this.__wbg_ptr, body_index, primary_index);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
      * Evaluates pairwise gravitational forces on the body at `focus_index`.
      * @param {number} focus_index
      * @returns {any}

@@ -48,10 +48,8 @@ export function openSatelliteInspector(tp, wasmSwarmEngine, sunRelPos, sunRadius
   card.dataset.isSpacePoint = 'false';
 
   const planetActions = document.getElementById('planet-actions-row');
-  const spaceActions = document.getElementById('space-actions-row');
   const satActions = document.getElementById('satellite-actions-row');
   if (planetActions) planetActions.style.display = 'none';
-  if (spaceActions) spaceActions.style.display = 'none';
   if (satActions) satActions.style.display = 'grid';
 
   const tidalCard = document.getElementById('place-tidal-card');
@@ -150,7 +148,6 @@ export function updateSatelliteInspectorCard(tp, wasmSwarmEngine, sunRelPos, sun
   }
 }
 
-
 export function openBodyPlaceCard(body, state) {
   const card = document.getElementById('gmap-place-card');
   if (!card || !body) return;
@@ -159,15 +156,16 @@ export function openBodyPlaceCard(body, state) {
   card.dataset.isSpacePoint = 'false';
 
   const planetActions = document.getElementById('planet-actions-row');
-  const spaceActions = document.getElementById('space-actions-row');
   const satActions = document.getElementById('satellite-actions-row');
   if (planetActions) planetActions.style.display = 'grid';
-  if (spaceActions) spaceActions.style.display = 'none';
   if (satActions) satActions.style.display = 'none';
 
   document.getElementById('place-icon').innerText = getBodyEmoji(body.name);
   document.getElementById('place-title').innerText = body.name;
   document.getElementById('place-subtitle').innerText = `Celestial Body &bull; Mass: ${body.mass.toExponential(3)} kg`;
+
+  const heading = document.getElementById('place-specs-heading');
+  if (heading) heading.innerText = 'Celestial Specifications';
 
   const specs = document.getElementById('place-specs-table');
   if (specs) {
@@ -181,11 +179,76 @@ export function openBodyPlaceCard(body, state) {
     `;
   }
 
+  updatePlaceTugOfWar(body, state);
   card.style.display = 'block';
 }
 
+export function updatePlaceTugOfWar(b, state) {
+  const table = document.getElementById('place-tug-table');
+  const badge = document.getElementById('place-tug-badge');
+  const note = document.getElementById('place-tug-insight');
+  if (!table || !b || !state.bodies || state.bodies.length < 2) return;
+
+  const G_STANDARD = 6.67430e-11;
+  const forces = [];
+
+  for (let j = 0; j < state.bodies.length; j++) {
+    const other = state.bodies[j];
+    if (other.name === b.name) continue;
+    const dx = other.pos[0] - b.pos[0];
+    const dy = other.pos[1] - b.pos[1];
+    const dz = other.pos[2] - b.pos[2];
+    const r2 = dx * dx + dy * dy + dz * dz;
+    if (r2 <= 1e-12) continue;
+    const fMag = (G_STANDARD * b.mass * other.mass) / r2;
+    forces.push({ name: other.name, color: other.color, fMag });
+  }
+
+  forces.sort((a, b) => b.fMag - a.fMag);
+  const totalF = forces.reduce((sum, f) => sum + f.fMag, 0);
+
+  table.innerHTML = '';
+  if (badge) badge.innerText = b.name;
+
+  forces.slice(0, 4).forEach(f => {
+    const pct = totalF > 0 ? ((f.fMag / totalF) * 100).toFixed(1) : '0.0';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="label" style="color: ${f.color}; font-weight: 600;">${f.name} Pull</td>
+      <td class="val">${f.fMag.toExponential(2)} N <span style="color: var(--text-muted); font-size: 10px;">(${pct}%)</span></td>
+    `;
+    table.appendChild(row);
+  });
+
+  if (note) {
+    if (b.name === 'Moon') {
+      note.innerHTML = `<strong>Tug-of-War Insight:</strong> Sun pull (${forces[0]?.fMag.toExponential(2)} N) is <strong>2.20&times;</strong> Earth pull, yet Moon stays stably bound within Earth's Hill sphere (61,500 km)!`;
+    } else if (b.name === 'Earth') {
+      note.innerHTML = `<strong>Gravitational Anchor:</strong> Sun accounts for 99.47% of pull. Jupiter exerts secular ~1.46 &times; 10¹⁸ N perturbation.`;
+    } else {
+      note.innerHTML = `Resultant dominant pull: ${forces[0]?.name || 'N/A'} (${((forces[0]?.fMag / (totalF || 1)) * 100).toFixed(1)}%).`;
+    }
+  }
+}
+
 export function setupUIInteractions(state, callbacks) {
-  // Gravitational Centric Frame Dropdown
+  // 1. Google Maps Layers Widget (Open / Close Menu)
+  const layersBtn = document.getElementById('btn-gmap-layers');
+  const layersMenu = document.getElementById('gmap-layers-menu');
+  if (layersBtn && layersMenu) {
+    layersBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = layersMenu.style.display === 'flex';
+      layersMenu.style.display = isVisible ? 'none' : 'flex';
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#gmap-layers-widget')) {
+        layersMenu.style.display = 'none';
+      }
+    });
+  }
+
+  // 2. Gravitational Centric Frame Dropdown (Inside Layers Menu)
   const selCentric = document.getElementById('select-gravitational-frame');
   if (selCentric) {
     selCentric.addEventListener('change', (e) => {
@@ -194,7 +257,7 @@ export function setupUIInteractions(state, callbacks) {
     });
   }
 
-  // Centric Chip Click (cycle frames)
+  // 3. Centric Chip Click (cycle frames)
   const centricChip = document.getElementById('chip-centric-indicator') || document.getElementById('centric-view-chip');
   if (centricChip) {
     centricChip.addEventListener('click', () => {
@@ -205,7 +268,7 @@ export function setupUIInteractions(state, callbacks) {
     });
   }
 
-  // Quick Chips in Omnibox row
+  // 4. Quick Chips in Omnibox row
   document.querySelectorAll('.gmap-chip[data-centric]').forEach(chip => {
     chip.addEventListener('click', () => {
       state.gravitationalFrameMode = 'manual';
@@ -244,8 +307,7 @@ export function setupUIInteractions(state, callbacks) {
     });
   }
 
-
-  // Satellite Inspector Actions
+  // 5. Satellite Inspector Actions
   const btnTrack = document.getElementById('btn-sat-track');
   if (btnTrack) {
     btnTrack.addEventListener('click', () => {
@@ -286,7 +348,7 @@ export function setupUIInteractions(state, callbacks) {
     });
   }
 
-  // Planet card Fly To button
+  // Planet card Fly To & Tug-of-War buttons
   const btnPlaceFly = document.getElementById('btn-place-flyto');
   if (btnPlaceFly) {
     btnPlaceFly.addEventListener('click', () => {
@@ -294,7 +356,313 @@ export function setupUIInteractions(state, callbacks) {
     });
   }
 
-  // Omnibox Search input
+  const btnPlaceTug = document.getElementById('btn-place-tug');
+  if (btnPlaceTug) {
+    btnPlaceTug.addEventListener('click', () => {
+      const tugCard = document.getElementById('place-tug-card');
+      if (tugCard) {
+        tugCard.style.display = (tugCard.style.display === 'none' || !tugCard.style.display) ? 'block' : 'none';
+      }
+    });
+  }
+
+  const btnPlaceHill = document.getElementById('btn-place-hill');
+  if (btnPlaceHill) {
+    btnPlaceHill.addEventListener('click', () => {
+      if (callbacks.onFocusHillSphere) callbacks.onFocusHillSphere();
+    });
+  }
+
+  // 6. View Mode Toggle (Google Maps vs Full Cockpit)
+  const setViewMode = (mode) => {
+    state.viewMode = mode;
+    const leftPanel = document.getElementById('left-panel');
+    const rightPanel = document.getElementById('right-panel');
+    const bottomPanel = document.getElementById('bottom-panel');
+    const bottomToolbar = document.getElementById('bottom-toolbar');
+    const gmapSearch = document.getElementById('gmap-search-container');
+    const gmapControls = document.getElementById('gmap-controls-stack');
+    const gmapScale = document.getElementById('gmap-scale-container');
+    const gmapLayers = document.getElementById('gmap-layers-widget');
+    const gmapStatusBar = document.getElementById('gmap-status-bar');
+    const toggleBtn = document.getElementById('btn-toggle-view-mode');
+
+    if (mode === 'google_maps') {
+      if (leftPanel) leftPanel.style.display = 'none';
+      if (rightPanel) rightPanel.style.display = 'none';
+      if (bottomPanel) bottomPanel.style.display = 'none';
+      if (bottomToolbar) bottomToolbar.style.display = 'none';
+      if (gmapSearch) gmapSearch.style.display = 'flex';
+      if (gmapControls) gmapControls.style.display = 'flex';
+      if (gmapScale) gmapScale.style.display = 'flex';
+      if (gmapLayers) gmapLayers.style.display = 'block';
+      if (gmapStatusBar) gmapStatusBar.style.display = 'block';
+      const legend = document.getElementById('visviva-legend');
+      if (legend && state.activeCentricBody !== 'Sun') legend.style.display = 'flex';
+      if (toggleBtn) {
+        toggleBtn.innerText = '🗺️ Google Maps View';
+        toggleBtn.classList.add('active');
+      }
+    } else {
+      if (leftPanel) leftPanel.style.display = 'block';
+      if (rightPanel) rightPanel.style.display = 'block';
+      if (bottomPanel) bottomPanel.style.display = 'flex';
+      if (bottomToolbar) bottomToolbar.style.display = 'flex';
+      if (gmapSearch) gmapSearch.style.display = 'none';
+      if (gmapControls) gmapControls.style.display = 'none';
+      if (gmapScale) gmapScale.style.display = 'none';
+      if (gmapLayers) gmapLayers.style.display = 'none';
+      if (gmapStatusBar) gmapStatusBar.style.display = 'none';
+      const legend = document.getElementById('visviva-legend');
+      if (legend) legend.style.display = 'none';
+      const card = document.getElementById('gmap-place-card');
+      if (card) card.style.display = 'none';
+      if (toggleBtn) {
+        toggleBtn.innerText = '🎛️ Full Cockpit';
+        toggleBtn.classList.remove('active');
+      }
+      if (callbacks.onCockpitOpen) callbacks.onCockpitOpen();
+    }
+  };
+
+  const toggleViewBtn = document.getElementById('btn-toggle-view-mode');
+  if (toggleViewBtn) {
+    toggleViewBtn.addEventListener('click', () => {
+      const newMode = (state.viewMode === 'google_maps' || !state.viewMode) ? 'cockpit' : 'google_maps';
+      setViewMode(newMode);
+    });
+  }
+
+  const btnPlaceCockpit = document.getElementById('btn-place-cockpit-toggle');
+  if (btnPlaceCockpit) {
+    btnPlaceCockpit.addEventListener('click', () => {
+      setViewMode('cockpit');
+    });
+  }
+
+  // 7. Google Maps Floating Controls Stack
+  const btnZoomIn = document.getElementById('btn-gmap-zoom-in');
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', () => {
+      if (callbacks.onZoom) callbacks.onZoom(0.7);
+    });
+  }
+  const btnZoomOut = document.getElementById('btn-gmap-zoom-out');
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', () => {
+      if (callbacks.onZoom) callbacks.onZoom(1.4);
+    });
+  }
+
+  const btnTilt = document.getElementById('btn-gmap-tilt');
+  if (btnTilt) {
+    btnTilt.addEventListener('click', () => {
+      if (callbacks.onToggleTilt) callbacks.onToggleTilt();
+    });
+  }
+
+  const btnRecenter = document.getElementById('btn-gmap-recenter');
+  if (btnRecenter) {
+    btnRecenter.addEventListener('click', () => {
+      if (callbacks.onRecenter) callbacks.onRecenter();
+    });
+  }
+
+  const btnCompass = document.getElementById('btn-gmap-compass');
+  if (btnCompass) {
+    btnCompass.addEventListener('click', () => {
+      if (callbacks.onCompass) callbacks.onCompass();
+    });
+  }
+
+  // 8. Top Header Simulation Controls
+  const selPreset = document.getElementById('preset-select');
+  if (selPreset) {
+    selPreset.addEventListener('change', (e) => {
+      if (callbacks.onPresetChange) callbacks.onPresetChange(e.target.value);
+    });
+  }
+
+  const btnPlay = document.getElementById('btn-play');
+  if (btnPlay) {
+    btnPlay.addEventListener('click', () => {
+      state.isPlaying = !state.isPlaying;
+      btnPlay.innerText = state.isPlaying ? 'Pause' : 'Play';
+      btnPlay.classList.toggle('active', state.isPlaying);
+    });
+  }
+
+  const btnReset = document.getElementById('btn-reset');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (callbacks.onReset) callbacks.onReset();
+    });
+  }
+
+  const btnScale = document.getElementById('btn-scale-mode');
+  if (btnScale) {
+    btnScale.addEventListener('click', () => {
+      if (callbacks.onToggleScaleMode) callbacks.onToggleScaleMode();
+    });
+  }
+
+  const selFocus = document.getElementById('camera-focus-select');
+  if (selFocus) {
+    selFocus.addEventListener('change', (e) => {
+      if (callbacks.onCameraFocus) callbacks.onCameraFocus(e.target.value);
+    });
+  }
+
+  // 9. Classic Cockpit Left Panel Controls
+  const selInt = document.getElementById('integrator-select');
+  if (selInt) {
+    selInt.addEventListener('change', (e) => {
+      state.integrator = e.target.value;
+      const badge = document.getElementById('integrator-badge');
+      if (badge) {
+        const names = { yoshida4: 'Yoshida 4th', yoshida6: 'Yoshida 6th', leapfrog: 'Leapfrog', hermite4: 'Hermite 4th' };
+        badge.innerText = names[state.integrator] || state.integrator;
+      }
+    });
+  }
+
+  const speedSlider = document.getElementById('time-speed-slider');
+  const speedVal = document.getElementById('time-speed-val');
+  if (speedSlider) {
+    speedSlider.addEventListener('input', (e) => {
+      state.timeMultiplier = parseFloat(e.target.value);
+      if (speedVal) speedVal.innerText = `${state.timeMultiplier}x`;
+    });
+  }
+
+  const substepsSlider = document.getElementById('substeps-slider');
+  const substepsVal = document.getElementById('substeps-val');
+  if (substepsSlider) {
+    substepsSlider.addEventListener('input', (e) => {
+      state.subSteps = parseInt(e.target.value, 10);
+      if (substepsVal) substepsVal.innerText = `${state.subSteps} steps`;
+    });
+  }
+
+  const btnToggleForces = document.getElementById('btn-toggle-forces');
+  if (btnToggleForces) {
+    btnToggleForces.addEventListener('click', () => {
+      state.showForces = !state.showForces;
+      btnToggleForces.innerText = `Forces: ${state.showForces ? 'ON' : 'OFF'}`;
+      btnToggleForces.classList.toggle('active', state.showForces);
+      if (callbacks.onToggleForces) callbacks.onToggleForces(state.showForces);
+    });
+  }
+
+  const magSlider = document.getElementById('magnifier-slider');
+  const magVal = document.getElementById('magnifier-val');
+  if (magSlider) {
+    magSlider.addEventListener('input', (e) => {
+      state.perturbationMagnifier = parseFloat(e.target.value);
+      if (magVal) magVal.innerText = `${state.perturbationMagnifier.toLocaleString()}x`;
+      if (callbacks.onUpdateMagnifier) callbacks.onUpdateMagnifier(state.perturbationMagnifier);
+    });
+  }
+
+  const btnToggleTethers = document.getElementById('btn-toggle-tethers');
+  if (btnToggleTethers) {
+    btnToggleTethers.addEventListener('click', () => {
+      state.showTethers = !state.showTethers;
+      btnToggleTethers.innerText = `Tethers: ${state.showTethers ? 'ON' : 'OFF'}`;
+      btnToggleTethers.classList.toggle('active', state.showTethers);
+      if (callbacks.onToggleTethers) callbacks.onToggleTethers(state.showTethers);
+    });
+  }
+
+  const btnToggleSpacetime = document.getElementById('btn-toggle-spacetime');
+  if (btnToggleSpacetime) {
+    btnToggleSpacetime.addEventListener('click', () => {
+      state.showSpacetime = !state.showSpacetime;
+      btnToggleSpacetime.innerText = `Spacetime: ${state.showSpacetime ? 'ON' : 'OFF'}`;
+      btnToggleSpacetime.classList.toggle('active', state.showSpacetime);
+      if (callbacks.onToggleSpacetime) callbacks.onToggleSpacetime(state.showSpacetime);
+    });
+  }
+
+  const btnToggleHills = document.getElementById('btn-toggle-hills');
+  if (btnToggleHills) {
+    btnToggleHills.addEventListener('click', () => {
+      state.showHillSpheres = !state.showHillSpheres;
+      btnToggleHills.innerText = `Hill Spheres: ${state.showHillSpheres ? 'ON' : 'OFF'}`;
+      btnToggleHills.classList.toggle('active', state.showHillSpheres);
+      if (callbacks.onToggleHills) callbacks.onToggleHills(state.showHillSpheres);
+    });
+  }
+
+  const btnToggleGr = document.getElementById('btn-toggle-gr');
+  if (btnToggleGr) {
+    btnToggleGr.addEventListener('click', () => {
+      state.enable_gr = !state.enable_gr;
+      btnToggleGr.innerText = `1PN GR: ${state.enable_gr ? 'ON' : 'OFF'}`;
+      btnToggleGr.classList.toggle('active', state.enable_gr);
+    });
+  }
+
+  const btnToggleTrails = document.getElementById('btn-toggle-trails');
+  if (btnToggleTrails) {
+    btnToggleTrails.addEventListener('click', () => {
+      state.showTrails = !state.showTrails;
+      btnToggleTrails.innerText = `Trails: ${state.showTrails ? 'ON' : 'OFF'}`;
+      btnToggleTrails.classList.toggle('active', state.showTrails);
+      if (callbacks.onToggleTrails) callbacks.onToggleTrails(state.showTrails);
+    });
+  }
+
+  const btnToggleVel = document.getElementById('btn-toggle-vel');
+  if (btnToggleVel) {
+    btnToggleVel.addEventListener('click', () => {
+      state.showVectors = !state.showVectors;
+      btnToggleVel.innerText = `Vectors: ${state.showVectors ? 'ON' : 'OFF'}`;
+      btnToggleVel.classList.toggle('active', state.showVectors);
+      if (callbacks.onToggleVectors) callbacks.onToggleVectors(state.showVectors);
+    });
+  }
+
+  const btnToggleGrid = document.getElementById('btn-toggle-grid');
+  if (btnToggleGrid) {
+    btnToggleGrid.addEventListener('click', () => {
+      state.showGrid = !state.showGrid;
+      btnToggleGrid.innerText = `Grid: ${state.showGrid ? 'ON' : 'OFF'}`;
+      btnToggleGrid.classList.toggle('active', state.showGrid);
+      if (callbacks.onToggleGrid) callbacks.onToggleGrid(state.showGrid);
+    });
+  }
+
+  // 10. Classic Cockpit Right Panel Body Selector
+  const selBody = document.getElementById('body-selector-dropdown');
+  if (selBody) {
+    selBody.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.value, 10);
+      if (callbacks.onSelectBody) callbacks.onSelectBody(idx);
+    });
+  }
+
+  // 11. Classic Cockpit Bottom Toolbar Camera Views
+  const btnCamTop = document.getElementById('btn-camera-top');
+  if (btnCamTop) {
+    btnCamTop.addEventListener('click', () => {
+      if (callbacks.onCameraView) callbacks.onCameraView('top');
+    });
+  }
+  const btnCamSide = document.getElementById('btn-camera-side');
+  if (btnCamSide) {
+    btnCamSide.addEventListener('click', () => {
+      if (callbacks.onCameraView) callbacks.onCameraView('side');
+    });
+  }
+  const btnCamIso = document.getElementById('btn-camera-iso');
+  if (btnCamIso) {
+    btnCamIso.addEventListener('click', () => {
+      if (callbacks.onCameraView) callbacks.onCameraView('iso');
+    });
+  }
+
+  // 12. Omnibox Search input
   const searchInput = document.getElementById('gmap-search-input');
   const searchClear = document.getElementById('gmap-search-clear');
   const searchDropdown = document.getElementById('gmap-search-dropdown');
