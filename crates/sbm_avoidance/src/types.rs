@@ -416,3 +416,117 @@ impl Default for AvoidanceConfig {
         }
     }
 }
+
+/// Instantaneous trajectory state snapshot for 3D visual playback and flight telemetry HUD.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EpisodeTrajectorySnapshot {
+    /// Episode simulation step (0-indexed).
+    pub step: usize,
+    /// Elapsed physical time in seconds.
+    pub time_s: f64,
+    /// Satellite ECI Cartesian position [x, y, z] in meters.
+    pub sat_pos: [f64; 3],
+    /// Satellite ECI Cartesian velocity [vx, vy, vz] in m/s.
+    pub sat_vel: [f64; 3],
+    /// Remaining propellant mass in kg.
+    pub sat_fuel_kg: f64,
+    /// Commanded 3D action [ax, ay, az] in [-1, 1].
+    pub action: [f64; 3],
+    /// Actual physical thrust acceleration vector applied [ax, ay, az] in m/s^2.
+    pub thrust_accel: [f64; 3],
+    /// Velocity increment applied in this step in m/s.
+    pub step_dv: f64,
+    /// Cumulative velocity increment expended so far across the episode in m/s.
+    pub cumulative_dv: f64,
+    /// Separation distance to the nearest debris in meters.
+    pub min_distance_m: f64,
+    /// Time-to-closest-approach (TCA) in seconds.
+    pub tca_s: f64,
+    /// Relative line-of-sight closing speed in m/s (>0 means closing).
+    pub closing_speed_mps: f64,
+    /// Multi-factor kinematic risk score rho_i in [0, 1] (Eq. 9).
+    pub hazard_score: f64,
+    /// Instantaneous ECI position [x, y, z] of the primary threatening debris in meters.
+    pub target_debris_pos: Option<[f64; 3]>,
+}
+
+/// Complete telemetry recording of an entire episode, ready for 3D visual replay.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EpisodeTelemetryRecord {
+    /// Controller name (e.g. "PPO", "Impulsive", "Rule-based", "No-action").
+    pub policy_name: String,
+    /// Random seed used to initialize the encounter.
+    pub seed: u64,
+    /// Final termination outcome.
+    pub final_outcome: TerminationReason,
+    /// Initial debris field positions [[x, y, z], ...].
+    pub initial_debris: Vec<[f64; 3]>,
+    /// Index of designated target debris.
+    pub target_debris_idx: Option<usize>,
+    /// Time-series snapshots across the episode.
+    pub snapshots: Vec<EpisodeTrajectorySnapshot>,
+    /// Cumulative reward component breakdown.
+    pub summary_reward: RewardBreakdown,
+    /// Collision sphere radius threshold in meters ($d_{\text{coll}}$).
+    pub collision_threshold_m: f64,
+    /// Safe zone buffer radius beyond collision in meters ($d_{\text{safe}}$).
+    pub safe_buffer_m: f64,
+    /// Total duration in seconds.
+    pub total_duration_s: f64,
+    /// Minimum separation distance observed across the entire episode in meters.
+    pub min_observed_distance_m: f64,
+}
+
+/// Training telemetry progress point for learning curve visualization.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrainingProgressPoint {
+    /// Global curriculum environment step.
+    pub step: usize,
+    /// Name of active curriculum stage.
+    pub stage_name: String,
+    /// Collision probability in current stage.
+    pub collision_probability: f64,
+    /// Mean episode reward over recent window.
+    pub mean_reward: f64,
+    /// Collision rate percentage over recent window.
+    pub collision_rate_pct: f64,
+    /// Mean cumulative Delta-v expenditure in m/s.
+    pub mean_delta_v: f64,
+    /// Value function loss.
+    pub value_loss: f64,
+    /// Clipped surrogate policy loss.
+    pub policy_loss: f64,
+    /// Policy entropy.
+    pub entropy: f64,
+}
+
+/// Complete training visualization package containing learning curves and milestone replays.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrainingVisualizerData {
+    /// Time-series training curve data points across 1,000,000 steps.
+    pub curves: Vec<TrainingProgressPoint>,
+    /// Milestone checkpoint encounter replays (Step 0, 100k, 400k, 1M).
+    pub checkpoint_episodes: Vec<EpisodeTelemetryRecord>,
+}
+
+/// Operational real-world satellite conjunction encounter package.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealWorldConjunctionScenario {
+    /// Active satellite name (e.g. "ISS (ZARYA)", "SENTINEL-1A", "STARLINK-3001").
+    pub satellite_name: String,
+    /// Debris catalog name (e.g. "COSMOS 2251 Debris Swarm", "FENGYUN 1C Debris").
+    pub debris_catalog_name: String,
+    /// Scenario epoch in ISO UTC.
+    pub epoch_utc: String,
+    /// Nominal unmaneuvered ballistic miss distance in meters.
+    pub unmaneuvered_miss_distance_m: f64,
+    /// Ballistic baseline trajectory telemetry (No-Action).
+    pub unmaneuvered_telemetry: EpisodeTelemetryRecord,
+    /// PPO autonomous evasive trajectory telemetry.
+    pub evasive_telemetry: EpisodeTelemetryRecord,
+    /// Achieved safe clearance margin at TCA in meters.
+    pub achieved_clearance_m: f64,
+    /// Propellant consumed for the evasive maneuver in kg.
+    pub propellant_used_kg: f64,
+}
+

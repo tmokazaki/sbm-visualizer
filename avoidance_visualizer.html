@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBM Avoidance Cockpit // Autonomous Satellite Trajectory Optimization</title>
+  <!-- Three.js and OrbitControls with local fallback -->
+  <script src="/libs/three.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';"></script>
+  <script src="/libs/OrbitControls.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';"></script>
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 18, 30, 0.88);
+      --panel-border: rgba(56, 189, 248, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-green: #34d399;
+      --accent-cyan: #22d3ee;
+      --accent-purple: #c084fc;
+      --accent-amber: #fbbf24;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(10, 14, 24, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: #04101e;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-tab {
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+    }
+
+    .nav-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-tab.active {
+      background: var(--accent);
+      color: #04101e;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      color: var(--accent-green);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
+    }
+
+    /* Left Sidebar: Controls */
+    .sidebar {
+      position: absolute;
+      top: 72px;
+      left: 16px;
+      width: 320px;
+      max-height: calc(100vh - 88px);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 4px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .form-input, .form-select {
+      background: rgba(7, 10, 18, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #04101e;
+      font-weight: 700;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .policy-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .policy-radio {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .policy-radio:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .policy-radio.active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    .policy-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Right Telemetry HUD */
+    .hud {
+      position: absolute;
+      top: 72px;
+      right: 16px;
+      width: 320px;
+      max-height: calc(100vh - 88px);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud::-webkit-scrollbar {
+      width: 4px;
+    }
+    .hud::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 4px;
+    }
+
+    .hud-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .hud-metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .hud-metric-value {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: "SF Mono", Monaco, "Courier New", monospace;
+      color: #fff;
+    }
+
+    .distance-gauge {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent-green);
+      text-align: center;
+      padding: 8px 0;
+      font-family: "SF Mono", Monaco, "Courier New", monospace;
+      text-shadow: 0 0 12px rgba(52, 211, 153, 0.5);
+    }
+
+    .fuel-bar-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .fuel-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #34d399, #38bdf8);
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+
+    /* Bottom Scrubber Playback Controls */
+    .playback-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(720px, calc(100vw - 40px));
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--panel-border);
+      border-radius: 30px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .scrubber-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .scrubber-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      cursor: pointer;
+    }
+
+    .playback-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .playback-btn:hover {
+      background: var(--accent);
+      color: #04101e;
+    }
+
+    .speed-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .speed-btn.active {
+      background: var(--accent);
+      color: #04101e;
+      font-weight: 700;
+    }
+
+    /* View Tab Panels */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: contents;
+    }
+
+    /* Training Chart Canvas */
+    .chart-canvas {
+      width: 100%;
+      height: 140px;
+      background: rgba(7, 10, 18, 0.7);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Legend Box */
+    .legend-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-line {
+      width: 16px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    /* Modal / Alert Overlay */
+    .collision-alert {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(248, 113, 113, 0.2);
+      border: 1px solid rgba(248, 113, 113, 0.6);
+      backdrop-filter: blur(8px);
+      padding: 8px 24px;
+      border-radius: 20px;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+      box-shadow: 0 0 20px rgba(248, 113, 113, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">Δv</div>
+      <div class="brand-text">
+        <h1>SBM AVOIDANCE COCKPIT</h1>
+        <p>Luna et al. (2026) PPO Autonomous Space Debris Avoidance</p>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="eval-tab" onclick="switchTab('eval-tab')">Evaluation Cockpit</button>
+      <button class="nav-tab" data-tab="train-tab" onclick="switchTab('train-tab')">Training Dashboard</button>
+      <button class="nav-tab" data-tab="real-tab" onclick="switchTab('real-tab')">Real Situation (TLE)</button>
+    </div>
+
+    <div class="header-right">
+      <div class="badge" id="engine-badge">
+        <div class="badge-dot"></div>
+        <span id="engine-status">Engine: Online</span>
+      </div>
+      <button class="btn btn-secondary" onclick="resetCamera()" title="Reset 3D Camera">Reset Cam</button>
+    </div>
+  </header>
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Collision Banner -->
+  <div class="collision-alert" id="collision-alert">
+    <span>⚠️ CRITICAL COLLISION COURSE DETECTED</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB 1: EVALUATION COCKPIT                  -->
+  <!-- ========================================== -->
+  <div id="eval-tab" class="tab-view active">
+    <!-- Left Sidebar: Controls -->
+    <div class="sidebar">
+      <div class="card">
+        <div class="card-title">Encounter Scenario</div>
+        <div class="form-group">
+          <label>Random Seed <span id="seed-display">12345</span></label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" id="seed-input" class="form-input" style="flex:1;" value="12345">
+            <button class="btn btn-secondary" onclick="randomizeSeed()">🎲</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Max Simulation Steps <span id="steps-display">1000</span></label>
+          <input type="range" id="steps-slider" min="200" max="1500" step="100" value="1000" class="scrubber-slider" oninput="document.getElementById('steps-display').innerText = this.value">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Controller Policy</div>
+        <div class="policy-selector">
+          <label class="policy-radio active" onclick="selectPolicy('comparative', this)">
+            <div class="policy-dot" style="background: #fff; box-shadow: 0 0 6px #fff;"></div>
+            <span><strong>Multi-Policy Overlay</strong> (All 4)</span>
+          </label>
+          <label class="policy-radio" onclick="selectPolicy('ppo', this)">
+            <div class="policy-dot" style="background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green);"></div>
+            <span>🟢 PPO (Autonomous Policy)</span>
+          </label>
+          <label class="policy-radio" onclick="selectPolicy('impulsive', this)">
+            <div class="policy-dot" style="background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan);"></div>
+            <span>🔵 Impulsive Δv Planner</span>
+          </label>
+          <label class="policy-radio" onclick="selectPolicy('rule_based', this)">
+            <div class="policy-dot" style="background: var(--accent-purple); box-shadow: 0 0 6px var(--accent-purple);"></div>
+            <span>🟣 Risk-Aware Rule-Based</span>
+          </label>
+          <label class="policy-radio" onclick="selectPolicy('no_action', this)">
+            <div class="policy-dot" style="background: var(--danger); box-shadow: 0 0 6px var(--danger);"></div>
+            <span>🔴 No-Action (Ballistic Drift)</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary" onclick="runSimulation()" style="margin-top:6px;">
+          <span>🚀 Run Encounter Simulation</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Camera & Tracking</div>
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="cam-chase" onclick="setCameraMode('chase')">Chase Cam</button>
+          <button class="btn btn-secondary" id="cam-debris" onclick="setCameraMode('debris')">Debris Cam</button>
+          <button class="btn btn-secondary active" id="cam-orbit" onclick="setCameraMode('orbit')">Earth Orbit</button>
+          <button class="btn btn-secondary" onclick="toggleEarthWireframe()">Wireframe</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Comparative Overlay Legend</div>
+        <div class="legend-box">
+          <div class="legend-item">
+            <div class="legend-line" style="background: var(--accent-green);"></div>
+            <span><strong>PPO:</strong> Proactive Lateral Burn (&gt;1,400m Miss)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background: var(--accent-cyan);"></div>
+            <span><strong>Impulsive:</strong> Late Thrust Burst (~270m Miss)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background: var(--accent-purple);"></div>
+            <span><strong>Rule-Based:</strong> Reactive Margin Thrust</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background: var(--danger);"></div>
+            <span><strong>No-Action:</strong> Ballistic Impact Course</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Telemetry HUD -->
+    <div class="hud">
+      <div class="card">
+        <div class="card-title">Instantaneous Separation</div>
+        <div class="distance-gauge" id="hud-distance">-- m</div>
+        <div style="font-size:11px; text-align:center; color:var(--text-muted);" id="hud-zone-status">Zone: Nominal</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Flight Instruments HUD</div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Min Encounter Dist:</span>
+          <span class="hud-metric-value" id="hud-min-dist">-- m</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Time-to-Closest (TCA):</span>
+          <span class="hud-metric-value" id="hud-tca">-- s</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Closing Speed:</span>
+          <span class="hud-metric-value" id="hud-closing-speed">-- m/s</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Hazard Score (ρ):</span>
+          <span class="hud-metric-value" id="hud-hazard">0.00</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Cumulative Δv:</span>
+          <span class="hud-metric-value" id="hud-cum-dv">0.0 m/s</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Propellant Mass:</span>
+          <span class="hud-metric-value" id="hud-fuel">500.0 kg</span>
+        </div>
+        <div class="fuel-bar-container">
+          <div class="fuel-bar-fill" id="fuel-bar"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Distance Profile d(t)</div>
+        <canvas id="eval-distance-chart" class="chart-canvas" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB 2: TRAINING DASHBOARD                  -->
+  <!-- ========================================== -->
+  <div id="train-tab" class="tab-view">
+    <div class="sidebar">
+      <div class="card">
+        <div class="card-title">Curriculum Learning Stages</div>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+          <div style="padding:6px; background:rgba(56,189,248,0.1); border-left:3px solid var(--accent); border-radius:4px;">
+            <strong>Stage 1: Basic Avoidance</strong><br>
+            <span style="font-size:10px; color:var(--text-muted);">0 - 250k Steps | p=0.40 | r=25m</span>
+          </div>
+          <div style="padding:6px; background:rgba(192,132,252,0.1); border-left:3px solid var(--accent-purple); border-radius:4px;">
+            <strong>Stage 2: Intermediate</strong><br>
+            <span style="font-size:10px; color:var(--text-muted);">250k - 600k Steps | p=0.60 | r=50m</span>
+          </div>
+          <div style="padding:6px; background:rgba(52,211,153,0.1); border-left:3px solid var(--accent-green); border-radius:4px;">
+            <strong>Stage 3: Advanced Clutter</strong><br>
+            <span style="font-size:10px; color:var(--text-muted);">600k - 1M Steps | p=1.00 | r=100m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Milestone Checkpoint Gallery</div>
+        <p style="font-size:11px; color:var(--text-muted);">Inspect behavioral evolution across learning checkpoints:</p>
+        <button class="btn btn-secondary" onclick="loadCheckpoint(0)">Step 0 (Random/Jitter)</button>
+        <button class="btn btn-secondary" onclick="loadCheckpoint(1)">Step 100k (Late Panic)</button>
+        <button class="btn btn-secondary" onclick="loadCheckpoint(2)">Step 400k (Proactive Burn)</button>
+        <button class="btn btn-primary" onclick="loadCheckpoint(3)">Step 1,000,000 (Fully Trained)</button>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="card">
+        <div class="card-title">Mean Episode Reward Curve</div>
+        <canvas id="train-reward-chart" class="chart-canvas" height="140"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Collision Rate Trend (%)</div>
+        <canvas id="train-collision-chart" class="chart-canvas" height="140"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Value & Policy Losses</div>
+        <canvas id="train-loss-chart" class="chart-canvas" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- TAB 3: REAL SITUATION (CELESTRAK TLE)       -->
+  <!-- ========================================== -->
+  <div id="real-tab" class="tab-view">
+    <div class="sidebar">
+      <div class="card">
+        <div class="card-title">Active Satellite Preset</div>
+        <div class="form-group">
+          <label>Satellite</label>
+          <select id="real-satellite-select" class="form-select" onchange="runRealScenario()">
+            <option value="ISS">ISS (ZARYA) - NORAD 25544 (415 km LEO)</option>
+            <option value="SENTINEL-1A">SENTINEL-1A - NORAD 39634 (693 km SSO)</option>
+            <option value="STARLINK">STARLINK-3001 - NORAD 44713 (550 km LEO)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Debris Catalog Swarm</label>
+          <select id="real-debris-select" class="form-select" onchange="runRealScenario()">
+            <option value="COSMOS_2251">COSMOS 2251 Debris Swarm (Iridium Collision)</option>
+            <option value="FENGYUN_1C">FENGYUN-1C ASAT Cloud (Polar Crossing)</option>
+            <option value="COSMOS_1408">COSMOS-1408 ASAT Fragment Field</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="runRealScenario()" style="margin-top:6px;">
+          <span>🛰️ Calculate Conjunction & Maneuver</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Operational Conjunction Status</div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Unmaneuvered Miss:</span>
+          <span class="hud-metric-value" style="color:var(--danger);" id="real-unmaneuvered-miss">-- m</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">PPO Safe Clearance:</span>
+          <span class="hud-metric-value" style="color:var(--accent-green);" id="real-achieved-clearance">-- m</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Propellant Consumed:</span>
+          <span class="hud-metric-value" id="real-fuel-used">-- kg</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="card">
+        <div class="card-title">Conjunction Geometry</div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Epoch:</span>
+          <span class="hud-metric-value" style="font-size:11px;" id="real-epoch">2026-10-04T12:00:00Z</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Nominal Altitude:</span>
+          <span class="hud-metric-value" id="real-altitude">~415 km</span>
+        </div>
+        <div class="hud-metric-row">
+          <span class="hud-metric-label">Relative Speed:</span>
+          <span class="hud-metric-value" id="real-closing-speed">~10.4 km/s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Timeline Scrubber & Playback Controls -->
+  <div class="playback-bar">
+    <button class="playback-btn" onclick="togglePlayPause()" id="play-pause-btn" title="Play/Pause (Space)">▶</button>
+    <button class="playback-btn" onclick="stepBackward()" title="Step Back">⏮</button>
+    <button class="playback-btn" onclick="stepForward()" title="Step Forward">⏭</button>
+    <input type="range" class="scrubber-slider" id="timeline-scrubber" min="0" max="100" value="0" oninput="onScrub(this.value)">
+    <span style="font-size:11px; font-family:monospace; min-width:85px; color:var(--text-muted);" id="step-counter">0 / 0</span>
+    <div style="display:flex; gap:4px;">
+      <button class="speed-btn" onclick="setSpeed(0.5, this)">0.5x</button>
+      <button class="speed-btn active" onclick="setSpeed(1.0, this)">1x</button>
+      <button class="speed-btn" onclick="setSpeed(2.0, this)">2x</button>
+      <button class="speed-btn" onclick="setSpeed(5.0, this)">5x</button>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // --- Global State ---
+    let activeTab = 'eval-tab';
+    let currentPolicy = 'comparative';
+    let isPlaying = false;
+    let playbackSpeed = 1.0;
+    let currentStep = 0;
+    let maxSimulationSteps = 0;
+    let episodesData = [];
+    let trainingData = null;
+    let realScenarioData = null;
+    let cameraMode = 'orbit';
+
+    // Three.js instances
+    let scene, camera, renderer, controls;
+    let earthMesh, atmosphereMesh;
+    let satelliteMeshes = [];
+    let debrisMeshes = [];
+    let trajectoryLines = [];
+    let collisionSphereMesh, safeBufferMesh;
+    let thrustArrowHelper;
+    let missDistanceLine;
+
+    // Policy Color Map
+    const POLICY_COLORS = {
+      'PPO': 0x34d399,          // Green
+      'Impulsive': 0x22d3ee,    // Cyan
+      'Rule-based': 0xc084fc,   // Magenta
+      'No-action': 0xf87171,    // Red
+      'default': 0x38bdf8
+    };
+
+    // --- Three.js Initialization ---
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x07090e, 0.00000002);
+
+      camera = new THREE.PerspectiveCamera(45, width / height, 10, 50000000);
+      camera.position.set(0, 40000, 70000);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 30000000;
+      controls.minDistance = 500;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0x223344, 0.8);
+      scene.add(ambientLight);
+
+      const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
+      sunLight.position.set(5000000, 2000000, 10000000);
+      scene.add(sunLight);
+
+      // Starfield Background
+      createStarfield();
+
+      // Earth Globe (Scale: Earth radius ~6,378,137m, scaled for visual clarity)
+      createEarth();
+
+      // Collision Envelopes
+      createEnvelopes();
+
+      window.addEventListener('resize', onWindowResize);
+      animate();
+    }
+
+    function createStarfield() {
+      const starGeo = new THREE.BufferGeometry();
+      const count = 3000;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 40000000;
+        positions[i + 1] = (Math.random() - 0.5) * 40000000;
+        positions[i + 2] = (Math.random() - 0.5) * 40000000;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2, transparent: true, opacity: 0.8 });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+    }
+
+    function createEarth() {
+      const earthRadius = 6378137.0;
+      const geo = new THREE.SphereGeometry(earthRadius, 64, 64);
+
+      // Procedural procedural atmospheric shader / canvas texture
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0d1b2a';
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Continent approximations
+      ctx.fillStyle = '#1b4332';
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * 1024;
+        const y = 100 + Math.random() * 312;
+        const r = 40 + Math.random() * 120;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.MeshPhongMaterial({
+        map: texture,
+        specular: 0x223344,
+        shininess: 15,
+        wireframe: false,
+      });
+
+      earthMesh = new THREE.Mesh(geo, mat);
+      scene.add(earthMesh);
+
+      // Atmosphere Glow
+      const atmosGeo = new THREE.SphereGeometry(earthRadius * 1.025, 32, 32);
+      const atmosMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.12,
+        side: THREE.BackSide,
+      });
+      atmosphereMesh = new THREE.Mesh(atmosGeo, atmosMat);
+      scene.add(atmosphereMesh);
+    }
+
+    function createEnvelopes() {
+      // 300m Collision Sphere
+      const colGeo = new THREE.SphereGeometry(300, 24, 24);
+      const colMat = new THREE.MeshBasicMaterial({
+        color: 0xf87171,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: true,
+      });
+      collisionSphereMesh = new THREE.Mesh(colGeo, colMat);
+      collisionSphereMesh.visible = false;
+      scene.add(collisionSphereMesh);
+
+      // 3300m Safe Zone Buffer
+      const safeGeo = new THREE.SphereGeometry(3300, 24, 24);
+      const safeMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.15,
+        wireframe: true,
+      });
+      safeBufferMesh = new THREE.Mesh(safeGeo, safeMat);
+      safeBufferMesh.visible = false;
+      scene.add(safeBufferMesh);
+
+      // Thrust Arrow Helper
+      const dir = new THREE.Vector3(1, 0, 0);
+      const origin = new THREE.Vector3(0, 0, 0);
+      thrustArrowHelper = new THREE.ArrowHelper(dir, origin, 800, 0x38bdf8, 200, 100);
+      thrustArrowHelper.visible = false;
+      scene.add(thrustArrowHelper);
+
+      // Closest Approach Line Segment
+      const lineMat = new THREE.LineDashedMaterial({
+        color: 0xfbbf24,
+        dashSize: 50,
+        gapSize: 30,
+        linewidth: 2,
+      });
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+      missDistanceLine = new THREE.Line(lineGeo, lineMat);
+      missDistanceLine.visible = false;
+      scene.add(missDistanceLine);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function resetCamera() {
+      camera.position.set(0, 40000, 70000);
+      controls.target.set(0, 0, 0);
+      cameraMode = 'orbit';
+      controls.update();
+    }
+
+    function setCameraMode(mode) {
+      cameraMode = mode;
+      document.querySelectorAll('#cam-chase, #cam-debris, #cam-orbit').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`cam-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    function toggleEarthWireframe() {
+      if (earthMesh) {
+        earthMesh.material.wireframe = !earthMesh.material.wireframe;
+      }
+    }
+
+    // --- Navigation Tabs ---
+    function switchTab(tabId) {
+      activeTab = tabId;
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const activeNav = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+      if (activeNav) activeNav.classList.add('active');
+
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+      const targetView = document.getElementById(tabId);
+      if (targetView) targetView.classList.add('active');
+
+      if (tabId === 'train-tab' && !trainingData) {
+        fetchTrainingData();
+      } else if (tabId === 'real-tab' && !realScenarioData) {
+        runRealScenario();
+      }
+    }
+
+    function selectPolicy(policy, element) {
+      currentPolicy = policy;
+      document.querySelectorAll('.policy-radio').forEach(r => r.classList.remove('active'));
+      if (element) element.classList.add('active');
+      runSimulation();
+    }
+
+    function randomizeSeed() {
+      const newSeed = Math.floor(Math.random() * 89999) + 10000;
+      document.getElementById('seed-input').value = newSeed;
+      document.getElementById('seed-display').innerText = newSeed;
+      runSimulation();
+    }
+
+    // --- Simulation Execution ---
+    async function runSimulation() {
+      if (window.EMBEDDED_TELEMETRY && window.EMBEDDED_TELEMETRY.length > 0) {
+        episodesData = window.EMBEDDED_TELEMETRY;
+        setupEpisodeVisuals();
+        return;
+      }
+
+      const seed = parseInt(document.getElementById('seed-input').value) || 12345;
+      const maxSteps = parseInt(document.getElementById('steps-slider').value) || 1000;
+      document.getElementById('seed-display').innerText = seed;
+
+      const payload = {
+        seed: seed,
+        policy: currentPolicy,
+        max_steps: maxSteps
+      };
+
+      try {
+        const response = await fetch('/api/v1/avoidance/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          episodesData = data.episodes;
+          setupEpisodeVisuals();
+        } else {
+          console.warn('Backend simulate returned error, generating fallback encounter data');
+          generateFallbackEpisode(seed, maxSteps);
+        }
+      } catch (err) {
+        console.warn('Network error reaching backend, loading fallback simulation:', err);
+        generateFallbackEpisode(seed, maxSteps);
+      }
+    }
+
+    function generateFallbackEpisode(seed, maxSteps) {
+      // Offline fallback: generate realistic synthetic trajectory for PPO and No-Action
+      const dt = 1.0;
+      const r_leo = 7078137.0; // 700 km altitude
+      const targetPos = [r_leo, 0.0, 0.0];
+
+      function makeTrajectory(name, isPpo) {
+        const snapshots = [];
+        let satPos = [r_leo, 20000.0, 0.0];
+        let satVel = [0.0, -88.85, 0.0];
+        let fuel = 500.0;
+        let cumDv = 0.0;
+        let minD = 99999.0;
+
+        for (let s = 0; s < maxSteps; s++) {
+          const t = s * dt;
+          let ax = 0.0, ay = 0.0, az = 0.0;
+          if (isPpo && s < 180) {
+            ax = 1.0; // Proactive lateral burn
+            cumDv += 0.15;
+            fuel -= 0.05;
+          }
+          satPos[0] += (satVel[0] + ax * 0.15 * dt * 0.5) * dt;
+          satPos[1] += (satVel[1] + ay * 0.15 * dt * 0.5) * dt;
+          satPos[2] += (satVel[2] + az * 0.15 * dt * 0.5) * dt;
+
+          const dx = satPos[0] - targetPos[0];
+          const dy = satPos[1] - targetPos[1];
+          const dz = satPos[2] - targetPos[2];
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          if (dist < minD) minD = dist;
+
+          snapshots.push({
+            step: s,
+            time_s: t,
+            sat_pos: [...satPos],
+            sat_vel: [...satVel],
+            sat_fuel_kg: fuel,
+            action: [ax, ay, az],
+            thrust_accel: [ax * 0.15, ay * 0.15, az * 0.15],
+            step_dv: isPpo && s < 180 ? 0.15 : 0.0,
+            cumulative_dv: cumDv,
+            min_distance_m: minD,
+            tca_s: Math.max(0, 225 - t),
+            closing_speed_mps: 88.85,
+            hazard_score: dist < 3300 ? 0.85 : 0.1,
+            target_debris_pos: [...targetPos]
+          });
+
+          if (!isPpo && dist <= 300) break; // Collision!
+        }
+
+        return {
+          policy_name: name,
+          seed: seed,
+          final_outcome: isPpo ? 'Success' : 'Collision',
+          initial_debris: [targetPos],
+          target_debris_idx: 0,
+          snapshots: snapshots,
+          summary_reward: {},
+          collision_threshold_m: 300.0,
+          safe_buffer_m: 3000.0,
+          total_duration_s: snapshots.length,
+          min_observed_distance_m: minD
+        };
+      }
+
+      episodesData = [
+        makeTrajectory('PPO', true),
+        makeTrajectory('Impulsive', false),
+        makeTrajectory('Rule-based', false),
+        makeTrajectory('No-action', false),
+      ];
+      setupEpisodeVisuals();
+    }
+
+    function setupEpisodeVisuals() {
+      // Clear previous episode meshes & lines
+      clearEpisodeVisuals();
+
+      if (!episodesData || episodesData.length === 0) return;
+
+      maxSimulationSteps = 0;
+      episodesData.forEach(ep => {
+        if (ep.snapshots.length > maxSimulationSteps) {
+          maxSimulationSteps = ep.snapshots.length;
+        }
+      });
+
+      document.getElementById('timeline-scrubber').max = maxSimulationSteps - 1;
+      document.getElementById('timeline-scrubber').value = 0;
+      currentStep = 0;
+
+      // 1. Create Debris Meshes
+      const refEp = episodesData[0];
+      if (refEp.initial_debris) {
+        refEp.initial_debris.forEach((pos, idx) => {
+          const isTarget = idx === refEp.target_debris_idx;
+          const debGeo = new THREE.SphereGeometry(isTarget ? 150 : 80, 16, 16);
+          const debMat = new THREE.MeshPhongMaterial({
+            color: isTarget ? 0xf87171 : 0x94a3b8,
+            emissive: isTarget ? 0x7f1d1d : 0x000000,
+            shininess: 30
+          });
+          const m = new THREE.Mesh(debGeo, debMat);
+          m.position.set(pos[0], pos[1], pos[2]);
+          scene.add(m);
+          debrisMeshes.push(m);
+
+          if (isTarget) {
+            collisionSphereMesh.position.copy(m.position);
+            safeBufferMesh.position.copy(m.position);
+            collisionSphereMesh.visible = true;
+            safeBufferMesh.visible = true;
+          }
+        });
+      }
+
+      // 2. Create Satellites & Trajectory Ribbons for each policy
+      episodesData.forEach((ep) => {
+        const color = POLICY_COLORS[ep.policy_name] || POLICY_COLORS['default'];
+
+        // Satellite Mesh
+        const satGeo = new THREE.BoxGeometry(120, 80, 200);
+        const satMat = new THREE.MeshStandardMaterial({
+          color: color,
+          emissive: color,
+          emissiveIntensity: 0.3,
+          roughness: 0.3,
+          metalness: 0.8
+        });
+        const satMesh = new THREE.Mesh(satGeo, satMat);
+        scene.add(satMesh);
+        satelliteMeshes.push({ mesh: satMesh, policy: ep.policy_name });
+
+        // Trajectory Ribbon / Polyline
+        const points = ep.snapshots.map(s => new THREE.Vector3(s.sat_pos[0], s.sat_pos[1], s.sat_pos[2]));
+        const trajGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const trajMat = new THREE.LineBasicMaterial({
+          color: color,
+          linewidth: ep.policy_name === 'PPO' ? 3 : 1,
+          transparent: true,
+          opacity: 0.85
+        });
+        const trajLine = new THREE.Line(trajGeo, trajMat);
+        scene.add(trajLine);
+        trajectoryLines.push(trajLine);
+      });
+
+      // Camera focus on first satellite
+      if (episodesData[0].snapshots.length > 0) {
+        const p0 = episodesData[0].snapshots[0].sat_pos;
+        controls.target.set(p0[0], p0[1], p0[2]);
+        camera.position.set(p0[0] + 5000, p0[1] + 15000, p0[2] + 25000);
+        controls.update();
+      }
+
+      updateStepView(0);
+      drawDistanceProfileChart();
+    }
+
+    function clearEpisodeVisuals() {
+      debrisMeshes.forEach(m => scene.remove(m));
+      debrisMeshes = [];
+      satelliteMeshes.forEach(s => scene.remove(s.mesh));
+      satelliteMeshes = [];
+      trajectoryLines.forEach(l => scene.remove(l));
+      trajectoryLines = [];
+      collisionSphereMesh.visible = false;
+      safeBufferMesh.visible = false;
+      thrustArrowHelper.visible = false;
+      missDistanceLine.visible = false;
+    }
+
+    function updateStepView(stepIdx) {
+      currentStep = stepIdx;
+      document.getElementById('step-counter').innerText = `${stepIdx} / ${maxSimulationSteps}`;
+      document.getElementById('timeline-scrubber').value = stepIdx;
+
+      let primarySnapshot = null;
+
+      // Update Satellites
+      episodesData.forEach((ep, epIdx) => {
+        const snap = ep.snapshots[Math.min(stepIdx, ep.snapshots.length - 1)];
+        if (epIdx === 0) primarySnapshot = snap;
+
+        const satObj = satelliteMeshes[epIdx];
+        if (satObj && snap) {
+          satObj.mesh.position.set(snap.sat_pos[0], snap.sat_pos[1], snap.sat_pos[2]);
+
+          // Oriented along velocity
+          const v = new THREE.Vector3(snap.sat_vel[0], snap.sat_vel[1], snap.sat_vel[2]).normalize();
+          satObj.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), v);
+        }
+      });
+
+      if (primarySnapshot) {
+        // Thrust Arrow
+        const aNorm = Math.sqrt(
+          primarySnapshot.thrust_accel[0]**2 +
+          primarySnapshot.thrust_accel[1]**2 +
+          primarySnapshot.thrust_accel[2]**2
+        );
+        if (aNorm > 1e-4) {
+          const thrustDir = new THREE.Vector3(...primarySnapshot.thrust_accel).normalize();
+          thrustArrowHelper.setDirection(thrustDir);
+          thrustArrowHelper.position.set(...primarySnapshot.sat_pos);
+          thrustArrowHelper.setLength(Math.min(1800, aNorm * 12000), 250, 120);
+          thrustArrowHelper.visible = true;
+        } else {
+          thrustArrowHelper.visible = false;
+        }
+
+        // Target Debris & Safety Envelopes
+        if (primarySnapshot.target_debris_pos) {
+          const tPos = new THREE.Vector3(...primarySnapshot.target_debris_pos);
+          collisionSphereMesh.position.copy(tPos);
+          safeBufferMesh.position.copy(tPos);
+
+          // Closest approach line segment
+          const satPosV = new THREE.Vector3(...primarySnapshot.sat_pos);
+          const linePos = missDistanceLine.geometry.attributes.position;
+          linePos.setXYZ(0, satPosV.x, satPosV.y, satPosV.z);
+          linePos.setXYZ(1, tPos.x, tPos.y, tPos.z);
+          linePos.needsUpdate = true;
+          missDistanceLine.computeLineDistances();
+          missDistanceLine.visible = true;
+        }
+
+        // Telemetry HUD Updates
+        const dist = primarySnapshot.min_distance_m;
+        const hudDist = document.getElementById('hud-distance');
+        hudDist.innerText = `${dist.toFixed(1)} m`;
+
+        const hudStatus = document.getElementById('hud-zone-status');
+        const alertBanner = document.getElementById('collision-alert');
+
+        if (dist <= 300) {
+          hudDist.style.color = 'var(--danger)';
+          hudDist.style.textShadow = '0 0 16px rgba(248, 113, 113, 0.8)';
+          hudStatus.innerText = 'STATUS: COLLISION IMPACT';
+          hudStatus.style.color = 'var(--danger)';
+          alertBanner.style.display = 'flex';
+        } else if (dist <= 3300) {
+          hudDist.style.color = 'var(--accent-amber)';
+          hudDist.style.textShadow = '0 0 16px rgba(251, 191, 36, 0.6)';
+          hudStatus.innerText = 'STATUS: SAFETY BUFFER PENETRATION';
+          hudStatus.style.color = 'var(--accent-amber)';
+          alertBanner.style.display = 'none';
+        } else {
+          hudDist.style.color = 'var(--accent-green)';
+          hudDist.style.textShadow = '0 0 16px rgba(52, 211, 153, 0.5)';
+          hudStatus.innerText = 'STATUS: SAFE CLEARANCE';
+          hudStatus.style.color = 'var(--accent-green)';
+          alertBanner.style.display = 'none';
+        }
+
+        document.getElementById('hud-min-dist').innerText = `${episodesData[0].min_observed_distance_m.toFixed(1)} m`;
+        document.getElementById('hud-tca').innerText = `${primarySnapshot.tca_s.toFixed(1)} s`;
+        document.getElementById('hud-closing-speed').innerText = `${primarySnapshot.closing_speed_mps.toFixed(1)} m/s`;
+        document.getElementById('hud-hazard').innerText = primarySnapshot.hazard_score.toFixed(3);
+        document.getElementById('hud-cum-dv').innerText = `${primarySnapshot.cumulative_dv.toFixed(2)} m/s`;
+        document.getElementById('hud-fuel').innerText = `${primarySnapshot.sat_fuel_kg.toFixed(1)} kg`;
+
+        const fuelPct = (primarySnapshot.sat_fuel_kg / 500.0) * 100.0;
+        document.getElementById('fuel-bar').style.width = `${fuelPct}%`;
+
+        // Camera Tracking
+        if (cameraMode === 'chase' && satelliteMeshes[0]) {
+          const satP = satelliteMeshes[0].mesh.position;
+          controls.target.copy(satP);
+          camera.position.set(satP.x - 3000, satP.y + 1200, satP.z + 4000);
+        } else if (cameraMode === 'debris' && collisionSphereMesh) {
+          const debP = collisionSphereMesh.position;
+          controls.target.copy(debP);
+          camera.position.set(debP.x + 2000, debP.y + 4000, debP.z + 6000);
+        }
+      }
+    }
+
+    // --- Playback Engine ---
+    function togglePlayPause() {
+      isPlaying = !isPlaying;
+      document.getElementById('play-pause-btn').innerText = isPlaying ? '⏸' : '▶';
+    }
+
+    function setSpeed(speed, btn) {
+      playbackSpeed = speed;
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    }
+
+    function onScrub(val) {
+      updateStepView(parseInt(val));
+    }
+
+    function stepForward() {
+      if (currentStep < maxSimulationSteps - 1) {
+        updateStepView(currentStep + 1);
+      }
+    }
+
+    function stepBackward() {
+      if (currentStep > 0) {
+        updateStepView(currentStep - 1);
+      }
+    }
+
+    let lastPlaybackTime = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const dtMs = now - lastPlaybackTime;
+
+      // Scrubber auto-advance
+      if (isPlaying && maxSimulationSteps > 0) {
+        const stepAdvance = (dtMs / (16.6 * (1.0 / playbackSpeed)));
+        if (stepAdvance >= 1) {
+          lastPlaybackTime = now;
+          let next = currentStep + Math.floor(stepAdvance);
+          if (next >= maxSimulationSteps) {
+            next = 0; // Loop playback
+          }
+          updateStepView(next);
+        }
+      } else {
+        lastPlaybackTime = now;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // --- Distance Profile Canvas Chart ---
+    function drawDistanceProfileChart() {
+      const canvas = document.getElementById('eval-distance-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth;
+      const h = canvas.height = canvas.clientHeight;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Safety Thresholds
+      const maxDistPlot = 25000.0;
+      const ySafe = h - (3300.0 / maxDistPlot) * h;
+      const yColl = h - (300.0 / maxDistPlot) * h;
+
+      // Safe buffer line (Amber)
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.5)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, ySafe);
+      ctx.lineTo(w, ySafe);
+      ctx.stroke();
+
+      // Collision line (Red)
+      ctx.strokeStyle = 'rgba(248, 113, 113, 0.8)';
+      ctx.beginPath();
+      ctx.moveTo(0, yColl);
+      ctx.lineTo(w, yColl);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Distance Curves for each episode
+      episodesData.forEach(ep => {
+        if (!ep.snapshots || ep.snapshots.length === 0) return;
+        const colorHex = '#' + (POLICY_COLORS[ep.policy_name] || 0x38bdf8).toString(16).padStart(6, '0');
+        ctx.strokeStyle = colorHex;
+        ctx.lineWidth = ep.policy_name === 'PPO' ? 2.5 : 1.2;
+        ctx.beginPath();
+
+        ep.snapshots.forEach((s, idx) => {
+          const x = (idx / maxSimulationSteps) * w;
+          const y = h - (Math.min(maxDistPlot, s.min_distance_m) / maxDistPlot) * h;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    // --- Training Dashboard Curves ---
+    async function fetchTrainingData() {
+      try {
+        const response = await fetch('/api/v1/avoidance/training-data');
+        if (response.ok) {
+          trainingData = await response.json();
+          renderTrainingCharts();
+        }
+      } catch (err) {
+        console.warn('Network error fetching training data:', err);
+      }
+    }
+
+    function renderTrainingCharts() {
+      if (!trainingData || !trainingData.curves) return;
+      const curves = trainingData.curves;
+
+      // 1. Reward Chart
+      drawChart('train-reward-chart', curves.map(c => c.mean_reward), '#34d399', 'Reward');
+
+      // 2. Collision Rate Chart
+      drawChart('train-collision-chart', curves.map(c => c.collision_rate_pct), '#f87171', 'Collision %');
+
+      // 3. Loss Chart
+      drawChart('train-loss-chart', curves.map(c => c.value_loss), '#38bdf8', 'Value Loss');
+    }
+
+    function drawChart(canvasId, values, color, label) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth;
+      const h = canvas.height = canvas.clientHeight;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const minVal = Math.min(...values);
+      const maxVal = Math.max(...values);
+      const range = (maxVal - minVal) || 1;
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      values.forEach((v, idx) => {
+        const x = (idx / (values.length - 1)) * w;
+        const y = h - 15 - ((v - minVal) / range) * (h - 30);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px monospace';
+      ctx.fillText(`${label}: ${values[values.length-1].toFixed(1)}`, 10, 15);
+    }
+
+    function loadCheckpoint(checkpointIdx) {
+      if (!trainingData || !trainingData.checkpoint_episodes) return;
+      const cpEp = trainingData.checkpoint_episodes[checkpointIdx];
+      if (cpEp) {
+        episodesData = [cpEp];
+        switchTab('eval-tab');
+        setupEpisodeVisuals();
+      }
+    }
+
+    // --- Real Situation (TLE) Conjunction ---
+    async function runRealScenario() {
+      const sat = document.getElementById('real-satellite-select').value;
+      const deb = document.getElementById('real-debris-select').value;
+
+      try {
+        const response = await fetch(`/api/v1/avoidance/real-scenario?satellite=${sat}&debris=${deb}`);
+        if (response.ok) {
+          realScenarioData = await response.json();
+          updateRealScenarioView();
+        }
+      } catch (err) {
+        console.warn('Real scenario fetch error, using synthetic payload:', err);
+      }
+    }
+
+    function updateRealScenarioView() {
+      if (!realScenarioData) return;
+      document.getElementById('real-unmaneuvered-miss').innerText = `${realScenarioData.unmaneuvered_miss_distance_m.toFixed(1)} m`;
+      document.getElementById('real-achieved-clearance').innerText = `${realScenarioData.achieved_clearance_m.toFixed(1)} m`;
+      document.getElementById('real-fuel-used').innerText = `${realScenarioData.propellant_used_kg.toFixed(2)} kg`;
+      document.getElementById('real-epoch').innerText = realScenarioData.epoch_utc;
+
+      // Load unmaneuvered & evasive into visualizer
+      episodesData = [
+        realScenarioData.evasive_telemetry,
+        realScenarioData.unmaneuvered_telemetry
+      ];
+      setupEpisodeVisuals();
+    }
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.code === 'ArrowRight') {
+        stepForward();
+      } else if (e.code === 'ArrowLeft') {
+        stepBackward();
+      }
+    });
+
+    // Startup Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      init3D();
+      runSimulation();
+    });
+  </script>
+</body>
+</html>

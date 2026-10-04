@@ -100,6 +100,8 @@ pub fn run_avoidance_eval_cli(args: &[String]) -> Result<(), Box<dyn Error>> {
     let mut episodes = 1000usize;
     let mut base_seed = 12345u64;
     let mut model_path: Option<String> = None;
+    let mut record_telemetry_path: Option<String> = None;
+    let mut export_html_path: Option<String> = None;
 
     let mut i = 0;
     while i < args.len() {
@@ -114,6 +116,14 @@ pub fn run_avoidance_eval_cli(args: &[String]) -> Result<(), Box<dyn Error>> {
             }
             "--model" if i + 1 < args.len() => {
                 model_path = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--record-telemetry" if i + 1 < args.len() => {
+                record_telemetry_path = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--export-html" if i + 1 < args.len() => {
+                export_html_path = Some(args[i + 1].clone());
                 i += 1;
             }
             _ => {}
@@ -131,6 +141,12 @@ pub fn run_avoidance_eval_cli(args: &[String]) -> Result<(), Box<dyn Error>> {
         info!("  Model Source:        File ({})", path);
     } else {
         info!("  Model Source:        Embedded Pre-Trained Weights (Luna et al. 2026)");
+    }
+    if let Some(ref path) = record_telemetry_path {
+        info!("  Telemetry Export:    {}", path);
+    }
+    if let Some(ref path) = export_html_path {
+        info!("  Standalone HTML Out: {}", path);
     }
     info!("============================================================");
 
@@ -207,6 +223,42 @@ pub fn run_avoidance_eval_cli(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     info!("=================================================================================================================");
     info!("Benchmark completed in {:.2} seconds ({:.1} episodes/sec).", elapsed, episodes as f64 * 4.0 / elapsed.max(1e-3));
+
+    // Optional Telemetry Recording & Standalone HTML Export
+    if record_telemetry_path.is_some() || export_html_path.is_some() {
+        info!("Recording multi-policy comparative encounter telemetry for seed {}...", base_seed);
+        let recs = generate_comparative_telemetry(&model, &config, base_seed, 1000);
+
+        if let Some(ref path) = record_telemetry_path {
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let json_str = serde_json::to_string_pretty(&recs)?;
+            std::fs::write(path, json_str)?;
+            info!("Multi-policy comparative telemetry exported to: {}", path);
+        }
+
+        if let Some(ref path) = export_html_path {
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let html_template = if std::path::Path::new("avoidance_visualizer.html").exists() {
+                std::fs::read_to_string("avoidance_visualizer.html")?
+            } else if std::path::Path::new("../avoidance_visualizer.html").exists() {
+                std::fs::read_to_string("../avoidance_visualizer.html")?
+            } else {
+                include_str!("../../../avoidance_visualizer.html").to_string()
+            };
+
+            let script_inject = format!(
+                "<script>window.EMBEDDED_TELEMETRY = {};</script>\n</head>",
+                serde_json::to_string(&recs)?
+            );
+            let output_html = html_template.replace("</head>", &script_inject);
+            std::fs::write(path, output_html)?;
+            info!("Standalone portable 3D visualizer exported to: {}", path);
+        }
+    }
 
     Ok(())
 }

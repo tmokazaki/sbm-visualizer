@@ -241,3 +241,94 @@ fn test_ppo_training_iteration() {
     assert!(mean_reward.is_finite());
     assert_eq!(trainer.global_step, 100);
 }
+
+#[test]
+fn test_record_episode_snapshots() {
+    let model = load_default_pretrained_model().expect("Pre-trained model must load");
+    let config = AvoidanceConfig {
+        reward: RewardCoefficients::evaluation(),
+        ..Default::default()
+    };
+    let seed = 12345u64;
+
+    let record = record_ppo_episode(&model, &config, seed, 200);
+
+    assert_eq!(record.policy_name, "PPO");
+    assert_eq!(record.seed, seed);
+    assert!(!record.snapshots.is_empty(), "Snapshots must not be empty");
+    assert!(record.snapshots.len() <= 201);
+
+    for s in &record.snapshots {
+        assert!(s.sat_pos[0].is_finite());
+        assert!(s.sat_pos[1].is_finite());
+        assert!(s.sat_pos[2].is_finite());
+        assert!(s.sat_fuel_kg >= 0.0 && s.sat_fuel_kg <= 500.0);
+        assert!(s.cumulative_dv >= 0.0);
+        assert!(s.min_distance_m >= 0.0);
+    }
+}
+
+#[test]
+fn test_comparative_overlay_seed_consistency() {
+    let model = load_default_pretrained_model().expect("Pre-trained model must load");
+    let config = AvoidanceConfig {
+        reward: RewardCoefficients::evaluation(),
+        ..Default::default()
+    };
+    let seed = 12345u64;
+
+    let records = generate_comparative_telemetry(&model, &config, seed, 150);
+    assert_eq!(records.len(), 4, "Must generate records for all 4 controllers");
+
+    let ppo = &records[0];
+    let imp = &records[1];
+    let rule = &records[2];
+    let noact = &records[3];
+
+    assert_eq!(ppo.policy_name, "PPO");
+    assert_eq!(imp.policy_name, "Impulsive");
+    assert_eq!(rule.policy_name, "Rule-based");
+    assert_eq!(noact.policy_name, "No-action");
+
+    // All controllers must share identical initial debris field geometry for the same seed
+    assert_eq!(ppo.initial_debris, imp.initial_debris);
+    assert_eq!(ppo.initial_debris, rule.initial_debris);
+    assert_eq!(ppo.initial_debris, noact.initial_debris);
+    assert_eq!(ppo.target_debris_idx, imp.target_debris_idx);
+}
+
+#[test]
+fn test_training_visualizer_data_generation() {
+    let model = load_default_pretrained_model().expect("Pre-trained model must load");
+    let config = AvoidanceConfig {
+        reward: RewardCoefficients::evaluation(),
+        ..Default::default()
+    };
+
+    let data = generate_training_visualizer_data(&model, &config);
+    assert_eq!(data.curves.len(), 101, "Curriculum curves must have 101 points (0 to 1M steps)");
+    assert_eq!(data.curves.first().unwrap().step, 0);
+    assert_eq!(data.curves.last().unwrap().step, 1_000_000);
+
+    // Collision rate must monotonically improve between stage boundaries
+    assert!(data.curves[0].collision_rate_pct > data.curves[50].collision_rate_pct);
+    assert!(data.curves[50].collision_rate_pct > data.curves[100].collision_rate_pct);
+
+    assert_eq!(data.checkpoint_episodes.len(), 4, "Must provide 4 milestone checkpoint replays");
+}
+
+#[test]
+fn test_real_tle_conjunction_generation() {
+    let model = load_default_pretrained_model().expect("Pre-trained model must load");
+
+    let scenario = generate_real_tle_conjunction(&model, "ISS", "COSMOS_2251");
+    assert!(scenario.satellite_name.contains("ISS"));
+    assert!(scenario.debris_catalog_name.contains("COSMOS"));
+
+    // Ballistic unmaneuvered should collide or violate safety zone
+    assert!(scenario.unmaneuvered_miss_distance_m <= 300.0, "Ballistic drift passes within collision threshold");
+    // PPO should achieve safe clearance
+    assert!(scenario.achieved_clearance_m > 300.0, "PPO maneuver clears collision sphere");
+    assert!(scenario.propellant_used_kg > 0.0, "PPO burns fuel during evasive maneuver");
+}
+
