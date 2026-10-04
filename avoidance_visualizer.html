@@ -861,16 +861,20 @@
       camera = new THREE.PerspectiveCamera(45, width / height, 10, 50000000);
       camera.position.set(0, 40000, 70000);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      container.appendChild(renderer.domElement);
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
 
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.maxDistance = 30000000;
-      controls.minDistance = 500;
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 30000000;
+        controls.minDistance = 500;
+      } catch (err) {
+        console.warn('WebGL initialization failed, running in data fallback mode:', err);
+      }
 
       // Lights
       const ambientLight = new THREE.AmbientLight(0x223344, 0.8);
@@ -890,7 +894,9 @@
       createEnvelopes();
 
       window.addEventListener('resize', onWindowResize);
-      animate();
+      if (renderer) {
+        animate();
+      }
     }
 
     function createStarfield() {
@@ -1002,14 +1008,16 @@
     function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     function resetCamera() {
       camera.position.set(0, 40000, 70000);
-      controls.target.set(0, 0, 0);
+      if (controls) {
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
       cameraMode = 'orbit';
-      controls.update();
     }
 
     function setCameraMode(mode) {
@@ -1036,10 +1044,18 @@
       const targetView = document.getElementById(tabId);
       if (targetView) targetView.classList.add('active');
 
-      if (tabId === 'train-tab' && !trainingData) {
-        fetchTrainingData();
-      } else if (tabId === 'real-tab' && !realScenarioData) {
-        runRealScenario();
+      if (tabId === 'train-tab') {
+        if (!trainingData) {
+          fetchTrainingData();
+        } else {
+          renderTrainingCharts();
+        }
+      } else if (tabId === 'real-tab') {
+        if (!realScenarioData) {
+          runRealScenario();
+        } else {
+          updateRealScenarioView();
+        }
       }
     }
 
@@ -1246,7 +1262,7 @@
       });
 
       // Camera focus on first satellite
-      if (episodesData[0].snapshots.length > 0) {
+      if (controls && episodesData[0].snapshots.length > 0) {
         const p0 = episodesData[0].snapshots[0].sat_pos;
         controls.target.set(p0[0], p0[1], p0[2]);
         camera.position.set(p0[0] + 5000, p0[1] + 15000, p0[2] + 25000);
@@ -1328,18 +1344,18 @@
         // Telemetry HUD Updates
         const dist = primarySnapshot.min_distance_m;
         const hudDist = document.getElementById('hud-distance');
-        hudDist.innerText = `${dist.toFixed(1)} m`;
+        hudDist.innerText = (dist != null && isFinite(dist)) ? `${dist.toFixed(1)} m` : '-- m';
 
         const hudStatus = document.getElementById('hud-zone-status');
         const alertBanner = document.getElementById('collision-alert');
 
-        if (dist <= 300) {
+        if (dist != null && dist <= 300) {
           hudDist.style.color = 'var(--danger)';
           hudDist.style.textShadow = '0 0 16px rgba(248, 113, 113, 0.8)';
           hudStatus.innerText = 'STATUS: COLLISION IMPACT';
           hudStatus.style.color = 'var(--danger)';
           alertBanner.style.display = 'flex';
-        } else if (dist <= 3300) {
+        } else if (dist != null && dist <= 3300) {
           hudDist.style.color = 'var(--accent-amber)';
           hudDist.style.textShadow = '0 0 16px rgba(251, 191, 36, 0.6)';
           hudStatus.innerText = 'STATUS: SAFETY BUFFER PENETRATION';
@@ -1353,22 +1369,23 @@
           alertBanner.style.display = 'none';
         }
 
-        document.getElementById('hud-min-dist').innerText = `${episodesData[0].min_observed_distance_m.toFixed(1)} m`;
-        document.getElementById('hud-tca').innerText = `${primarySnapshot.tca_s.toFixed(1)} s`;
-        document.getElementById('hud-closing-speed').innerText = `${primarySnapshot.closing_speed_mps.toFixed(1)} m/s`;
-        document.getElementById('hud-hazard').innerText = primarySnapshot.hazard_score.toFixed(3);
-        document.getElementById('hud-cum-dv').innerText = `${primarySnapshot.cumulative_dv.toFixed(2)} m/s`;
-        document.getElementById('hud-fuel').innerText = `${primarySnapshot.sat_fuel_kg.toFixed(1)} kg`;
+        const minObs = episodesData[0] ? episodesData[0].min_observed_distance_m : null;
+        document.getElementById('hud-min-dist').innerText = (minObs != null && isFinite(minObs)) ? `${minObs.toFixed(1)} m` : '-- m';
+        document.getElementById('hud-tca').innerText = primarySnapshot.tca_s != null ? `${primarySnapshot.tca_s.toFixed(1)} s` : '-- s';
+        document.getElementById('hud-closing-speed').innerText = primarySnapshot.closing_speed_mps != null ? `${primarySnapshot.closing_speed_mps.toFixed(1)} m/s` : '-- m/s';
+        document.getElementById('hud-hazard').innerText = primarySnapshot.hazard_score != null ? primarySnapshot.hazard_score.toFixed(3) : '0.00';
+        document.getElementById('hud-cum-dv').innerText = primarySnapshot.cumulative_dv != null ? `${primarySnapshot.cumulative_dv.toFixed(2)} m/s` : '0.0 m/s';
+        document.getElementById('hud-fuel').innerText = primarySnapshot.sat_fuel_kg != null ? `${primarySnapshot.sat_fuel_kg.toFixed(1)} kg` : '500.0 kg';
 
-        const fuelPct = (primarySnapshot.sat_fuel_kg / 500.0) * 100.0;
+        const fuelPct = ((primarySnapshot.sat_fuel_kg ?? 500.0) / 500.0) * 100.0;
         document.getElementById('fuel-bar').style.width = `${fuelPct}%`;
 
         // Camera Tracking
-        if (cameraMode === 'chase' && satelliteMeshes[0]) {
+        if (cameraMode === 'chase' && satelliteMeshes[0] && controls) {
           const satP = satelliteMeshes[0].mesh.position;
           controls.target.copy(satP);
           camera.position.set(satP.x - 3000, satP.y + 1200, satP.z + 4000);
-        } else if (cameraMode === 'debris' && collisionSphereMesh) {
+        } else if (cameraMode === 'debris' && collisionSphereMesh && controls) {
           const debP = collisionSphereMesh.position;
           controls.target.copy(debP);
           camera.position.set(debP.x + 2000, debP.y + 4000, debP.z + 6000);
@@ -1426,8 +1443,8 @@
         lastPlaybackTime = now;
       }
 
-      controls.update();
-      renderer.render(scene, camera);
+      if (controls) controls.update();
+      if (renderer) renderer.render(scene, camera);
     }
 
     // --- Distance Profile Canvas Chart ---
@@ -1520,10 +1537,22 @@
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      const w = canvas.width = canvas.clientWidth;
-      const h = canvas.height = canvas.clientHeight;
+      const w = canvas.width = canvas.clientWidth || 288;
+      const h = canvas.height = canvas.clientHeight || 140;
 
       ctx.clearRect(0, 0, w, h);
+
+      // Subtle horizontal grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      if (!values || values.length === 0) return;
 
       const minVal = Math.min(...values);
       const maxVal = Math.max(...values);

@@ -10,6 +10,8 @@
 use axum::{extract::Query, http::StatusCode, Json};
 use sbm_avoidance::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
 
 /// Request payload for single or comparative encounter simulation.
 #[derive(Debug, Clone, Deserialize)]
@@ -126,8 +128,15 @@ pub async fn benchmark_avoidance_handler(
     Ok(Json(summaries))
 }
 
+static TRAINING_DATA_CACHE: OnceLock<TrainingVisualizerData> = OnceLock::new();
+static REAL_SCENARIO_CACHE: OnceLock<Mutex<HashMap<(String, String), RealWorldConjunctionScenario>>> = OnceLock::new();
+
 /// Returns curriculum learning progress curves (0 to 1M steps) and 4 milestone checkpoint replays.
 pub async fn training_data_handler() -> Result<Json<TrainingVisualizerData>, (StatusCode, String)> {
+    if let Some(cached) = TRAINING_DATA_CACHE.get() {
+        return Ok(Json(cached.clone()));
+    }
+
     let model = load_default_pretrained_model()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to load pre-trained policy: {}", e)))?;
 
@@ -137,6 +146,7 @@ pub async fn training_data_handler() -> Result<Json<TrainingVisualizerData>, (St
     };
 
     let data = generate_training_visualizer_data(&model, &config);
+    let _ = TRAINING_DATA_CACHE.set(data.clone());
     Ok(Json(data))
 }
 
@@ -146,10 +156,21 @@ pub async fn real_scenario_handler(
 ) -> Result<Json<RealWorldConjunctionScenario>, (StatusCode, String)> {
     let sat = params.satellite.as_deref().unwrap_or("ISS");
     let deb = params.debris.as_deref().unwrap_or("COSMOS_2251");
+    let key = (sat.to_string(), deb.to_string());
+
+    let cache_map = REAL_SCENARIO_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(lock) = cache_map.lock() {
+        if let Some(cached) = lock.get(&key) {
+            return Ok(Json(cached.clone()));
+        }
+    }
 
     let model = load_default_pretrained_model()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to load pre-trained policy: {}", e)))?;
 
     let scenario = generate_real_tle_conjunction(&model, sat, deb);
+    if let Ok(mut lock) = cache_map.lock() {
+        lock.insert(key, scenario.clone());
+    }
     Ok(Json(scenario))
 }

@@ -241,6 +241,15 @@ impl SatelliteAvoidanceEnv {
         let r = self.satellite.position.norm();
         self.orbital_period_s = 2.0 * core::f64::consts::PI * (r.powi(3) / MU_EARTH).sqrt();
 
+        let mut min_d = f64::INFINITY;
+        for deb in &self.debris_field {
+            let d = (deb.position - self.satellite.position).norm();
+            if d < min_d {
+                min_d = d;
+            }
+        }
+        self.min_observed_distance_m = min_d;
+
         self.get_observation()
     }
 
