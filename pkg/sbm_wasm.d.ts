@@ -69,6 +69,10 @@ export class WasmNBodyEngine {
      */
     get_conservation_metrics(): any;
     /**
+     * Evaluates osculating Keplerian orbital elements of body `body_index` relative to `primary_index`.
+     */
+    get_osculating_elements(body_index: number, primary_index: number): any;
+    /**
      * Evaluates pairwise gravitational forces on the body at `focus_index`.
      */
     get_pairwise_forces(focus_index: number): any;
@@ -124,6 +128,7 @@ export interface InitOutput {
     readonly wasmcentricswarmengine_step: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmnbodyengine_get_bodies: (a: number) => [number, number, number];
     readonly wasmnbodyengine_get_conservation_metrics: (a: number) => [number, number, number];
+    readonly wasmnbodyengine_get_osculating_elements: (a: number, b: number, c: number) => [number, number, number];
     readonly wasmnbodyengine_get_pairwise_forces: (a: number, b: number) => [number, number, number];
     readonly wasmnbodyengine_get_positions_flat: (a: number) => any;
     readonly wasmnbodyengine_get_preset_name: (a: number) => [number, number];

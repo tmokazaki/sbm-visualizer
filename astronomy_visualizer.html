@@ -125,9 +125,9 @@
         <span class="icon">🌐</span>
         <span>Hill Sphere</span>
       </button>
-      <button class="place-action-btn" id="btn-place-surface">
-        <span class="icon">👤</span>
-        <span>Surface POV</span>
+      <button class="place-action-btn" id="btn-place-cockpit-toggle" title="Switch to Full Engineering Cockpit">
+        <span class="icon">🎛️</span>
+        <span>Cockpit</span>
       </button>
     </div>
 
@@ -172,7 +172,7 @@
 
   <!-- Google Maps Control Stack -->
   <div id="gmap-controls-stack">
-    <button class="gmap-single-btn" id="btn-gmap-recenter" title="Recenter on Earth / Home">
+    <button class="gmap-single-btn" id="btn-gmap-recenter" title="Recenter on Earth / Primary">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
         <circle cx="12" cy="12" r="4" />
         <line x1="12" y1="2" x2="12" y2="6" />
@@ -184,6 +184,13 @@
     <button class="gmap-single-btn" id="btn-gmap-tilt" title="Toggle 2D Top-Down Map vs 3D Oblique View">
       <span id="tilt-label" style="font-size: 11px; font-weight: 800; font-family: monospace; color: var(--accent);">3D</span>
     </button>
+    <button class="gmap-single-btn" id="btn-gmap-compass" title="Reset North / Orientation">
+      <div id="compass-needle" style="width: 4px; height: 16px; background: linear-gradient(to bottom, #ef4444 50%, #fff 50%); border-radius: 2px;"></div>
+    </button>
+    <div class="gmap-btn-group">
+      <button class="gmap-ctrl-btn" id="btn-gmap-zoom-in" title="Zoom in">+</button>
+      <button class="gmap-ctrl-btn" id="btn-gmap-zoom-out" title="Zoom out">&minus;</button>
+    </div>
   </div>
 
   <!-- Google Maps Layers Switcher -->
@@ -194,6 +201,15 @@
     </button>
     <div id="gmap-layers-menu">
       <div class="layer-menu-title">Map Overlays</div>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-forces" checked> Gravitational Forces (&rarr;F)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-tethers" checked> Force Tethers (Beams)
+      </label>
+      <label class="layer-checkbox-item">
+        <input type="checkbox" id="chk-layer-hills" checked> 3D Hill Spheres (Roche)
+      </label>
       <label class="layer-checkbox-item">
         <input type="checkbox" id="chk-layer-spacetime" checked> Spacetime Gravity Funnels
       </label>
@@ -215,6 +231,10 @@
           <option value="Mars">🔴 Areocentric (Mars-Centric)</option>
           <option value="Venus">🟡 Cytherocentric (Venus-Centric)</option>
         </select>
+      </div>
+
+      <div class="layer-menu-title" style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; color: var(--accent);">
+        Space Gravitational Field
       </div>
       <label class="layer-checkbox-item">
         <input type="checkbox" id="chk-layer-basins" checked> Dominance Basins (Territory Map)
@@ -254,11 +274,190 @@
     </div>
   </div>
 
+  <!-- Dynamic Metric Scale Bar -->
+  <div id="gmap-scale-container">
+    <span id="gmap-scale-text">1.0 AU (150M km)</span>
+    <div id="gmap-scale-line"></div>
+  </div>
+
   <!-- Bottom Status Bar -->
   <div id="gmap-status-bar">
     <span id="hud-time" style="color: var(--accent); font-weight: 700;">T + 0.00 days</span> &bull; 
     <span id="hud-fps" style="color: #34d399; font-weight: 700;">60 FPS</span> &bull; 
     <span>Symplectic Engine: Rust / WebAssembly</span>
+  </div>
+
+  <!-- Left Control Panel (Engineering Cockpit View) -->
+  <div id="left-panel" class="panel" style="display: none;">
+    <h3>
+      <span>Physics &amp; Integrator</span>
+      <span class="badge badge-green" id="integrator-badge">Yoshida 4th</span>
+    </h3>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Numerical Integrator</span>
+      </div>
+      <select id="integrator-select" style="width: 100%;">
+        <option value="yoshida4" selected>Yoshida 4th-Order Symplectic (Zero Secular Drift)</option>
+        <option value="yoshida6">Yoshida 6th-Order Symplectic (Solution A)</option>
+        <option value="leapfrog">Velocity Verlet / Leapfrog (2nd-Order)</option>
+        <option value="hermite4">Hermite 4th-Order (P(EC)^n Jerk Scheme)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Time Speed Multiplier</span>
+        <span class="val" id="time-speed-val">100x</span>
+      </div>
+      <input type="range" id="time-speed-slider" min="1" max="10000" step="5" value="100">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Sub-Steps Per Frame</span>
+        <span class="val" id="substeps-val">10 steps</span>
+      </div>
+      <input type="range" id="substeps-slider" min="1" max="50" step="1" value="10">
+    </div>
+
+    <!-- Gravitational Force Visuals Section -->
+    <h3 style="margin-top: 12px; margin-bottom: 8px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+      <span>Gravitational Force Fields</span>
+      <span class="badge badge-gold" id="force-badge">Active</span>
+    </h3>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Force Vectors (&rarr;F)</span>
+      <button id="btn-toggle-forces" class="active" style="padding: 4px 8px; font-size: 11px;">Forces: ON</button>
+    </div>
+
+    <div class="control-group" id="magnifier-group">
+      <div class="control-label">
+        <span>Perturbation Magnifier</span>
+        <span class="val" id="magnifier-val">5,000x</span>
+      </div>
+      <input type="range" id="magnifier-slider" min="1" max="50000" step="100" value="5000">
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Force Tethers (Beams)</span>
+      <button id="btn-toggle-tethers" class="active" style="padding: 4px 8px; font-size: 11px;">Tethers: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">3D Spacetime Funnel Mesh</span>
+      <button id="btn-toggle-spacetime" class="active" style="padding: 4px 8px; font-size: 11px;">Spacetime: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">3D Hill Spheres (Roche)</span>
+      <button id="btn-toggle-hills" class="active" style="padding: 4px 8px; font-size: 11px;">Hill Spheres: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+      <span style="font-size: 11px; color: var(--text-muted);">1PN General Relativity</span>
+      <button id="btn-toggle-gr" style="padding: 4px 8px; font-size: 11px;">1PN GR: OFF</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Orbit Trajectory Ribbons</span>
+      <button id="btn-toggle-trails" class="active" style="padding: 4px 8px; font-size: 11px;">Trails: ON</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Velocity Vectors (&rarr;v)</span>
+      <button id="btn-toggle-vel" style="padding: 4px 8px; font-size: 11px;">Vectors: OFF</button>
+    </div>
+
+    <div class="control-group" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--text-muted);">Ecliptic Reference Plane</span>
+      <button id="btn-toggle-grid" class="active" style="padding: 4px 8px; font-size: 11px;">Grid: ON</button>
+    </div>
+
+    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; color: var(--text-muted);">
+      <div>Simulated Time: <span id="sim-time-text" style="color: #fff; font-family: monospace; font-weight: 600;">0.00 days</span></div>
+      <div>Integration Steps: <span id="sim-steps-text" style="color: #fff; font-family: monospace; font-weight: 600;">0</span></div>
+    </div>
+  </div>
+
+  <!-- Right Telemetry Panel (Engineering Cockpit View) -->
+  <div id="right-panel" class="panel" style="display: none;">
+    <h3>
+      <span id="inspector-body-name">Celestial Body Telemetry</span>
+      <span class="badge badge-blue" id="inspector-badge">Primary</span>
+    </h3>
+
+    <div style="margin-bottom: 8px;">
+      <select id="body-selector-dropdown" style="width: 100%;">
+        <option value="0">Sun</option>
+      </select>
+    </div>
+
+    <!-- Gravitational Tug-of-War Section -->
+    <div id="gravitational-tug-container" style="margin-bottom: 10px; padding: 10px; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent); border-radius: 6px;">
+      <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+        <span>GRAVITATIONAL TUG-OF-WAR</span>
+        <span class="badge badge-purple" id="tug-focus-name">Earth</span>
+      </div>
+      <table class="data-table" id="tug-table" style="margin-bottom: 6px;">
+        <!-- Dynamically populated -->
+      </table>
+      <div id="tug-summary-note" style="font-size: 10px; color: #94a3b8; line-height: 1.35; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">
+      </div>
+    </div>
+
+    <table class="data-table">
+      <tr><td class="label">Mass (M)</td><td class="val" id="tel-mass">-</td></tr>
+      <tr><td class="label">Radius (R)</td><td class="val" id="tel-radius">-</td></tr>
+      <tr><td class="label">Speed (|v|)</td><td class="val" id="tel-speed">-</td></tr>
+      <tr><td class="label">Distance to Primary</td><td class="val" id="tel-dist">-</td></tr>
+      <tr><td class="label">Position [X, Y, Z]</td><td class="val" id="tel-pos">-</td></tr>
+      <tr><td class="label">Velocity [Vx, Vy, Vz]</td><td class="val" id="tel-vel">-</td></tr>
+    </table>
+
+    <h3 style="margin-top: 12px; margin-bottom: 6px; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+      Osculating Keplerian Elements
+    </h3>
+
+    <table class="data-table">
+      <tr><td class="label">Semi-major axis (a)</td><td class="val" id="el-a">-</td></tr>
+      <tr><td class="label">Eccentricity (e)</td><td class="val" id="el-e">-</td></tr>
+      <tr><td class="label">Inclination (i)</td><td class="val" id="el-inc">-</td></tr>
+      <tr><td class="label">RAAN (&Omega;)</td><td class="val" id="el-raan">-</td></tr>
+      <tr><td class="label">Arg of Periapsis (&omega;)</td><td class="val" id="el-argp">-</td></tr>
+      <tr><td class="label">True Anomaly (&nu;)</td><td class="val" id="el-nu">-</td></tr>
+      <tr><td class="label">Orbital Period (P)</td><td class="val" id="el-period">-</td></tr>
+      <tr><td class="label">Periapsis (q) / Apoapsis (Q)</td><td class="val" id="el-apsis">-</td></tr>
+    </table>
+
+    <div id="resonance-container" style="display: none; margin-top: 10px; padding: 8px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px;">
+      <div style="font-weight: 700; color: var(--accent); font-size: 11px; margin-bottom: 4px;" id="res-title">Resonance Monitor</div>
+      <div style="font-size: 11px; font-family: monospace;" id="res-details">Libration Angle: 180.0&deg;</div>
+    </div>
+  </div>
+
+  <!-- Bottom Conservation HUD (Engineering Cockpit View) -->
+  <div id="bottom-panel" class="panel" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-weight: 700; font-size: 11px; color: var(--accent); letter-spacing: 0.5px;">HAMILTONIAN CONSERVATION &amp; PHASE SPACE INVARIANTS</div>
+      <div class="badge badge-green" id="energy-badge">&Delta;E/E0: 0.00e+0</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: monospace; font-size: 11px; margin-top: 4px;">
+      <div>Total Energy (E): <span id="hud-total-energy" style="color: #fff;">0.00 J</span></div>
+      <div>Kinetic / Potential: <span id="hud-energy-split" style="color: var(--text-muted);">T=0, V=0</span></div>
+      <div>Linear Momentum |P|: <span id="hud-lin-mom" style="color: #fff;">0.00 kg&bull;m/s</span></div>
+      <div>Angular Momentum |L|: <span id="hud-ang-mom" style="color: #fff;">0.00 kg&bull;m&sup2;/s</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom Toolbar (Engineering Cockpit View) -->
+  <div id="bottom-toolbar" style="display: none;">
+    <button id="btn-camera-top">Top View (XY)</button>
+    <button id="btn-camera-side">Side View (XZ)</button>
+    <button id="btn-camera-iso">Isometric 3D</button>
   </div>
 
   <!-- Modular Application Entry Point -->

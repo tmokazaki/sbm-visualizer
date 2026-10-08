@@ -12,9 +12,10 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::error;
 
 use crate::handlers::{
-    correct_halo_handler, correct_lyapunov_handler, export_oem_handler,
+    benchmark_avoidance_handler, correct_halo_handler, correct_lyapunov_handler, export_oem_handler,
     generate_manifold_handler, get_nbody_presets, get_system_info, get_transfer_benchmark,
-    health_check, optimize_transfer_handler, plan_rpo_handler, simulate_nbody_handler,
+    health_check, optimize_transfer_handler, plan_rpo_handler, real_scenario_handler,
+    simulate_avoidance_handler, simulate_nbody_handler, training_data_handler,
 };
 
 /// Shared server application state.
@@ -41,6 +42,8 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
         .route("/rpo_visualizer.html", get(serve_rpo_visualizer))
         .route("/astronomy", get(serve_astronomy_visualizer))
         .route("/astronomy_visualizer.html", get(serve_astronomy_visualizer))
+        .route("/avoidance", get(serve_avoidance_visualizer))
+        .route("/avoidance_visualizer.html", get(serve_avoidance_visualizer))
         // API routes
         .route("/api/v1/health", get(health_check))
         .route("/api/v1/system/:name", get(get_system_info))
@@ -53,6 +56,10 @@ pub fn create_app(workspace_root: PathBuf) -> Router {
         .route("/api/v1/rpo/plan", post(plan_rpo_handler))
         .route("/api/v1/nbody/presets", get(get_nbody_presets))
         .route("/api/v1/nbody/simulate", post(simulate_nbody_handler))
+        .route("/api/v1/avoidance/simulate", post(simulate_avoidance_handler))
+        .route("/api/v1/avoidance/benchmark", get(benchmark_avoidance_handler))
+        .route("/api/v1/avoidance/training-data", get(training_data_handler))
+        .route("/api/v1/avoidance/real-scenario", get(real_scenario_handler))
         .nest_service(
             "/libs",
             tower_http::services::ServeDir::new(resolve_html_path(&state.workspace_root, "libs")),
@@ -148,4 +155,20 @@ pub async fn serve_astronomy_visualizer(State(state): State<AppState>) -> Respon
         }
     }
 }
+
+pub async fn serve_avoidance_visualizer(State(state): State<AppState>) -> Response {
+    let file_path = resolve_html_path(&state.workspace_root, "avoidance_visualizer.html");
+    match tokio::fs::read_to_string(&file_path).await {
+        Ok(html_content) => Html(html_content).into_response(),
+        Err(err) => {
+            error!("Failed to read avoidance_visualizer.html: {:?}", err);
+            (
+                StatusCode::NOT_FOUND,
+                format!("Avoidance Visualizer HTML not found at: {:?}", file_path),
+            )
+                .into_response()
+        }
+    }
+}
+
 

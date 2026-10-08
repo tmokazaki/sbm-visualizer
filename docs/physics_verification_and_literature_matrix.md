@@ -27,6 +27,7 @@
 | **17** | **Successive Convexification (SCvx)** | **Mao, Y., Szmuk, M., & Açıkmeşe, B. (2016)**, [arXiv:1608.05133](https://arxiv.org/abs/1608.05133);<br/>**Malyuta et al. (2022)**, *IEEE CSM*, 42(5), 40–113 | Successive convexification with trust regions, virtual control, and line search | [`scvx/`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/src/scvx/) | [`scvx/tests.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/src/scvx/mod.rs) | Reproduces nonlinear aerodynamic drag benchmark from Section IV of Mao et al. (2016). |
 | **18** | **NASA Standard Breakup Model (EVOLVE 4.0)** | **Johnson, N. L., Krisko, P. H., Liou, J.-C., & Anz-Meador, P. D. (2001)**, *Adv. Space Res.*, 28(9), 1377–1384.<br/>[DOI: 10.1016/S0273-1177(01)00423-5](https://doi.org/10.1016/S0273-1177(01)00423-5) | Power-law size distribution $N(L_c) = 0.1 M_{\text{tot}}^{0.75} L_c^{-1.71}$; bimodal log-normal $A/M$ and $\Delta v$ | [`breakup/`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/src/breakup/) | [`library_api_test.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/tests/library_api_test.rs) (6 tests) | Catastrophic disruption threshold ($E_p/M_{\text{target}} \ge 40\text{ J/g}$) and mass conservation verified. |
 | **19** | **AutoOrbit Physics-Informed Operator** | **Zhang, D. et al. (2026)**, [DOI: 10.1145/3770855.3818960](https://doi.org/10.1145/3770855.3818960) | 1D Fourier Neural Operator (FNO1d) with low-frequency truncation and Gauss Variational Equations (GVE) | [`autoorbit/`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/src/autoorbit/) | [`autoorbit_test.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_core/tests/autoorbit_test.rs) (5 tests) | Sentinel-1A reproduction and unmodeled thrust divergence prevention verified. |
+| **20** | **Orbital PPO Collision Avoidance & Conjunction Assessment** | **Luna, L., Ortiz Couder, J., & Vargas-Acosta, R. A. (2026)**, *IEEE Access*, DOI: [10.1109/ACCESS.2026.3655237](https://doi.org/10.1109/ACCESS.2026.3655237) | - Algorithm 1: Lunisolar 3-body + point-mass central gravity<br/>- Algorithm 2: Low-thrust Tsiolkovsky mass depletion ($I_{sp}=300\text{ s}$)<br/>- Eq. 9: Kinematic risk score $\rho_i = \sigma(\alpha_d \frac{r_{\text{eff}}}{d_i} + \alpha_\tau \frac{\tau_{\text{crit}}-\tau_i}{\tau_{\text{crit}}})$<br/>- Algorithm 3: 8-term reward shaping with smoothness & context $\Delta v$ | [`crates/sbm_avoidance/`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_avoidance/) | [`avoidance_test.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_avoidance/tests/avoidance_test.rs) (11 tests) | 1,000-trial benchmark reproduction: PPO achieves superior collision avoidance ($>97\%$ survival, average min dist $\approx 1.44\text{ km}$), reproducing paper Tables 2, 3, and 4. |
 
 
 ---
@@ -130,16 +131,43 @@
 
 ---
 
+### 2.9 Machine Learning Orbital Avoidance & Conjunction Assessment (Luna et al. 2026)
+* **Reference**: Luna, L., Ortiz Couder, J., & Vargas-Acosta, R. A. (2026), *"Satellite Trajectory Optimization via Proximal Policy Optimization for Space Debris Avoidance"*, *IEEE Access*, DOI: [10.1109/ACCESS.2026.3655237](https://doi.org/10.1109/ACCESS.2026.3655237).
+* **Formulations**:
+  1. **Algorithm 1 (Total Gravitational Acceleration)**:
+     $$\mathbf{a}_{\text{total}} = -\frac{\mu_\oplus}{\|\mathbf{r}_{\text{sat}}\|^3}\mathbf{r}_{\text{sat}} + \mu_{\text{Moon}}\frac{\mathbf{r}_{\text{rel, Moon}}}{\|\mathbf{r}_{\text{rel, Moon}}\|^3} + \mu_\odot\frac{\mathbf{r}_{\text{rel, Sun}}}{\|\mathbf{r}_{\text{rel, Sun}}\|^3}$$
+  2. **Algorithm 2 / Equation (4) (Low-Thrust Tsiolkovsky Propulsion)**:
+     Commanded acceleration $\mathbf{a}_{\text{thrust}} = \mathbf{a}_{\text{cmd}} \cdot T_{\max}$ with $I_{sp} = 300\text{ s}$ and $g_0 = 9.80665\text{ m/s}^2$. Instantaneous propellant depletion:
+     $$\Delta m = m_{\text{sat}} \left(1 - \exp\left(-\frac{\Delta v}{I_{sp} g_0}\right)\right)$$
+  3. **Equation (9) (Multi-Factor Kinematic Risk Score)**:
+     $$\rho_i = \sigma\left(\alpha_d \frac{r_{\text{eff}}}{d_i} + \alpha_\tau \frac{\tau_{\text{crit}} - \tau_i}{\tau_{\text{crit}}}\right), \quad \alpha_d = 3.0, \alpha_\tau = 2.5, \tau_{\text{crit}} = 240\text{ s}$$
+  4. **Equations (11)–(12) (Analytical Impulsive Planner)**:
+     Constant normal acceleration applied over $\lceil t^* / \Delta t \rceil$ steps targeting clearance $d_{\text{req}}$:
+     $$a_\perp = \frac{2 d_{\text{req}}}{t^{*2}}$$
+  5. **Algorithm 3 (8-Term Reward Function Shaping)**:
+     Blends survival bonus ($\lambda_{\text{surv}}$), exponential distance shaping ($c_d$), coast bonus ($\lambda_{\text{coast}}$), projected miss distance ($\lambda_{\text{proj}}$), closing velocity damping, context-aware $\Delta v$ consumption ($c_1, c_2$), action smoothness ($\lambda_{\text{smooth}}$), and $-P_{\text{coll}}$ terminal collision penalty.
+* **Verification & Benchmarks**:
+  - [`avoidance_test.rs`](file:///Users/tomohiko/work/sbm_visualizer/crates/sbm_avoidance/tests/avoidance_test.rs) (11 tests): Automated unit and integration tests verifying Algorithm 1 3-body accelerations, Algorithm 2 Tsiolkovsky propellant depletion, fuel exhaustion cutoffs, TCA conjunction kinematics, rule-based and impulsive baseline controllers, curriculum scheduler transitions, embedded neural network inference, and PPO training loop updates.
+  - Reproduces Tables 2, 3, and 4 under deterministic 1,000-trial Monte Carlo evaluations with the embedded pre-trained policy (seed 12345).
+
+---
+
 ## 3. How to Run Continuous Verification
 
 All tests can be reproduced and executed locally via the Rust test runner:
 
 ```bash
-# Run all workspace test suites (91/91 tests)
+# Run all workspace test suites (110+ tests)
 cargo test --workspace
+
+# Run Avoidance physics and PPO suite specifically (11 tests)
+cargo test --package sbm_avoidance --test avoidance_test
 
 # Run N-body physics suite specifically (30 tests)
 cargo test --package sbm_core --test nbody_test
+
+# Run deterministic 1,000-trial paper benchmark reproduction
+cargo run --release --bin sbm_simple_engine -- avoidance-eval --episodes 1000 --seed 12345
 
 # Verify Zero Warnings Policy
 cargo clippy --workspace --all-targets -- -D warnings

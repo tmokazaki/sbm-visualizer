@@ -639,10 +639,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "sbm_avoidance"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "sbm_core",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "sbm_cli"
 version = "0.2.0"
 dependencies = [
+ "sbm_avoidance",
  "sbm_core",
+ "serde_json",
  "tracing",
  "tracing-subscriber",
 ]
@@ -662,6 +676,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "http-body-util",
+ "sbm_avoidance",
  "sbm_core",
  "serde",
  "serde_json",

@@ -2,12 +2,16 @@
 //! - NASA EVOLVE 4.0 Breakup Simulation (`breakup`)
 //! - Clohessy-Wiltshire RPO Target Maneuver Planning (`rpo`)
 //! - CR3BP Low-Energy & Multi-Body Transfer Planning (`transfer`)
+//! - PPO Satellite Collision Avoidance Training & Benchmarking (`avoidance-train`, `avoidance-eval`)
 
 #![deny(clippy::print_stdout, clippy::print_stderr)]
 
 pub mod commands;
 
-use commands::{run_breakup_cli, run_rpo_cli, run_transfer_cli};
+use commands::{
+    run_avoidance_eval_cli, run_avoidance_train_cli, run_breakup_cli, run_rpo_cli,
+    run_transfer_cli,
+};
 use std::env;
 use tracing::info;
 
@@ -25,6 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match subcommand {
         "rpo" => run_rpo_cli(&args[2..])?,
         "transfer" => run_transfer_cli(&args[2..])?,
+        "avoidance-train" => run_avoidance_train_cli(&args[2..])?,
+        "avoidance-eval" => run_avoidance_eval_cli(&args[2..])?,
         "help" | "--help" | "-h" => print_usage(),
         "breakup" => run_breakup_cli(&args)?,
         _ => run_breakup_cli(&args)?,
@@ -40,18 +46,18 @@ fn print_usage() {
     info!("Usage: sbm_simple_engine <COMMAND> [OPTIONS]");
     info!("");
     info!("COMMANDS:");
-    info!("  breakup   Execute NASA EVOLVE 4.0 debris collision simulation (default)");
-    info!("  rpo       Plan Clohessy-Wiltshire RPO target maneuvers");
-    info!("  transfer  Compute CR3BP invariant manifold low-energy transfer");
-    info!("  help      Show this usage guide");
+    info!("  breakup          Execute NASA EVOLVE 4.0 debris collision simulation (default)");
+    info!("  rpo              Plan Clohessy-Wiltshire RPO target maneuvers");
+    info!("  transfer         Compute CR3BP invariant manifold low-energy transfer");
+    info!("  avoidance-train  Train autonomous PPO satellite avoidance agent (Luna et al. 2026)");
+    info!("  avoidance-eval   Run deterministic benchmark reproduction (Tables 2, 3, 4)");
+    info!("  help             Show this usage guide");
     info!("");
-    info!("RPO OPTIONS:");
-    info!("  --mode <nmc|two-impulse|vbar|rbar>  RPO maneuver profile (default: two-impulse)");
-    info!("  --target <iss|sso|geo>             Reference target orbit (default: iss)");
-    info!("  --x <meters>                       Initial radial offset (default: -100.0)");
-    info!("  --y <meters>                       Initial in-track offset (default: -500.0)");
-    info!("  --z <meters>                       Initial cross-track offset (default: 0.0)");
-    info!("  --duration <seconds>               Transfer duration (default: 1800.0)");
-    info!("  --radial <meters>                  NMC radial semi-axis (default: 100.0)");
+    info!("AVOIDANCE OPTIONS:");
+    info!("  --episodes <N>   Evaluation episodes (default: 1000)");
+    info!("  --seed <seed>    Base random seed (default: 12345)");
+    info!("  --timesteps <N>  Training timesteps (default: 1000000)");
+    info!("  --save <path>    Model output binary path (default: models/ppo_avoidance_model.bin)");
+    info!("  --model <path>   Path to model binary (default: embedded pre-trained weights)");
     info!("============================================================");
 }

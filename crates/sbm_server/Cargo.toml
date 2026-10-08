@@ -8,6 +8,7 @@ authors = ["Antigravity Engineering Team"]
 
 [dependencies]
 sbm_core = { path = "../sbm_core" }
+sbm_avoidance = { path = "../sbm_avoidance" }
 tokio = { version = "1.38", features = ["full"] }
 axum = { version = "0.7", features = ["ws"] }
 tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
