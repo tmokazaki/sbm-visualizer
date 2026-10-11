@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDA Gravitational Energy Well & Surveillance Physics Visualizer</title>
+  <!-- Relative Three.js & OrbitControls with CDN fallbacks -->
+  <script src="libs/three.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';"></script>
+  <script src="libs/OrbitControls.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';"></script>
+  <style>
+    :root {
+      --bg-dark: #030610;
+      --panel-bg: rgba(9, 14, 26, 0.92);
+      --panel-border: rgba(56, 189, 248, 0.22);
+      --accent-cyan: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --accent-gold: #fbbf24;
+      --accent-purple: #c084fc;
+      --accent-green: #34d399;
+      --danger: #f43f5e;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Navigation Header */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 56px;
+      background: rgba(7, 10, 19, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: conic-gradient(from 180deg at 50% 50%, #38bdf8 0deg, #c084fc 120deg, #fbbf24 240deg, #38bdf8 360deg);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #fff;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .view-mode-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--accent-cyan);
+      color: #fff;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* Floating UI Panels */
+    .hud-panel {
+      position: absolute;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 16px;
+      z-index: 10;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Left Control Deck: Hohmann Transfer & Surveillance Radar/Optical */
+    #left-deck {
+      top: 72px;
+      left: 20px;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .transfer-btn {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .transfer-btn:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.15);
+      color: #fff;
+    }
+
+    .transfer-btn.active {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.25);
+      color: #fff;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Right Telemetry & Physics Deck */
+    #right-deck {
+      top: 72px;
+      right: 20px;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: calc(100vh - 170px);
+      overflow-y: auto;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .tel-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .tel-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .tel-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .tel-unit {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    .physics-callout {
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Bottom Status & Energy Scale Legend */
+    #bottom-legend {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      height: 72px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .legend-scale-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      max-width: 780px;
+    }
+
+    .gradient-bar {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #f43f5e 0%, #fbbf24 35%, #38bdf8 70%, #34d399 100%);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .legend-node {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-leo { width: 8px; height: 8px; border-radius: 50%; background: #f43f5e; }
+    .dot-meo { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; }
+    .dot-geo { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon"></div>
+      <div>
+        <div class="brand-title">SDA GRAVITATIONAL ENERGY WELL &amp; SURVEILLANCE PHYSICS</div>
+        <div class="brand-subtitle">Orbital Energy Depths &bull; Hohmann Transfer &Delta;v &bull; Radar (1/R⁴) vs. Optical (1/R²) Horizons</div>
+      </div>
+    </div>
+
+    <div class="view-mode-tabs">
+      <button class="tab-btn active" id="tab-well">🌪️ 3D Gravitational Well</button>
+      <button class="tab-btn" id="tab-cutaway">🌐 3D Onion Cutaway</button>
+      <button class="tab-btn" id="tab-radar-optical">📡 Radar vs Optical Horizon</button>
+      <button class="tab-btn" id="btn-play">❚❚ Pause</button>
+      <button class="tab-btn" id="btn-reset">↺ Reset</button>
+    </div>
+  </header>
+
+  <!-- Left: Hohmann Energy Transfers & Perturbation Physics -->
+  <div class="hud-panel" id="left-deck">
+    <div>
+      <div class="card-title">
+        <span>Orbital Energy &Delta;v Transfers</span>
+        <span style="font-size: 10px; color: var(--text-muted);">Vis-Viva Equation</span>
+      </div>
+      <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+        Altitude corresponds to depth in Earth's gravitational well. Select a maneuver to visualize transfer trajectory:
+      </p>
+
+      <button class="transfer-btn active" data-transfer="deorbit">
+        <span><strong>LEO Deorbit</strong> (Drop into Atmosphere)</span>
+        <span style="color: #f43f5e;">&Delta;v &approx; 120 m/s</span>
+      </button>
+
+      <button class="transfer-btn" data-transfer="gto">
+        <span><strong>LEO &rarr; GEO Transfer</strong> (Hohmann GTO)</span>
+        <span style="color: #fbbf24;">&Delta;v &approx; 3.92 km/s</span>
+      </button>
+
+      <button class="transfer-btn" data-transfer="meo">
+        <span><strong>LEO &rarr; GPS MEO</strong> (GNSS Injection)</span>
+        <span style="color: #c084fc;">&Delta;v &approx; 2.65 km/s</span>
+      </button>
+
+      <button class="transfer-btn" data-transfer="graveyard">
+        <span><strong>GEO &rarr; Graveyard Orbit</strong> (+300 km)</span>
+        <span style="color: #34d399;">&Delta;v &approx; 11 m/s</span>
+      </button>
+    </div>
+
+    <div class="physics-callout">
+      <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px;">The GEO Graveyard Paradox</div>
+      <p style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+        Deorbiting a GEO satellite back to Earth requires an immense <strong>&Delta;v &approx; 1,480 m/s</strong> (prohibitive propellant mass). Lifting it just +300 km into a graveyard orbit requires only <strong>11 m/s</strong>.
+      </p>
+    </div>
+  </div>
+
+  <!-- Right: SDA Physics & Dominant Perturbations -->
+  <div class="hud-panel" id="right-deck">
+    <div>
+      <div class="card-title">
+        <span>Active Regime Energy Telemetry</span>
+        <span id="badge-energy" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.2); color: #38bdf8;">LEO Baseline</span>
+      </div>
+      <h3 id="tel-regime-title" style="font-size: 14px; color: #fff; margin-bottom: 4px;">Low Earth Orbit (LEO)</h3>
+      <p id="tel-regime-desc" style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+        Deepest inside the potential well. Extreme kinetic velocity required to prevent gravity collapse.
+      </p>
+    </div>
+
+    <div class="telemetry-grid">
+      <div class="tel-item">
+        <div class="tel-label">Specific Energy (&epsilon;)</div>
+        <div class="tel-value" id="tel-specific-energy">-29.4<span class="tel-unit">MJ/kg</span></div>
+      </div>
+      <div class="tel-item">
+        <div class="tel-label">Orbital Velocity (v)</div>
+        <div class="tel-value" id="tel-velocity">7.67<span class="tel-unit">km/s</span></div>
+      </div>
+      <div class="tel-item">
+        <div class="tel-label">Gravitational Pot. (&Phi;)</div>
+        <div class="tel-value" id="tel-potential">-58.8<span class="tel-unit">MJ/kg</span></div>
+      </div>
+      <div class="tel-item">
+        <div class="tel-label">Orbital Period (T)</div>
+        <div class="tel-value" id="tel-period">92.7<span class="tel-unit">min</span></div>
+      </div>
+    </div>
+
+    <!-- Dominant Environmental Perturbation -->
+    <div class="physics-callout">
+      <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Dominant Perturbation Force</div>
+      <div id="tel-dom-force" style="font-size: 12px; font-weight: 600; color: #fbbf24;">
+        Atmospheric Thermospheric Drag &amp; J₂ Oblateness
+      </div>
+      <p id="tel-force-desc" style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+        Drag removes orbital energy, causing secular altitude decay; J₂ harmonic drives nodal regression.
+      </p>
+    </div>
+
+    <!-- Surveillance Physics: Radar vs Optical -->
+    <div class="physics-callout">
+      <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Surveillance Physics Horizon</div>
+      <div id="tel-sensor-rule" style="font-size: 12px; font-weight: 600; color: #38bdf8;">
+        Radar Domain (P_recv &propto; 1/R⁴)
+      </div>
+      <p id="tel-sensor-desc" style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+        Ground radars detect small debris (&gt;2 cm) easily in LEO. Beyond 2,000 km, the 1/R⁴ two-way radar power loss makes radars ineffective.
+      </p>
+    </div>
+  </div>
+
+  <!-- Bottom: Gravitational Well Depth Legend -->
+  <div id="bottom-legend">
+    <div class="legend-scale-bar">
+      <span style="font-size: 11px; color: var(--text-muted); white-space: nowrap;">Gravitational Well Depth:</span>
+      <div class="legend-node"><span class="dot-leo"></span><span>LEO (-29.4 MJ/kg, Fast)</span></div>
+      <div class="gradient-bar"></div>
+      <div class="legend-node"><span class="dot-meo"></span><span>MEO (-7.5 MJ/kg)</span></div>
+      <div class="legend-node"><span class="dot-geo"></span><span>GEO (-4.7 MJ/kg, Rim)</span></div>
+    </div>
+
+    <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">
+      &Phi;(r) = -&mu;/r &bull; v = &radic;(&mu;/r)
+    </div>
+  </div>
+
+  <!-- Three.js Engine & Astrodynamic Funnel Logic -->
+  <script>
+    /* =========================================================================
+     * Physical Constants & Formulations
+     * ========================================================================= */
+    const R_EARTH = 6378.137;           // km
+    const MU = 398600.4418;             // km^3/s^2
+    const OMEGA_EARTH = 7.2921159e-5;   // rad/s
+
+    let activeViewMode = 'well';        // 'well', 'cutaway', 'radar_optical'
+    let activeTransfer = 'deorbit';
+    let isPlaying = true;
+    let simTime = 0;
+
+    // Regimes Definitions
+    const REGIMES = {
+      leo: {
+        title: 'Low Earth Orbit (LEO)',
+        h: 408,
+        desc: 'Deepest in Earth\'s gravitational potential well. Moves at 7.67 km/s to balance high gravity.',
+        domForce: 'Thermospheric Drag & Earth J₂ Oblateness',
+        forceDesc: 'Neutral atmospheric drag causes rapid decay; J₂ harmonic causes rapid orbit precession.',
+        sensorRule: 'Radar Surveillance Domain (P_recv ∝ 1/R⁴)',
+        sensorDesc: 'Space Fence radars track down to 2 cm debris. Fast flyovers require phased array tracking.'
+      },
+      meo: {
+        title: 'Medium Earth Orbit (MEO - GPS)',
+        h: 20180,
+        desc: 'Midway up the gravitational well slope. Semi-synchronous 12-hour orbit.',
+        domForce: 'Tesseral Resonances & Van Allen Radiation Traps',
+        forceDesc: 'J₂₂ gravity resonance locks ground tracks; trapped electron radiation degrades components.',
+        sensorRule: 'Optical Transition Zone (P_recv ∝ 1/R²)',
+        sensorDesc: 'Telescopes begin outperforming radars due to 1/R² solar illumination reflection.'
+      },
+      geo: {
+        title: 'Geostationary Orbit (GEO)',
+        h: 35786,
+        desc: 'At the outer rim of the potential well. Matches Earth rotation (24h period).',
+        domForce: 'Solar Radiation Pressure (SRP) & Lunar/Solar 3rd Body',
+        forceDesc: 'Sun and Moon gravity pull orbit inclination by 0.86°/year; SRP perturbs eccentricity.',
+        sensorRule: 'Pure Optical Domain (GEODSS Telescopes)',
+        sensorDesc: 'Stationary relative to ground; telescopes can track satellites with long optical exposures.'
+      }
+    };
+
+    /* =========================================================================
+     * Three.js Scene Setup
+     * ========================================================================= */
+    const container = document.getElementById('canvas-container');
+    let scene, camera, renderer, controls;
+    let earthMesh, atmosphereMesh;
+    let funnelMesh, contourRings = [];
+    let transferOrbitLine, cutawayGroup, sensorPhysicsGroup;
+    let particlesMesh;
+
+    // Synthetic satellite particles for the well
+    const WELL_PARTICLES = [];
+    for (let i = 0; i < 600; i++) {
+      let h, col;
+      if (i < 420) { h = 350 + Math.random() * 800; col = '#f43f5e'; } // LEO
+      else if (i < 500) { h = 20180 + (Math.random() - 0.5) * 500; col = '#fbbf24'; } // MEO
+      else { h = 35786 + (Math.random() - 0.5) * 200; col = '#34d399'; } // GEO
+      WELL_PARTICLES.push({
+        h, angle: Math.random() * Math.PI * 2,
+        speed: Math.sqrt(MU / (R_EARTH + h)) / 1200,
+        color: col
+      });
+    }
+
+    function initThree() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 500000);
+      camera.position.set(0, 32000, 48000);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.minDistance = 2000;
+      controls.maxDistance = 250000;
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0x1e293b, 1.5));
+      const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+      sun.position.set(150000, 40000, 0);
+      scene.add(sun);
+
+      // Create 3D Earth
+      const earthGeo = new THREE.SphereGeometry(R_EARTH, 48, 48);
+      const cvs = document.createElement('canvas');
+      cvs.width = 512; cvs.height = 256;
+      const ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#0a192f'; ctx.fillRect(0, 0, 512, 256);
+      ctx.fillStyle = '#1e3a5f';
+      for (let i = 0; i < 12; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * 512, 40 + Math.random() * 176, 25 + Math.random() * 50, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(cvs);
+      earthMesh = new THREE.Mesh(earthGeo, new THREE.MeshPhongMaterial({ map: tex, specular: 0x1e293b, shininess: 20 }));
+      scene.add(earthMesh);
+
+      // Atmosphere
+      atmosphereMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH * 1.02, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.15, side: THREE.BackSide })
+      );
+      scene.add(atmosphereMesh);
+
+      // 1. Build Gravitational Potential Funnel Mesh (z = -C / r)
+      buildGravityFunnel();
+
+      // 2. Build 3D Cutaway Onion Shell Group
+      buildCutawayShells();
+
+      // 3. Build Surveillance Radar vs Optical Visuals
+      buildSensorPhysics();
+
+      // 4. Build Hohmann Transfer Ellipse
+      buildTransferTrajectory();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* =========================================================================
+     * 1. 3D Gravitational Potential Funnel Construction
+     * ========================================================================= */
+    function buildGravityFunnel() {
+      const radialSegs = 48;
+      const ringSegs = 64;
+      const r_min = R_EARTH;
+      const r_max = R_EARTH + 40000;
+
+      const geom = new THREE.BufferGeometry();
+      const pos = [];
+      const colors = [];
+      const cHelper = new THREE.Color();
+
+      // Depth scaling: Potential Phi = -MU / r
+      const getDepth = (r) => {
+        const phi = -MU / r; // negative
+        return (phi + 62.5) * 450; // map to z-coordinate depth
+      };
+
+      for (let i = 0; i <= radialSegs; i++) {
+        const u = i / radialSegs;
+        const r = r_min + Math.pow(u, 1.4) * (r_max - r_min);
+        const y_depth = getDepth(r);
+
+        for (let j = 0; j <= ringSegs; j++) {
+          const theta = (j / ringSegs) * Math.PI * 2;
+          const x = r * Math.cos(theta);
+          const z = r * Math.sin(theta);
+          pos.push(x, y_depth, z);
+
+          // Color gradient from LEO (red/hot depth) to GEO (cyan/green shallow)
+          if (u < 0.1) cHelper.set('#f43f5e');
+          else if (u < 0.5) cHelper.set('#fbbf24');
+          else cHelper.set('#34d399');
+
+          colors.push(cHelper.r, cHelper.g, cHelper.b);
+        }
+      }
+
+      const indices = [];
+      for (let i = 0; i < radialSegs; i++) {
+        for (let j = 0; j < ringSegs; j++) {
+          const a = i * (ringSegs + 1) + j;
+          const b = a + ringSegs + 1;
+          indices.push(a, b, a + 1);
+          indices.push(b, b + 1, a + 1);
+        }
+      }
+
+      geom.setIndex(indices);
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      const mat = new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.35
+      });
+      funnelMesh = new THREE.Mesh(geom, mat);
+      scene.add(funnelMesh);
+
+      // Add prominent Contour Rings at key altitudes
+      [
+        { h: 408, name: 'LEO Contour (ISS)', col: '#f43f5e' },
+        { h: 20180, name: 'MEO Contour (GPS)', col: '#fbbf24' },
+        { h: 35786, name: 'GEO Contour (Clarke Belt)', col: '#34d399' }
+      ].forEach(ring => {
+        const r = R_EARTH + ring.h;
+        const y = getDepth(r);
+        const pts = [];
+        for (let k = 0; k <= 64; k++) {
+          const th = (k / 64) * Math.PI * 2;
+          pts.push(new THREE.Vector3(r * Math.cos(th), y, r * Math.sin(th)));
+        }
+        const rGeo = new THREE.BufferGeometry().setFromPoints(pts);
+        const rMesh = new THREE.Line(rGeo, new THREE.LineBasicMaterial({ color: ring.col, linewidth: 2 }));
+        scene.add(rMesh);
+        contourRings.push(rMesh);
+      });
+
+      // Swarm particles inside the funnel
+      const pCount = WELL_PARTICLES.length;
+      const pPos = new Float32Array(pCount * 3);
+      const pCol = new Float32Array(pCount * 3);
+      for (let p = 0; p < pCount; p++) {
+        cHelper.set(WELL_PARTICLES[p].color);
+        pCol[p * 3]     = cHelper.r;
+        pCol[p * 3 + 1] = cHelper.g;
+        pCol[p * 3 + 2] = cHelper.b;
+      }
+      const pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+      particlesMesh = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 140, vertexColors: true }));
+      scene.add(particlesMesh);
+    }
+
+    /* =========================================================================
+     * 2. 3D Cutaway Onion Shell Group
+     * ========================================================================= */
+    function buildCutawayShells() {
+      cutawayGroup = new THREE.Group();
+
+      // Atmospheric layers
+      const atmoShell = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 120, 32, 16, 0, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+      );
+      cutawayGroup.add(atmoShell);
+
+      // LEO Shell (0-2000 km)
+      const leoShell = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 2000, 32, 16, 0, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.2 })
+      );
+      cutawayGroup.add(leoShell);
+
+      // Inner Van Allen (1000-6000 km)
+      const vanAllenInner = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 6000, 32, 16, 0, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0xc084fc, wireframe: true, transparent: true, opacity: 0.15 })
+      );
+      cutawayGroup.add(vanAllenInner);
+
+      // MEO Cage (20,200 km)
+      const meoShell = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 20200, 32, 16, 0, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24, wireframe: true, transparent: true, opacity: 0.15 })
+      );
+      cutawayGroup.add(meoShell);
+
+      // GEO Shell (35,786 km)
+      const geoShell = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 35786, 32, 16, 0, Math.PI),
+        new THREE.MeshBasicMaterial({ color: 0x34d399, wireframe: true, transparent: true, opacity: 0.25 })
+      );
+      cutawayGroup.add(geoShell);
+
+      cutawayGroup.visible = false;
+      scene.add(cutawayGroup);
+    }
+
+    /* =========================================================================
+     * 3. Surveillance Physics (Radar 1/R^4 vs Optical 1/R^2)
+     * ========================================================================= */
+    function buildSensorPhysics() {
+      sensorPhysicsGroup = new THREE.Group();
+
+      // Radar Fence Sphere Shell (LEO cutoff at 2,000 km)
+      const radarSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 2000, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.18, wireframe: true })
+      );
+      sensorPhysicsGroup.add(radarSphere);
+
+      // Optical Surveillance Boundary Shell (MEO to GEO)
+      const opticalSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(R_EARTH + 36000, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.08, wireframe: true })
+      );
+      sensorPhysicsGroup.add(opticalSphere);
+
+      sensorPhysicsGroup.visible = false;
+      scene.add(sensorPhysicsGroup);
+    }
+
+    /* =========================================================================
+     * 4. Hohmann Transfer Trajectory
+     * ========================================================================= */
+    function buildTransferTrajectory() {
+      const pts = [];
+      for (let i = 0; i <= 64; i++) {
+        pts.push(new THREE.Vector3());
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 2.5 });
+      transferOrbitLine = new THREE.Line(geom, mat);
+      scene.add(transferOrbitLine);
+      updateTransferTrajectory('deorbit');
+    }
+
+    function updateTransferTrajectory(type) {
+      activeTransfer = type;
+      let r1 = R_EARTH + 408;  // LEO
+      let r2 = R_EARTH + 408;
+
+      if (type === 'deorbit') {
+        r1 = R_EARTH + 408;
+        r2 = R_EARTH + 80; // Entry interface
+      } else if (type === 'gto') {
+        r1 = R_EARTH + 408;
+        r2 = R_EARTH + 35786; // GEO
+      } else if (type === 'meo') {
+        r1 = R_EARTH + 408;
+        r2 = R_EARTH + 20180; // GPS
+      } else if (type === 'graveyard') {
+        r1 = R_EARTH + 35786;
+        r2 = R_EARTH + 36086; // +300 km
+      }
+
+      // Hohmann semi-major axis & eccentricity
+      const a_trans = (r1 + r2) / 2;
+      const e_trans = Math.abs(r2 - r1) / (r2 + r1);
+
+      const pts = [];
+      for (let i = 0; i <= 64; i++) {
+        const nu = (i / 64) * Math.PI; // Half-ellipse transfer
+        const r = a_trans * (1 - e_trans * e_trans) / (1 + e_trans * Math.cos(nu));
+        pts.push(new THREE.Vector3(r * Math.cos(nu), 0, r * Math.sin(nu)));
+      }
+      transferOrbitLine.geometry.setFromPoints(pts);
+
+      // Update right deck telemetry according to active transfer
+      updateTransferTelemetry(type, r1, r2, a_trans);
+    }
+
+    function updateTransferTelemetry(type, r1, r2, a_trans) {
+      const v1 = Math.sqrt(MU / r1);
+      const v_trans1 = Math.sqrt(MU * (2 / r1 - 1 / a_trans));
+      const dv1 = Math.abs(v_trans1 - v1);
+
+      const v2 = Math.sqrt(MU / r2);
+      const v_trans2 = Math.sqrt(MU * (2 / r2 - 1 / a_trans));
+      const dv2 = Math.abs(v2 - v_trans2);
+
+      const totalDv = dv1 + dv2;
+      const specEnergy = -MU / (2 * a_trans);
+
+      let title = '', regimeKey = 'leo';
+      if (type === 'deorbit') { title = 'LEO Controlled Atmospheric Deorbit'; regimeKey = 'leo'; }
+      else if (type === 'gto') { title = 'Geostationary Transfer Orbit (GTO)'; regimeKey = 'geo'; }
+      else if (type === 'meo') { title = 'MEO GNSS Insertion Transfer'; regimeKey = 'meo'; }
+      else { title = 'GEO Graveyard Disposal Re-orbit'; regimeKey = 'geo'; }
+
+      const reg = REGIMES[regimeKey];
+      document.getElementById('tel-regime-title').textContent = title;
+      document.getElementById('tel-regime-desc').textContent = `Total Hohmann transfer budget: Δv = ${totalDv > 1 ? totalDv.toFixed(2) + ' km/s' : (totalDv * 1000).toFixed(0) + ' m/s'}.`;
+      document.getElementById('tel-specific-energy').innerHTML = `${specEnergy.toFixed(1)}<span class="tel-unit">MJ/kg</span>`;
+      document.getElementById('tel-velocity').innerHTML = `${v1.toFixed(2)}<span class="tel-unit">km/s</span>`;
+      document.getElementById('tel-potential').innerHTML = `${(-MU / r1).toFixed(1)}<span class="tel-unit">MJ/kg</span>`;
+      document.getElementById('tel-period').innerHTML = `${((2 * Math.PI * Math.sqrt(Math.pow(a_trans, 3) / MU)) / 60).toFixed(1)}<span class="tel-unit">min</span>`;
+
+      document.getElementById('tel-dom-force').textContent = reg.domForce;
+      document.getElementById('tel-force-desc').textContent = reg.forceDesc;
+      document.getElementById('tel-sensor-rule').textContent = reg.sensorRule;
+      document.getElementById('tel-sensor-desc').textContent = reg.sensorDesc;
+    }
+
+    /* =========================================================================
+     * Animation & Interactive Mode Switching
+     * ========================================================================= */
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (isPlaying) {
+        simTime += dt * 60;
+        earthMesh.rotation.y = (OMEGA_EARTH * simTime);
+
+        // Animate particles along the gravity funnel
+        if (particlesMesh && activeViewMode === 'well') {
+          const posAttr = particlesMesh.geometry.attributes.position;
+          const posArr = posAttr.array;
+          for (let p = 0; p < WELL_PARTICLES.length; p++) {
+            const item = WELL_PARTICLES[p];
+            item.angle += item.speed * dt * 10;
+            const r = R_EARTH + item.h;
+            const y = (-MU / r + 62.5) * 450;
+            posArr[p * 3]     = r * Math.cos(item.angle);
+            posArr[p * 3 + 1] = y;
+            posArr[p * 3 + 2] = r * Math.sin(item.angle);
+          }
+          posAttr.needsUpdate = true;
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // UI Event Handlers
+    document.getElementById('tab-well').addEventListener('click', () => switchViewMode('well'));
+    document.getElementById('tab-cutaway').addEventListener('click', () => switchViewMode('cutaway'));
+    document.getElementById('tab-radar-optical').addEventListener('click', () => switchViewMode('radar_optical'));
+
+    function switchViewMode(mode) {
+      activeViewMode = mode;
+      ['tab-well', 'tab-cutaway', 'tab-radar-optical'].forEach(id => document.getElementById(id).classList.remove('active'));
+
+      funnelMesh.visible = (mode === 'well');
+      contourRings.forEach(r => r.visible = (mode === 'well'));
+      particlesMesh.visible = (mode === 'well');
+      cutawayGroup.visible = (mode === 'cutaway');
+      sensorPhysicsGroup.visible = (mode === 'radar_optical');
+
+      if (mode === 'well') {
+        document.getElementById('tab-well').classList.add('active');
+        camera.position.set(0, 32000, 48000);
+      } else if (mode === 'cutaway') {
+        document.getElementById('tab-cutaway').classList.add('active');
+        camera.position.set(35000, 18000, 42000);
+      } else {
+        document.getElementById('tab-radar-optical').classList.add('active');
+        camera.position.set(0, 24000, 52000);
+      }
+    }
+
+    document.querySelectorAll('.transfer-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.transfer-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateTransferTrajectory(btn.dataset.transfer);
+      });
+    });
+
+    const playBtn = document.getElementById('btn-play');
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '❚❚ Pause' : '▶ Play';
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      camera.position.set(0, 32000, 48000);
+      controls.target.set(0, 0, 0);
+    });
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
